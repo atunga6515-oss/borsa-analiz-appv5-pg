@@ -4,9 +4,25 @@ __pycache__/
 
 # Veritabanı dosyaları
 *.db
+*.sqlite3
 
-# Sanal ortam (opsiyonel)
+# Sanal ortam
 venv/
+env/
 .env
-.streamlit/secrets.tom
-.streamlit
+
+# Streamlit (Eski V4)
+.streamlit/secrets.toml
+.streamlit/
+
+# Node.js & Next.js (V5 Frontend)
+node_modules/
+frontend/node_modules/
+.next/
+frontend/.next/
+*.log
+.DS_Store
+
+# Patch and temp files
+*.patch
+tmp_kap.json

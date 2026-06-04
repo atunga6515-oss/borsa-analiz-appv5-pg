@@ -1,32 +1,32 @@
+import os
 import requests
-import streamlit as st
+from dotenv import load_dotenv
 
-def send_telegram_report(text: str) -> bool:
+load_dotenv()
+
+def send_telegram_report(text: str) -> dict:
     """
-    st.secrets içindeki token ve chat_id bilgilerini kullanarak 
+    .env içindeki token ve chat_id bilgilerini kullanarak 
     Telegram üzerinden Markdown formatında rapor gönderir.
     """
-    token = st.secrets.get("TELEGRAM_BOT_TOKEN")
-    chat_id = st.secrets.get("TELEGRAM_CHAT_ID")
+    token = os.getenv("TELEGRAM_BOT_TOKEN")
+    chat_id = os.getenv("TELEGRAM_CHAT_ID")
     
     if not token or not chat_id:
-        st.error("❌ Telegram API bilgileri (TOKEN/CHAT_ID) secrets.toml içinde eksik!")
-        return False
+        return {"success": False, "message": "Telegram API bilgileri (TOKEN/CHAT_ID) .env içinde eksik!"}
         
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     payload = {
         "chat_id": chat_id,
         "text": text,
-        "parse_mode": "Markdown"  # Veya MarkdownV2
+        "parse_mode": "Markdown"
     }
     
     try:
         response = requests.post(url, json=payload, timeout=10)
         if response.status_code == 200:
-            return True
+            return {"success": True, "message": "Gönderim başarılı"}
         else:
-            st.error(f"Telegram Hatası: {response.text}")
-            return False
+            return {"success": False, "message": f"Telegram Hatası: {response.text}"}
     except Exception as e:
-        st.error(f"Telegram Bağlantı Hatası: {str(e)}")
-        return False
+        return {"success": False, "message": f"Telegram Bağlantı Hatası: {str(e)}"}

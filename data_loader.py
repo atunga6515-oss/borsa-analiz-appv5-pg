@@ -204,7 +204,24 @@ def fetch_data(symbol: str, interval: str = "1d", period: str = "1y") -> pd.Data
                     _save_to_db(df_new, ticker, interval)
 
     # Veritabanındaki güncel halini döndür
-    return _load_from_db(ticker, interval)
+    final_df = _load_from_db(ticker, interval)
+    
+    # Anlık fiyat uyumsuzluğunu (Dashboard vs Analiz) gidermek için günün son mumunu anlık API'den yama yap
+    if interval == "1d":
+        try:
+            live_df = _download_from_yfinance(ticker, interval="1d", period="1d")
+            if not live_df.empty:
+                live_idx = live_df.index[-1]
+                if not final_df.empty and live_idx in final_df.index:
+                    # Var olan o günün mumunu taze live mumuyla güncelle
+                    final_df.loc[live_idx] = live_df.iloc[-1]
+                else:
+                    # Yeni bir gün mumu ise dataframe'in sonuna ekle
+                    final_df = pd.concat([final_df, live_df])
+        except Exception as e:
+            pass
+            
+    return final_df
 
 
 @st.cache_data(ttl=300)

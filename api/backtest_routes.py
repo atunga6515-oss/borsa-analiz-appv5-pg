@@ -1,0 +1,57 @@
+from fastapi import APIRouter
+from pydantic import BaseModel
+from advanced_backtest import run_advanced_backtest
+from data_loader import fetch_data
+import pandas as pd
+import math
+import numpy as np
+
+router = APIRouter(prefix="/api/backtest", tags=["backtest"])
+
+class BacktestRequest(BaseModel):
+    ticker: str
+    initial_capital: float = 100000.0
+    commission_rate: float = 0.002
+    lookback_days: int = 180
+
+@router.post("/")
+def run_backtest(req: BacktestRequest):
+    # Veri çekimi: "2y" periodu indikator ve backtest için yeterlidir.
+    df = fetch_data(req.ticker.upper(), interval="1d", period="2y")
+    if df.empty:
+        return {"error": "Veri bulunamadı."}
+        
+    result = run_advanced_backtest(
+        df_full=df, 
+        initial_capital=req.initial_capital,
+        commission_rate=req.commission_rate,
+        lookback_days=req.lookback_days
+    )
+    
+    if "error" in result:
+        return result
+        
+    # JSON serileştirmesi için Pandas tiplerini düzelt
+    equity_curve = result["equity_curve"].reset_index()
+    # Tarih formatını string yap
+    equity_curve["Date"] = equity_curve["Date"].dt.strftime("%Y-%m-%d")
+    equity_curve = equity_curve.replace({np.nan: None})
+    
+    trades = []
+    for t in result["trades"]:
+        t_copy = t.copy()
+        t_copy["Date"] = t_copy["Date"].strftime("%Y-%m-%d") if hasattr(t_copy["Date"], "strftime") else str(t_copy["Date"])
+        trades.append(t_copy)
+    
+    return {
+        "final_equity": result["final_equity"],
+        "total_return_pct": result["total_return_pct"],
+        "max_drawdown_pct": result["max_drawdown_pct"],
+        "buy_and_hold_return_pct": result["buy_and_hold_return_pct"],
+        "risk_free_return_pct": result["risk_free_return_pct"],
+        "alpha_bh": result["alpha_bh"],
+        "alpha_rf": result["alpha_rf"],
+        "number_of_trades": result["number_of_trades"],
+        "trades": trades,
+        "equity_curve": equity_curve.to_dict(orient="records")
+    }

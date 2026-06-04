@@ -2,7 +2,7 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///borsa_app.db")
+DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://localhost/borsa_v5")
 
 # Render veya Heroku gibi servislerde bazen postgres:// kalabiliyor, sqlalchemy postgresql:// istiyor
 if DATABASE_URL.startswith("postgres://"):
@@ -23,5 +23,48 @@ def get_db():
         db.close()
 
 def init_db():
+    from sqlalchemy import text
     # Bu fonksiyon tablo modelleri import edildikten sonra çağrılacak
     Base.metadata.create_all(bind=engine)
+    
+    # Raw SQL tablolari icin CREATE IF NOT EXISTS (SQLite / Postgres uyumlu)
+    is_pg = engine.name == "postgresql"
+    serial_type = "SERIAL" if is_pg else "INTEGER"
+    
+    with engine.begin() as conn:
+        conn.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS watchlist (
+                id {serial_type} PRIMARY KEY,
+                username VARCHAR(255),
+                ticker VARCHAR(20),
+                added_date VARCHAR(50),
+                note TEXT
+            )
+        """))
+        
+        conn.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS top_picks_history (
+                id {serial_type} PRIMARY KEY,
+                username VARCHAR(255),
+                run_date VARCHAR(50),
+                results_json TEXT
+            )
+        """))
+        
+        conn.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS portfolio (
+                id {serial_type} PRIMARY KEY,
+                username VARCHAR(255),
+                ticker VARCHAR(20),
+                adet FLOAT,
+                alis_fiyati FLOAT,
+                alis_tarihi VARCHAR(50),
+                satis_fiyati FLOAT,
+                satis_tarihi VARCHAR(50),
+                durum VARCHAR(20),
+                not_text TEXT,
+                sl FLOAT,
+                tp FLOAT,
+                var FLOAT
+            )
+        """))

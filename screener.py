@@ -211,8 +211,9 @@ def add_to_watchlist(username: str, ticker: str, note: str = ""):
         with engine.begin() as conn:
             conn.execute(text("INSERT INTO watchlist (username, ticker, added_date, note) VALUES (:u,:t,:d,:n)"),
                           {"u": username, "t": ticker, "d": datetime.now(TR_TZ).strftime("%Y-%m-%d %H:%M"), "n": note})
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Watchlist insert error: {e}")
+        # Not throwing so API doesn't crash but at least we see the log
 
 def remove_from_watchlist(username: str, ticker: str):
     with engine.begin() as conn:

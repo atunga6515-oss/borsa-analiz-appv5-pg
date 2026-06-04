@@ -98,7 +98,7 @@ def calculate_indicators(df: pd.DataFrame, ticker: str = None) -> pd.DataFrame:
 def detect_rsi_divergence(df: pd.DataFrame, window: int = 30) -> dict:
     """Son iki tepe/dip üzerinden RSI uyumsuzluğu tespiti yapar."""
     if len(df) < window or 'RSI_14' not in df.columns:
-        return {"type": "Normal", "bonus": 0, "text": ""}
+        return {"type": "Normal", "bonus": 0, "summary": ""}
     
     def find_peaks(arr):
         peaks = []
@@ -204,7 +204,7 @@ def detect_liquidity_sweep(df: pd.DataFrame, window: int = 20) -> dict:
 def calculate_obv_divergence(df: pd.DataFrame, window: int = 10) -> dict:
     """Fiyatın yatay/düşüşte, OBV'nin yüksek olmasını tespit eder (Kurumsal Toplama)."""
     if len(df) < window or 'OBV' not in df.columns:
-        return {"detected": False, "score": 0, "text": ""}
+        return {"detected": False, "score": 0, "summary": ""}
         
     sub = df.tail(window)
     price_change = (sub['Close'].iloc[-1] - sub['Close'].iloc[0]) / sub['Close'].iloc[0] * 100
@@ -481,11 +481,16 @@ def generate_signals_and_score(df: pd.DataFrame, ticker: str = "", market_regime
         if reversal['detected']: decision = "🔥 Tepki Potansiyeli"
         
         # Risk / ATR & R/R Hesabı
-        atr = last.get('ATRr_14', close_price * 0.03)
+        atr = last.get('ATRr_14')
+        if pd.isna(atr) or atr == 0:
+            atr = close_price * 0.03
+            
         # Trailing Stop (Izleyen Stop) Hesabi
         try:
             lookback = 20
             highest_high = float(df['High'].rolling(window=lookback).max().iloc[-1])
+            if pd.isna(highest_high):
+                highest_high = close_price
             trailing_stop = round(highest_high - (atr * 2.5), 2)
             if trailing_stop > close_price:
                 trailing_stop = round(close_price * 0.99, 2)

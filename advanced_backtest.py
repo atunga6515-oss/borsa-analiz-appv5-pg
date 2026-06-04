@@ -1,9 +1,7 @@
 import pandas as pd
 import numpy as np
-import streamlit as st
 from indicators import generate_signals_and_score, calculate_indicators
 
-@st.cache_data(ttl=600, show_spinner=False)
 def run_advanced_backtest(df_full: pd.DataFrame, initial_capital: float = 100000.0, commission_rate: float = 0.002, lookback_days: int = 180):
     """
     Gelişmiş Portföy Simülasyonu.
