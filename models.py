@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Text, Boolean, DateTime, UniqueConstraint
+from sqlalchemy import Column, Integer, BigInteger, String, Float, Text, Boolean, DateTime, UniqueConstraint
 from database import Base
 import datetime
 
@@ -80,7 +80,7 @@ class Ohlcv(Base):
     low = Column(Float)
     close = Column(Float)
     adj_close = Column(Float)
-    volume = Column(Integer)
+    volume = Column(BigInteger)
 
 class FinancialData(Base):
     __tablename__ = 'financial_data'
