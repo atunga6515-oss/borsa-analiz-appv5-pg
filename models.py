@@ -69,3 +69,27 @@ class TopPicksHistory(Base):
     username = Column(String(255), index=True)
     run_date = Column(String(50), nullable=False)
     results_json = Column(Text, nullable=False)
+
+class Ohlcv(Base):
+    __tablename__ = 'ohlcv'
+    ticker = Column(String(50), primary_key=True)
+    interval = Column(String(10), primary_key=True)
+    date = Column(String(50), primary_key=True)
+    open = Column(Float)
+    high = Column(Float)
+    low = Column(Float)
+    close = Column(Float)
+    adj_close = Column(Float)
+    volume = Column(Integer)
+
+class FinancialData(Base):
+    __tablename__ = 'financial_data'
+    ticker = Column(String(50), primary_key=True)
+    date = Column(String(50), primary_key=True)
+    financials_json = Column(Text)
+
+class InfoData(Base):
+    __tablename__ = 'info_data'
+    ticker = Column(String(50), primary_key=True)
+    info_json = Column(Text)
+    last_updated = Column(String(50))
