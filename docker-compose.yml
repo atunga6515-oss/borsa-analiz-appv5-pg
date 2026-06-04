@@ -1,6 +1,18 @@
 version: '3.8'
 
 services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: borsa_app
+      TZ: Europe/Istanbul
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   backend:
     build:
       context: .
@@ -11,6 +23,11 @@ services:
       - ./:/app
     env_file:
       - .env.example
+    environment:
+      - TZ=Europe/Istanbul
+      - DATABASE_URL=postgresql://postgres:password@db:5432/borsa_app
+    depends_on:
+      - db
     command: python main.py
 
   frontend:
@@ -24,4 +41,10 @@ services:
       - /app/node_modules
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - TZ=Europe/Istanbul
+    depends_on:
+      - backend
     command: npm run dev
+
+volumes:
+  postgres_data:

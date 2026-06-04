@@ -36,38 +36,62 @@ def _make_ticker(symbol: str) -> str:
     return f"{symbol_upper}.IS"
 
 def _save_to_db(df: pd.DataFrame, ticker: str, interval: str):
-    """DataFrame'i veritabanına yazar (DB dialectine göre Upsert)."""
+    """DataFrame'i veritabanına yazar (DB dialectine göre toplu/bulk Upsert)."""
     if df.empty:
         return
         
-    with engine.begin() as conn:
-        for idx, row in df.iterrows():
-            date_str = str(idx.date()) if hasattr(idx, 'date') else str(idx)
-            params = {
-                "t": ticker, "d": date_str, "i": interval,
-                "o": float(row.get('Open', 0)),
-                "h": float(row.get('High', 0)),
-                "l": float(row.get('Low', 0)),
-                "c": float(row.get('Close', 0)),
-                "a": float(row.get('Adj Close', row.get('Close', 0))),
-                "v": float(row.get('Volume', 0))
-            }
+    # Sütun adlarını veritabanı şemasına uygun hale getirelim
+    df_db = df.copy()
+    df_db = df_db.rename(columns={
+        'Open': 'open', 'High': 'high', 'Low': 'low', 
+        'Close': 'close', 'Adj Close': 'adj_close', 'Volume': 'volume'
+    })
+    
+    if 'adj_close' not in df_db.columns:
+        df_db['adj_close'] = df_db.get('close', 0.0)
+        
+    df_db['ticker'] = ticker
+    df_db['interval'] = interval
+    
+    # Tarihi index'ten veya Date sütunundan çekip 'date' yapalım
+    if isinstance(df_db.index, pd.DatetimeIndex) or getattr(df_db.index, 'name', None) in ['Date', 'date']:
+        df_db['date'] = df_db.index
+        # Index type datetime ise string'e çevir:
+        if isinstance(df_db.index, pd.DatetimeIndex):
+             df_db['date'] = df_db['date'].dt.strftime('%Y-%m-%d')
+        else:
+             df_db['date'] = df_db['date'].astype(str)
+        df_db = df_db.reset_index(drop=True)
+    elif 'Date' in df_db.columns:
+        df_db['date'] = df_db['Date'].astype(str)
+        
+    cols = ['ticker', 'date', 'interval', 'open', 'high', 'low', 'close', 'adj_close', 'volume']
+    df_db = df_db[[c for c in cols if c in df_db.columns]]
+    df_db = df_db.fillna(0.0)
+    
+    if engine.name == 'postgresql':
+        from sqlalchemy.dialects.postgresql import insert
+        def psql_upsert(table, conn, keys, data_iter):
+            data = [dict(zip(keys, row)) for row in data_iter]
+            stmt = insert(table.table).values(data)
+            stmt = stmt.on_conflict_do_update(
+                index_elements=['ticker', 'date', 'interval'],
+                set_={c.key: c for c in stmt.excluded if c.key not in ['ticker', 'date', 'interval']}
+            )
+            conn.execute(stmt)
             
-            if engine.name == 'postgresql':
-                q = text("""
-                    INSERT INTO ohlcv (ticker, date, interval, open, high, low, close, adj_close, volume)
-                    VALUES (:t, :d, :i, :o, :h, :l, :c, :a, :v)
-                    ON CONFLICT (ticker, date, interval) DO UPDATE SET
-                    open=EXCLUDED.open, high=EXCLUDED.high, low=EXCLUDED.low, 
-                    close=EXCLUDED.close, adj_close=EXCLUDED.adj_close, volume=EXCLUDED.volume
-                """)
-            else:
-                q = text("""
-                    INSERT OR REPLACE INTO ohlcv
-                    (ticker, date, interval, open, high, low, close, adj_close, volume)
-                    VALUES (:t, :d, :i, :o, :h, :l, :c, :a, :v)
-                """)
-            conn.execute(q, params)
+        # Toplu yazma operasyonu
+        df_db.to_sql('ohlcv', engine, if_exists='append', index=False, method=psql_upsert, chunksize=500)
+    else:
+        # SQLite fallback: hızlı execute_many insert/replace
+        with engine.begin() as conn:
+            records = df_db.to_dict('records')
+            q = text("""
+                INSERT OR REPLACE INTO ohlcv
+                (ticker, date, interval, open, high, low, close, adj_close, volume)
+                VALUES (:ticker, :date, :interval, :open, :high, :low, :close, :adj_close, :volume)
+            """)
+            conn.execute(q, records)
 
 def _load_from_db(ticker: str, interval: str) -> pd.DataFrame:
     """Veritabanından o ticker'ın tüm kayıtlı verisini DataFrame olarak döndürür."""

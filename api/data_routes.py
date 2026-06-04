@@ -39,6 +39,39 @@ def fetch_ohlcv(ticker: str, interval: str = "1d", period: str = "1y"):
                 "ema50": float(row.get('EMA_50', 0)) if not pd.isna(row.get('EMA_50')) else None,
             })
         return {"data": records}
+
+@router.get("/v1/charts/{ticker}")
+def fetch_tradingview_charts(ticker: str, interval: str = "1d", period: str = "1y"):
+    """TradingView Lightweight Charts için Epoch saniye cinsinden grafik verisi."""
+    df = fetch_data(ticker.upper(), interval, period)
+    if df is None or df.empty:
+        return []
+        
+    df = df.sort_index()
+    df = df[~df.index.duplicated(keep='first')]
+    
+    # NaN and Inf handling
+    df.replace([np.inf, -np.inf], np.nan, inplace=True)
+    df.fillna(0, inplace=True)
+    
+    records = []
+    for idx, row in df.iterrows():
+        # Epoch (Unix timestamp in seconds)
+        if isinstance(idx, pd.Timestamp):
+            unix_time = int(idx.timestamp())
+        else:
+            unix_time = int(pd.to_datetime(idx).timestamp())
+            
+        records.append({
+            "time": unix_time,
+            "open": float(row.get('Open', 0)),
+            "high": float(row.get('High', 0)),
+            "low": float(row.get('Low', 0)),
+            "close": float(row.get('Close', 0)),
+            "volume": float(row.get('Volume', 0))
+        })
+    return records
+
 @router.get("/price/{ticker}")
 def fetch_live_price(ticker: str):
     price = get_live_price(ticker.upper())

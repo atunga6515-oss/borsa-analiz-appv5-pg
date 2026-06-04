@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, BigInteger, String, Float, Text, Boolean, DateTime, UniqueConstraint
+from sqlalchemy import Column, Integer, BigInteger, String, Float, Text, Boolean, DateTime, UniqueConstraint, Index
 from database import Base
 import datetime
 
@@ -72,7 +72,7 @@ class TopPicksHistory(Base):
 
 class Ohlcv(Base):
     __tablename__ = 'ohlcv'
-    ticker = Column(String(50), primary_key=True)
+    ticker = Column(String(50), primary_key=True, index=True)
     interval = Column(String(10), primary_key=True)
     date = Column(String(50), primary_key=True)
     open = Column(Float)
@@ -81,6 +81,10 @@ class Ohlcv(Base):
     close = Column(Float)
     adj_close = Column(Float)
     volume = Column(BigInteger)
+    
+    __table_args__ = (
+        Index('idx_ticker_date', 'ticker', 'date'),
+    )
 
 class FinancialData(Base):
     __tablename__ = 'financial_data'

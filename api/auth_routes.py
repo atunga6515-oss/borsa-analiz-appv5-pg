@@ -44,7 +44,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         return "admin"
 
 @router.post("/token", response_model=Token)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     if not verify_login(form_data.username, form_data.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -55,5 +55,5 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.get("/me")
-async def read_users_me(current_user: str = Depends(get_current_user)):
+def read_users_me(current_user: str = Depends(get_current_user)):
     return {"username": current_user}
