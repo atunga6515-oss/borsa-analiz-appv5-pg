@@ -3,14 +3,15 @@ Alarm Yönetim Modülü — v3.0.0
 Fiyat, RSI, SMA Cross, Hacim, Destek/Direnç bazlı alarm CRUD ve tetikleme motoru.
 SQLite persistence ile kalıcı alarm desteği.
 """
-import sqlite3
 import pandas as pd
 import os
 from datetime import datetime
 import pytz
+from database import engine, get_db
+from sqlalchemy import text
+from models import Alert
 
 TR_TZ = pytz.timezone("Europe/Istanbul")
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bist_cache.db")
 
 # ============================================================
 # ALARM TİPLERİ
@@ -26,104 +27,61 @@ ALERT_TYPES = {
     "DESTEK_KIRILIM": "⚡ Destek Kırılımı (Fiyat desteğin altına düştü)",
 }
 
-
-def _get_alert_conn():
-    """Alarm veritabanı bağlantısını oluşturur ve tabloyu hazırlar."""
-    conn = sqlite3.connect(DB_PATH)
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS alerts (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL,
-            ticker TEXT NOT NULL,
-            alert_type TEXT NOT NULL,
-            threshold REAL NOT NULL,
-            status TEXT DEFAULT 'AKTIF',
-            note TEXT,
-            created_at TEXT NOT NULL,
-            triggered_at TEXT,
-            triggered_value REAL
-        )
-    """)
-    conn.commit()
-    return conn
-
-
 # ============================================================
 # CRUD İŞLEMLERİ
 # ============================================================
 
 def create_alert(username: str, ticker: str, alert_type: str, threshold: float, note: str = "") -> int:
-    """
-    Yeni alarm oluşturur.
-    
-    Args:
-        username: Kullanıcı adı
-        ticker: Hisse kodu
-        alert_type: Alarm tipi (ALERT_TYPES key'lerinden biri)
-        threshold: Eşik değeri (fiyat, RSI, SMA periyodu, hacim çarpanı vb.)
-        note: Kullanıcı notu
-    
-    Returns:
-        int: Oluşturulan alarm ID'si
-    """
-    conn = _get_alert_conn()
-    cursor = conn.execute("""
-        INSERT INTO alerts (username, ticker, alert_type, threshold, status, note, created_at)
-        VALUES (?, ?, ?, ?, 'AKTIF', ?, ?)
-    """, (username, ticker.upper(), alert_type, threshold, note,
-          datetime.now(TR_TZ).strftime("%Y-%m-%d %H:%M:%S")))
-    conn.commit()
-    alert_id = cursor.lastrowid
-    conn.close()
-    return alert_id
+    """Yeni alarm oluşturur."""
+    db = next(get_db())
+    new_alert = Alert(
+        username=username,
+        ticker=ticker.upper(),
+        alert_type=alert_type,
+        threshold=threshold,
+        status='AKTIF',
+        note=note,
+        created_at=datetime.now(TR_TZ).strftime("%Y-%m-%d %H:%M:%S")
+    )
+    db.add(new_alert)
+    db.commit()
+    db.refresh(new_alert)
+    return new_alert.id
 
 
 def delete_alert(alert_id: int):
     """Alarmı siler."""
-    conn = _get_alert_conn()
-    conn.execute("DELETE FROM alerts WHERE id = ?", (alert_id,))
-    conn.commit()
-    conn.close()
+    with engine.begin() as conn:
+        conn.execute(text("DELETE FROM alerts WHERE id = :id"), {"id": alert_id})
 
 
 def deactivate_alert(alert_id: int):
     """Alarmı devre dışı bırakır (silmeden)."""
-    conn = _get_alert_conn()
-    conn.execute("UPDATE alerts SET status = 'IPTAL' WHERE id = ?", (alert_id,))
-    conn.commit()
-    conn.close()
+    with engine.begin() as conn:
+        conn.execute(text("UPDATE alerts SET status = 'IPTAL' WHERE id = :id"), {"id": alert_id})
 
 
 def get_active_alerts(username: str) -> pd.DataFrame:
     """Kullanıcının aktif alarmlarını döndürür."""
-    conn = _get_alert_conn()
-    df = pd.read_sql_query(
-        "SELECT * FROM alerts WHERE username = ? AND status = 'AKTIF' ORDER BY created_at DESC",
-        conn, params=(username,)
-    )
-    conn.close()
+    with engine.connect() as conn:
+        query = "SELECT * FROM alerts WHERE username = %(u)s AND status = 'AKTIF' ORDER BY created_at DESC" if engine.name == 'postgresql' else "SELECT * FROM alerts WHERE username = ? AND status = 'AKTIF' ORDER BY created_at DESC"
+        df = pd.read_sql_query(query, conn, params={"u": username} if engine.name == 'postgresql' else (username,))
     return df
 
 
 def get_alert_history(username: str) -> pd.DataFrame:
     """Kullanıcının tetiklenmiş alarm geçmişini döndürür."""
-    conn = _get_alert_conn()
-    df = pd.read_sql_query(
-        "SELECT * FROM alerts WHERE username = ? AND status = 'TETIKLENDI' ORDER BY triggered_at DESC",
-        conn, params=(username,)
-    )
-    conn.close()
+    with engine.connect() as conn:
+        query = "SELECT * FROM alerts WHERE username = %(u)s AND status = 'TETIKLENDI' ORDER BY triggered_at DESC" if engine.name == 'postgresql' else "SELECT * FROM alerts WHERE username = ? AND status = 'TETIKLENDI' ORDER BY triggered_at DESC"
+        df = pd.read_sql_query(query, conn, params={"u": username} if engine.name == 'postgresql' else (username,))
     return df
 
 
 def get_all_alerts(username: str) -> pd.DataFrame:
     """Kullanıcının tüm alarmlarını döndürür (aktif + tetiklenmiş + iptal)."""
-    conn = _get_alert_conn()
-    df = pd.read_sql_query(
-        "SELECT * FROM alerts WHERE username = ? ORDER BY created_at DESC",
-        conn, params=(username,)
-    )
-    conn.close()
+    with engine.connect() as conn:
+        query = "SELECT * FROM alerts WHERE username = %(u)s ORDER BY created_at DESC" if engine.name == 'postgresql' else "SELECT * FROM alerts WHERE username = ? ORDER BY created_at DESC"
+        df = pd.read_sql_query(query, conn, params={"u": username} if engine.name == 'postgresql' else (username,))
     return df
 
 
@@ -133,13 +91,15 @@ def get_all_alerts(username: str) -> pd.DataFrame:
 
 def _trigger_alert(alert_id: int, current_value: float):
     """Alarmı tetiklenmiş olarak işaretler."""
-    conn = _get_alert_conn()
-    conn.execute("""
-        UPDATE alerts SET status = 'TETIKLENDI', triggered_at = ?, triggered_value = ?
-        WHERE id = ?
-    """, (datetime.now(TR_TZ).strftime("%Y-%m-%d %H:%M:%S"), current_value, alert_id))
-    conn.commit()
-    conn.close()
+    with engine.begin() as conn:
+        conn.execute(text("""
+            UPDATE alerts SET status = 'TETIKLENDI', triggered_at = :t, triggered_value = :v
+            WHERE id = :id
+        """), {
+            "t": datetime.now(TR_TZ).strftime("%Y-%m-%d %H:%M:%S"),
+            "v": current_value,
+            "id": alert_id
+        })
 
 
 def check_alerts(username: str) -> list:

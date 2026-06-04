@@ -9,11 +9,19 @@ APP_VERSION = "v3.0.2"
 # from warrant_engine import WarrantEngine as we
 # import warrant_data as wd
 # import warrant_scraper as ws
+import urllib.parse
+from auth import verify_login, init_auth_db, update_password
+import math
+from database import init_db
+import models
 import numpy as np
 import requests
 import time
 from datetime import datetime
 import pytz
+
+# Uygulama başlatılırken veritabanı tabloları oluşturulur
+init_db()
 TR_TZ = pytz.timezone("Europe/Istanbul")
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from data_loader import fetch_data, get_db_stats, clear_db, get_ticker_db_info, get_live_price

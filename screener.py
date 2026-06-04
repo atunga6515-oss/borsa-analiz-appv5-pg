@@ -1,7 +1,10 @@
 import pandas as pd
 import streamlit as st
-import sqlite3
 import os
+from datetime import datetime
+import pytz
+from database import engine
+from sqlalchemy import text
 from datetime import datetime
 import pytz
 
@@ -147,82 +150,51 @@ def filter_by_sector(symbol_list: list, sector: str) -> list:
 
 
 # ============================================================
-# TARAMA GEÇMİŞİ - SQLite (YENİ - Özellik 2)
+# TARAMA GEÇMİŞİ (YENİ - Özellik 2)
 # ============================================================
 
-SCAN_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bist_cache.db")
-
-def _get_scan_conn():
-    conn = sqlite3.connect(SCAN_DB_PATH, timeout=30)
-    try:
-        conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("PRAGMA synchronous=NORMAL")
-    except:
-        pass
-        
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS scan_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT,
-            scan_date TEXT NOT NULL,
-            ticker TEXT NOT NULL,
-            score REAL,
-            decision TEXT,
-            price REAL,
-            pct_change REAL,
-            is_bad_signal INTEGER DEFAULT 0
-        )
-    """)
-    # Kolon yoksa ekle (Migration)
-    try:
-        conn.execute("ALTER TABLE scan_history ADD COLUMN is_bad_signal INTEGER DEFAULT 0")
-    except Exception:
-        pass
-    conn.commit()
-    return conn
-
 def save_scan_results(results_df: pd.DataFrame, username: str):
-    """Tarama sonuçlarını SQLite'a kaydeder."""
+    """Tarama sonuçlarını veritabanına kaydeder."""
     if results_df.empty:
         return
-    conn = _get_scan_conn()
     today = datetime.now(TR_TZ).strftime("%Y-%m-%d")
-    # Bugünün eski kayıtlarını sil (her taramada güncelle)
-    conn.execute("DELETE FROM scan_history WHERE scan_date=? AND username=?", (today, username))
-    for _, row in results_df.iterrows():
-        conn.execute(
-            "INSERT INTO scan_history (username, scan_date, ticker, score, decision, price, pct_change) VALUES (?,?,?,?,?,?,?)",
-            (username, today, row.get('Hisse',''), row.get('V6 Hibrit Skor',0), row.get('Piyasa Kararı',''), 
-             row.get('Fiyat', 0), row.get('Değişim (%)',0))
-        )
-    conn.commit()
-    conn.close()
+    with engine.begin() as conn:
+        # Bugünün eski kayıtlarını sil (her taramada güncelle)
+        conn.execute(text("DELETE FROM scan_history WHERE scan_date=:d AND username=:u"), {"d": today, "u": username})
+        for _, row in results_df.iterrows():
+            conn.execute(
+                text("INSERT INTO scan_history (username, scan_date, ticker, score, decision, price, pct_change) VALUES (:u, :d, :t, :s, :dec, :p, :pct)"),
+                {"u": username, "d": today, "t": row.get('Hisse',''), "s": row.get('V6 Hibrit Skor',0), 
+                 "dec": row.get('Piyasa Kararı',''), "p": row.get('Fiyat', 0), "pct": row.get('Değişim (%)',0)}
+            )
 
 def get_scan_history(username: str, days_back: int = 7) -> pd.DataFrame:
     """Belirli kullanıcıya ait son N günlük tarama geçmişini döndürür."""
-    conn = _get_scan_conn()
-    df = pd.read_sql_query(
-        "SELECT * FROM scan_history WHERE username=? ORDER BY scan_date DESC, score DESC",
-        conn, params=(username,)
-    )
-    conn.close()
+    with engine.connect() as conn:
+        query = "SELECT * FROM scan_history WHERE username=%(u)s ORDER BY scan_date DESC, score DESC" if engine.name == 'postgresql' else "SELECT * FROM scan_history WHERE username=? ORDER BY scan_date DESC, score DESC"
+        df = pd.read_sql_query(query, conn, params={"u": username} if engine.name == 'postgresql' else (username,))
     return df
 
 def get_persistent_signals(username: str, min_days: int = 2) -> pd.DataFrame:
     """Kullanıcıya özel ardışık günlerde aynı yönde sinyal veren hisseleri bulur."""
-    conn = _get_scan_conn()
-    df = pd.read_sql_query(
-        """SELECT ticker, decision, COUNT(DISTINCT scan_date) as gun_sayisi, 
+    with engine.connect() as conn:
+        query = """SELECT ticker, decision, COUNT(DISTINCT scan_date) as gun_sayisi, 
+           ROUND(AVG(score),1) as ort_skor,
+           MIN(scan_date) as ilk_tarih, MAX(scan_date) as son_tarih
+           FROM scan_history
+           WHERE decision NOT IN ('Nötr', '⚖️ Nötr / Konsolidasyon', 'Hata', 'Veri Yetersiz') AND username=%(u)s
+           GROUP BY ticker, decision
+           HAVING COUNT(DISTINCT scan_date) >= %(m)s
+           ORDER BY gun_sayisi DESC, ort_skor DESC""" if engine.name == 'postgresql' else """SELECT ticker, decision, COUNT(DISTINCT scan_date) as gun_sayisi, 
            ROUND(AVG(score),1) as ort_skor,
            MIN(scan_date) as ilk_tarih, MAX(scan_date) as son_tarih
            FROM scan_history
            WHERE decision NOT IN ('Nötr', '⚖️ Nötr / Konsolidasyon', 'Hata', 'Veri Yetersiz') AND username=?
            GROUP BY ticker, decision
            HAVING COUNT(DISTINCT scan_date) >= ?
-           ORDER BY gun_sayisi DESC, ort_skor DESC""",
-        conn, params=(username, min_days)
-    )
-    conn.close()
+           ORDER BY gun_sayisi DESC, ort_skor DESC"""
+        
+        df = pd.read_sql_query(query, conn, params={"u": username, "m": min_days} if engine.name == 'postgresql' else (username, min_days))
     return df
 
 
@@ -230,42 +202,26 @@ def get_persistent_signals(username: str, min_days: int = 2) -> pd.DataFrame:
 # WATCHLIST - İzleme Listesi (YENİ - Özellik 8)
 # ============================================================
 
-def _get_watchlist_conn():
-    conn = sqlite3.connect(SCAN_DB_PATH)
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS watchlist (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT,
-            ticker TEXT NOT NULL,
-            added_date TEXT NOT NULL,
-            note TEXT DEFAULT ''
-        )
-    """)
-    conn.commit()
-    return conn
+# ============================================================
+# WATCHLIST - İzleme Listesi (YENİ - Özellik 8)
+# ============================================================
 
 def add_to_watchlist(username: str, ticker: str, note: str = ""):
-    conn = _get_watchlist_conn()
     try:
-        # User bazlı unique kontrolü için INSERT OR IGNORE yerine elle kontrol veya farklı şema gerekebilir.
-        # Basitlik için username+ticker bazlı siliyoruz önce (varsa güncelleme gibi).
-        conn.execute("INSERT INTO watchlist (username, ticker, added_date, note) VALUES (?,?,?,?)",
-                      (username, ticker, datetime.now(TR_TZ).strftime("%Y-%m-%d %H:%M"), note))
-        conn.commit()
+        with engine.begin() as conn:
+            conn.execute(text("INSERT INTO watchlist (username, ticker, added_date, note) VALUES (:u,:t,:d,:n)"),
+                          {"u": username, "t": ticker, "d": datetime.now(TR_TZ).strftime("%Y-%m-%d %H:%M"), "n": note})
     except Exception:
         pass
-    conn.close()
 
 def remove_from_watchlist(username: str, ticker: str):
-    conn = _get_watchlist_conn()
-    conn.execute("DELETE FROM watchlist WHERE username=? AND ticker=?", (username, ticker))
-    conn.commit()
-    conn.close()
+    with engine.begin() as conn:
+        conn.execute(text("DELETE FROM watchlist WHERE username=:u AND ticker=:t"), {"u": username, "t": ticker})
 
 def get_watchlist(username: str) -> pd.DataFrame:
-    conn = _get_watchlist_conn()
-    df = pd.read_sql_query("SELECT * FROM watchlist WHERE username=? ORDER BY added_date DESC", conn, params=(username,))
-    conn.close()
+    with engine.connect() as conn:
+        query = "SELECT * FROM watchlist WHERE username=%(u)s ORDER BY added_date DESC" if engine.name == 'postgresql' else "SELECT * FROM watchlist WHERE username=? ORDER BY added_date DESC"
+        df = pd.read_sql_query(query, conn, params={"u": username} if engine.name == 'postgresql' else (username,))
     return df
 
 

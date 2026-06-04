@@ -1,12 +1,13 @@
 import yfinance as yf
 import pandas as pd
-import sqlite3
 import os
 import requests
 import time
 from datetime import datetime, timedelta, timezone
 import streamlit as st
 import pytz
+from database import engine
+from sqlalchemy import text
 
 # Timezone Ayarı
 TR_TZ = pytz.timezone("Europe/Istanbul")
@@ -15,38 +16,9 @@ def get_istanbul_now():
     """Türkiye yerel saatini döndürür (BIST seansları için kritik)."""
     return datetime.now(TR_TZ)
 
-# Veritabanı dosyası uygulama dizininde tutulur
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bist_cache.db")
-
 # ============================================================
-# SQLite Veritabanı Yönetimi
+# Veritabanı Yönetimi (SQLAlchemy)
 # ============================================================
-
-def _get_connection():
-    """SQLite bağlantısı döndürür. Tablo yoksa oluşturur."""
-    conn = sqlite3.connect(DB_PATH, timeout=30)
-    try:
-        conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("PRAGMA synchronous=NORMAL")
-    except:
-        pass
-        
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS ohlcv (
-            ticker TEXT NOT NULL,
-            date TEXT NOT NULL,
-            interval TEXT NOT NULL,
-            open REAL,
-            high REAL,
-            low REAL,
-            close REAL,
-            adj_close REAL,
-            volume REAL,
-            PRIMARY KEY (ticker, date, interval)
-        )
-    """)
-    conn.commit()
-    return conn
 
 def _get_yf_session():
     """Yahoo Finance için basitleştirilmiş tarayıcı kimliği."""
@@ -56,52 +28,57 @@ def _get_yf_session():
     })
     return session
 
-
 def _make_ticker(symbol: str) -> str:
     """Kullanıcının girdiği koda .IS ekler, ancak global sembollere dokunmaz."""
     symbol_upper = symbol.upper().strip()
-    
-    # Zaten .IS ile bitiyorsa veya global/endeks sembolü ise dokunma
     if symbol_upper.endswith('.IS') or any(x in symbol_upper for x in ['=', '^', '-']):
         return symbol_upper
-        
-    # Standart BIST hissesi varsayalım
     return f"{symbol_upper}.IS"
 
-
 def _save_to_db(df: pd.DataFrame, ticker: str, interval: str):
-    """DataFrame'i SQLite veritabanına yazar (upsert mantığı)."""
+    """DataFrame'i veritabanına yazar (DB dialectine göre Upsert)."""
     if df.empty:
         return
-    conn = _get_connection()
-    rows = []
-    for idx, row in df.iterrows():
-        date_str = str(idx.date()) if hasattr(idx, 'date') else str(idx)
-        rows.append((
-            ticker, date_str, interval,
-            float(row.get('Open', 0)),
-            float(row.get('High', 0)),
-            float(row.get('Low', 0)),
-            float(row.get('Close', 0)),
-            float(row.get('Adj Close', row.get('Close', 0))),
-            float(row.get('Volume', 0))
-        ))
-    conn.executemany("""
-        INSERT OR REPLACE INTO ohlcv
-        (ticker, date, interval, open, high, low, close, adj_close, volume)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, rows)
-    conn.commit()
-    conn.close()
-
+        
+    with engine.begin() as conn:
+        for idx, row in df.iterrows():
+            date_str = str(idx.date()) if hasattr(idx, 'date') else str(idx)
+            params = {
+                "t": ticker, "d": date_str, "i": interval,
+                "o": float(row.get('Open', 0)),
+                "h": float(row.get('High', 0)),
+                "l": float(row.get('Low', 0)),
+                "c": float(row.get('Close', 0)),
+                "a": float(row.get('Adj Close', row.get('Close', 0))),
+                "v": float(row.get('Volume', 0))
+            }
+            
+            if engine.name == 'postgresql':
+                q = text("""
+                    INSERT INTO ohlcv (ticker, date, interval, open, high, low, close, adj_close, volume)
+                    VALUES (:t, :d, :i, :o, :h, :l, :c, :a, :v)
+                    ON CONFLICT (ticker, date, interval) DO UPDATE SET
+                    open=EXCLUDED.open, high=EXCLUDED.high, low=EXCLUDED.low, 
+                    close=EXCLUDED.close, adj_close=EXCLUDED.adj_close, volume=EXCLUDED.volume
+                """)
+            else:
+                q = text("""
+                    INSERT OR REPLACE INTO ohlcv
+                    (ticker, date, interval, open, high, low, close, adj_close, volume)
+                    VALUES (:t, :d, :i, :o, :h, :l, :c, :a, :v)
+                """)
+            conn.execute(q, params)
 
 def _load_from_db(ticker: str, interval: str) -> pd.DataFrame:
     """Veritabanından o ticker'ın tüm kayıtlı verisini DataFrame olarak döndürür."""
-    conn = _get_connection()
-    query = "SELECT date, open, high, low, close, adj_close, volume FROM ohlcv WHERE ticker=? AND interval=? ORDER BY date"
-    df = pd.read_sql_query(query, conn, params=(ticker, interval))
-    conn.close()
+    query = "SELECT date, open, high, low, close, adj_close, volume FROM ohlcv WHERE ticker=%(t)s AND interval=%(i)s ORDER BY date" if engine.name == 'postgresql' else "SELECT date, open, high, low, close, adj_close, volume FROM ohlcv WHERE ticker=? AND interval=? ORDER BY date"
     
+    with engine.connect() as conn:
+        if engine.name == 'postgresql':
+            df = pd.read_sql_query(query, conn, params={"t": ticker, "i": interval})
+        else:
+            df = pd.read_sql_query(query, conn, params=(ticker, interval))
+            
     if df.empty:
         return pd.DataFrame()
     
@@ -110,16 +87,14 @@ def _load_from_db(ticker: str, interval: str) -> pd.DataFrame:
     df.columns = ['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']
     return df
 
-
 def _get_last_date_in_db(ticker: str, interval: str) -> str:
     """Veritabanında bu ticker için kayıtlı en son tarihi döndürür."""
-    conn = _get_connection()
-    cursor = conn.execute(
-        "SELECT MAX(date) FROM ohlcv WHERE ticker=? AND interval=?",
-        (ticker, interval)
-    )
-    result = cursor.fetchone()[0]
-    conn.close()
+    with engine.connect() as conn:
+        cursor = conn.execute(
+            text("SELECT MAX(date) FROM ohlcv WHERE ticker=:t AND interval=:i"),
+            {"t": ticker, "i": interval}
+        )
+        result = cursor.fetchone()[0]
     return result
 
 
@@ -265,57 +240,64 @@ def fetch_weekly_data(symbol: str, period: str = "2y") -> pd.DataFrame:
 
 def get_db_stats() -> dict:
     """Veritabanı istatistiklerini döndürür (uygulama arayüzünde göstermek için)."""
-    conn = _get_connection()
-    
-    total_rows = conn.execute("SELECT COUNT(*) FROM ohlcv").fetchone()[0]
-    unique_tickers = conn.execute("SELECT COUNT(DISTINCT ticker) FROM ohlcv").fetchone()[0]
-    
-    # DB dosya boyutu
-    db_size_mb = os.path.getsize(DB_PATH) / (1024 * 1024) if os.path.exists(DB_PATH) else 0
-    
-    conn.close()
-    return {
-        "total_rows": total_rows,
-        "unique_tickers": unique_tickers,
-        "db_size_mb": round(db_size_mb, 2)
-    }
+    try:
+        with engine.connect() as conn:
+            total_rows = conn.execute(text("SELECT COUNT(*) FROM ohlcv")).fetchone()[0]
+            unique_tickers = conn.execute(text("SELECT COUNT(DISTINCT ticker) FROM ohlcv")).fetchone()[0]
+            
+            db_size_mb = 0
+            if engine.name == 'postgresql':
+                db_size = conn.execute(text("SELECT pg_database_size(current_database())")).fetchone()[0]
+                db_size_mb = db_size / (1024 * 1024)
+            else:
+                db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bist_cache.db")
+                if os.path.exists(db_path):
+                    db_size_mb = os.path.getsize(db_path) / (1024 * 1024)
+                    
+        return {
+            "total_rows": total_rows,
+            "unique_tickers": unique_tickers,
+            "db_size_mb": round(db_size_mb, 2)
+        }
+    except Exception:
+        return {"total_rows": 0, "unique_tickers": 0, "db_size_mb": 0}
 
 def get_ticker_db_info(symbol: str) -> dict:
     """Belirli bir hissenin DB'deki en eski, en yeni tarihini ve satır sayısını döndürür."""
     if not symbol:
         return {}
     ticker = _make_ticker(symbol)
-    conn = _get_connection()
-    res = conn.execute(
-        "SELECT MIN(date), MAX(date), COUNT(*) FROM ohlcv WHERE ticker=?", 
-        (ticker,)
-    ).fetchone()
-    conn.close()
-    
-    if res and res[2] > 0:
-        return {
-            "first_date": res[0],
-            "last_date": res[1],
-            "row_count": res[2]
-        }
+    try:
+        with engine.connect() as conn:
+            res = conn.execute(
+                text("SELECT MIN(date), MAX(date), COUNT(*) FROM ohlcv WHERE ticker=:t"), 
+                {"t": ticker}
+            ).fetchone()
+            
+        if res and res[2] > 0:
+            return {
+                "first_date": res[0],
+                "last_date": res[1],
+                "row_count": res[2]
+            }
+    except Exception:
+        pass
     return {}
 
 def clear_db():
     """Veritabanını tamamen temizler (Reset butonu için)."""
-    conn = _get_connection()
-    conn.execute("DELETE FROM ohlcv")
-    conn.commit()
-    conn.close()
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("DELETE FROM ohlcv"))
+    except Exception:
+        pass
 
 def auto_cleanup_db(days: int = 30):
     """30 günden eski tarama geçmişini otomatik temizler."""
     try:
-        conn = sqlite3.connect(DB_PATH)
         cutoff_date = (get_istanbul_now() - timedelta(days=days)).strftime("%Y-%m-%d")
-        # scan_history tablosu screener.py'de oluşturuluyor, burada hata vermemesi için IF EXISTS kullanalım
-        conn.execute(f"DELETE FROM scan_history WHERE scan_date < '{cutoff_date}'")
-        conn.commit()
-        conn.close()
+        with engine.begin() as conn:
+            conn.execute(text("DELETE FROM scan_history WHERE scan_date < :c"), {"c": cutoff_date})
     except Exception:
         pass
 

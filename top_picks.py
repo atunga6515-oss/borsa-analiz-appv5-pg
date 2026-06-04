@@ -3,9 +3,10 @@ import streamlit as st
 import urllib.request
 import urllib.parse
 import xml.etree.ElementTree as ET
-import sqlite3
 import json
 import os
+from database import engine
+from sqlalchemy import text
 import concurrent.futures
 from datetime import datetime
 import pytz
@@ -21,55 +22,35 @@ from support_resistance import calculate_best_zones
 from screener import get_sector, BIST30_SYMBOLS, BIST100_SYMBOLS, BIST_ALL_SYMBOLS
 from takas_engine import get_takas_data
 
-# Veritabanı Yolu
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bist_cache.db")
-
-def _get_db_conn():
-    conn = sqlite3.connect(DB_PATH)
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS top_picks_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT,
-            run_date TEXT NOT NULL,
-            results_json TEXT NOT NULL
-        )
-    """)
-    conn.commit()
-    return conn
-
 def save_top_picks_history(username: str, results: list):
     """Top 5 sonuçlarını veritabanına JSON olarak kaydeder."""
     if not results:
         return
-    conn = _get_db_conn()
     now_str = datetime.now(TR_TZ).strftime("%Y-%m-%d %H:%M")
-    conn.execute(
-        "INSERT INTO top_picks_history (username, run_date, results_json) VALUES (?, ?, ?)",
-        (username, now_str, json.dumps(results))
-    )
-    conn.commit()
-    conn.close()
+    with engine.begin() as conn:
+        conn.execute(
+            text("INSERT INTO top_picks_history (username, run_date, results_json) VALUES (:u, :d, :r)"),
+            {"u": username, "d": now_str, "r": json.dumps(results)}
+        )
 
 def get_top_picks_history_dates(username: str) -> list:
     """Kaydedilmiş analiz tarihlerini döndürür."""
-    conn = _get_db_conn()
-    cursor = conn.execute(
-        "SELECT DISTINCT run_date FROM top_picks_history WHERE username=? ORDER BY run_date DESC",
-        (username,)
-    )
-    dates = [row[0] for row in cursor.fetchall()]
-    conn.close()
+    with engine.connect() as conn:
+        cursor = conn.execute(
+            text("SELECT DISTINCT run_date FROM top_picks_history WHERE username=:u ORDER BY run_date DESC"),
+            {"u": username}
+        )
+        dates = [row[0] for row in cursor.fetchall()]
     return dates
 
 def get_top_picks_by_date(username: str, run_date: str) -> list:
     """Belirli bir tarihteki analiz sonuçlarını döndürür."""
-    conn = _get_db_conn()
-    cursor = conn.execute(
-        "SELECT results_json FROM top_picks_history WHERE username=? AND run_date=?",
-        (username, run_date)
-    )
-    row = cursor.fetchone()
-    conn.close()
+    with engine.connect() as conn:
+        cursor = conn.execute(
+            text("SELECT results_json FROM top_picks_history WHERE username=:u AND run_date=:d"),
+            {"u": username, "d": run_date}
+        )
+        row = cursor.fetchone()
     if row:
         return json.loads(row[0])
     return []
