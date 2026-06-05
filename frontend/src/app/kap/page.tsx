@@ -64,9 +64,10 @@ export default function KapPage() {
                 <table className="w-full text-left border-collapse">
                     <thead className="bg-[#1e2329] text-[var(--color-b-muted)] text-sm sticky top-0">
                         <tr>
-                            <th className="p-4 border-b border-[var(--color-b-border)] font-semibold w-1/4">Tarih</th>
-                            <th className="p-4 border-b border-[var(--color-b-border)] font-semibold w-2/4">Haber Başlığı</th>
-                            <th className="p-4 border-b border-[var(--color-b-border)] font-semibold w-1/4 text-center">AI Skoru</th>
+                            <th className="p-4 border-b border-[var(--color-b-border)] font-semibold w-1/5">Tarih</th>
+                            <th className="p-4 border-b border-[var(--color-b-border)] font-semibold w-2/5">Haber Başlığı</th>
+                            <th className="p-4 border-b border-[var(--color-b-border)] font-semibold w-1/5 text-center">Kategori</th>
+                            <th className="p-4 border-b border-[var(--color-b-border)] font-semibold w-1/5 text-center">AI Skoru</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -87,15 +88,19 @@ export default function KapPage() {
                             kapData.results.map((row: any, i: number) => {
                                 return (
                                 <tr key={i} className="hover:bg-[#1e2329] transition-colors border-b border-[var(--color-b-border)]">
-                                    <td className="p-4 text-[var(--color-b-muted)]">{row.tarih || "-"}</td>
-                                    <td className="p-4 text-white font-medium">{row.baslik || "-"}</td>
+                                    <td className="p-4 text-[var(--color-b-muted)]">{row.date_str || "-"}</td>
+                                    <td className="p-4 text-white font-medium">
+                                        <p>{row.title || "-"}</p>
+                                        <p className="text-xs text-[var(--color-b-muted)] mt-1">{row.reason || ""}</p>
+                                    </td>
+                                    <td className="p-4 text-center text-sm font-bold text-[#a5b1c2]">{row.category || "-"}</td>
                                     <td className="p-4 text-center">
                                         <span className={`px-3 py-1 rounded text-sm font-bold ${
-                                            row.skor > 0 ? "text-[var(--color-b-green)] border border-[var(--color-b-green)]" : 
-                                            row.skor < 0 ? "text-[var(--color-b-red)] border border-[var(--color-b-red)]" : 
+                                            row.score > 0.1 ? "text-[var(--color-b-green)] border border-[var(--color-b-green)]" : 
+                                            row.score < -0.1 ? "text-[var(--color-b-red)] border border-[var(--color-b-red)]" : 
                                             "text-gray-400 border border-gray-600"
                                         }`}>
-                                            {row.skor > 0 ? "+" : ""}{row.skor}
+                                            {row.score > 0 ? "+" : ""}{row.score}
                                         </span>
                                     </td>
                                 </tr>

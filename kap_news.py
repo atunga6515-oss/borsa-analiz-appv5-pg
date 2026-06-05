@@ -79,7 +79,7 @@ def analyze_sentiment_with_ai(news_items):
             return None # Hiçbir model yanıt vermedi
 
     except Exception as e:
-        st.error(f"AI Analiz Hatası: {str(e)}")
+        logging.error(f"AI Analiz Hatası: {str(e)}")
         return None
 
     try:
@@ -94,7 +94,7 @@ def analyze_sentiment_with_ai(news_items):
         else:
             raise ValueError("Yapay zeka JSON objesi döndürmedi.")
     except Exception as e:
-        st.error(f"🤖 AI Çıktı Çözümleme (JSON) Hatası!\nYapay Zeka, beklenen tablolaştırılmış formatın dışına çıktı. Lütfen 'AI Analizi Yap' butonuna tekrar basın.\n\nSistem Şimdilik Kelime (Basit) Analizi İle Devam Ediyor...\nHata Detayı: {str(e)}")
+        logging.error(f"AI Cikti Cozumleme Hatasi: {str(e)}")
         return None
 
 def fetch_kap_news(ticker):
@@ -227,67 +227,4 @@ def get_sentiment_summary(ticker):
         
     return avg_score, analyzed_list
 
-def render_kap_news_panel():
-    """Dashboard UI bileşeni."""
-    st.title("📰 KAP ve Haber Duygu Analizi (AI Powered)")
-    ticker = st.text_input("Hisse Kodu (Örn: THYAO)", "THYAO", key="kap_sym").upper().strip()
-    
-    if st.button("Haber Verilerini Çek & AI Analizi Yap", type="primary"):
-        with st.spinner(f"🤖 Gemini AI {ticker} haberlerini analiz ediyor..."):
-            avg_score, results = get_sentiment_summary(ticker)
-            
-            if not results:
-                st.warning("Haber bulunamadı.")
-                return
 
-            # --- 1. Duygu Barı ---
-            st.markdown("### 📊 Genel Haber Algısı")
-            # Skoru 0-1 arasına normalize et (Progress bar için)
-            norm_score = (avg_score + 1) / 2
-            color = "green" if avg_score > 0.1 else "red" if avg_score < -0.1 else "gray"
-            
-            st.markdown(f"""
-                <div style="width:100%; background-color: #262730; border-radius: 10px; padding: 5px;">
-                    <div style="width: {norm_score*100}%; background-color: {color}; height: 20px; border-radius: 5px; text-align: center; color: white; font-size: 12px; font-weight: bold;">
-                        {avg_score:+.2f}
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            st.divider()
-
-            # --- 2. Haber Kartları ---
-            st.markdown("### 🗞️ Son Gelişmeler")
-            st.caption("💡 *Zaman Aşımı (Time Decay) Aktif:* Haber eskidikçe etki ağırlığı otomatik olarak azalır.")
-            
-            for res in results:
-                s = res['score']
-                ws = res['weighted_score']
-                w = res['weight']
-                b_color = "#26de81" if s > 0.2 else "#fc5c65" if s < -0.2 else "#fed330"
-                t_color = "black" if s >= 0 else "white"
-                
-                with st.container():
-                    st.markdown(f"""
-                        <div style="border-left: 5px solid {b_color}; padding: 10px; margin-bottom: 10px; background-color: rgba(255,255,255,0.05); border-radius: 0 5px 5px 0;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <span style="background-color: {b_color}; color: {t_color}; padding: 2px 8px; border-radius: 10px; font-size: 0.8rem; font-weight: bold;">
-                                        {res['category']} | Skor: {s:+.1f}
-                                    </span>
-                                    <span style="margin-left: 8px; font-size: 0.8rem; color: #a5b1c2;">
-                                        🕒 {res.get('date_str', '')} ({res.get('days_old', 0)} gün önce)
-                                    </span>
-                                </div>
-                                <span style="color: gray; font-size: 0.75rem; font-weight: bold;">
-                                    Etki: %{w*100:.0f} → {ws:+.2f}
-                                </span>
-                            </div>
-                            <p style="margin: 8px 0 0 0; font-size: 1rem;">{res['title']}</p>
-                            <small style="color: gray;"><i>{res['reason']}</i></small>
-                        </div>
-                    """, unsafe_allow_html=True)
-
-            # Linkler
-            kap_url = f"https://www.kap.org.tr/tr/arama/ozet/{ticker}"
-            st.info(f"👉 **Resmi KAP Bildirimleri İçin:** [{ticker} KAP Portalı]({kap_url})")
