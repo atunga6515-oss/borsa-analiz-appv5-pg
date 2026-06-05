@@ -65,6 +65,28 @@ def init_db():
             )
         """))
         
+        # Kesin çözüm: ohlcv tablosunu RAW SQL ile yaratmak
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS ohlcv (
+                ticker VARCHAR(50) NOT NULL,
+                interval VARCHAR(10) NOT NULL,
+                date VARCHAR(50) NOT NULL,
+                open FLOAT,
+                high FLOAT,
+                low FLOAT,
+                close FLOAT,
+                adj_close FLOAT,
+                volume BIGINT,
+                PRIMARY KEY (ticker, interval, date)
+            )
+        """))
+        
+        # İndeks (PostgreSQL ve SQLite uyumlu IF NOT EXISTS formati)
+        conn.execute(text("""
+            CREATE INDEX IF NOT EXISTS idx_ticker_interval_date 
+            ON ohlcv (ticker, interval, date)
+        """))
+        
         conn.execute(text(f"""
             CREATE TABLE IF NOT EXISTS top_picks_history (
                 id {serial_type} PRIMARY KEY,
