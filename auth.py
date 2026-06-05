@@ -32,6 +32,26 @@ def verify_login(username, password) -> bool:
         result = conn.execute(text("SELECT username FROM users WHERE username=:u AND password_hash=:p"), {"u": username, "p": p_hash}).fetchone()
     return result is not None
 
+def register_user(username: str, password: str, email: str = "") -> dict:
+    """Yeni kullanıcı kaydı. Başarılıysa True döner."""
+    if len(username) < 3:
+        return {"ok": False, "error": "Kullanıcı adı en az 3 karakter olmalıdır."}
+    if len(password) < 6:
+        return {"ok": False, "error": "Şifre en az 6 karakter olmalıdır."}
+    try:
+        p_hash = hash_password(password)
+        with engine.begin() as conn:
+            existing = conn.execute(text("SELECT username FROM users WHERE username=:u"), {"u": username}).fetchone()
+            if existing:
+                return {"ok": False, "error": "Bu kullanıcı adı zaten alınmış."}
+            conn.execute(
+                text("INSERT INTO users (username, password_hash, email) VALUES (:u, :p, :e)"),
+                {"u": username, "p": p_hash, "e": email}
+            )
+        return {"ok": True}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
 def update_password(username, new_password) -> bool:
     """Şifre güncelleme."""
     try:

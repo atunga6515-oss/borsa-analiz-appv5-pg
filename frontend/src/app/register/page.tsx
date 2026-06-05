@@ -4,52 +4,58 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 
-export default function LoginPage() {
+export default function RegisterPage() {
     const router = useRouter();
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
+    const [confirm, setConfirm] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
-    const handleLogin = async (e: React.FormEvent) => {
+    const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError("");
+
         if (!username || !password) {
             setError("Kullanıcı adı ve şifre boş bırakılamaz.");
             return;
         }
+        if (password !== confirm) {
+            setError("Şifreler eşleşmiyor.");
+            return;
+        }
+        if (password.length < 6) {
+            setError("Şifre en az 6 karakter olmalıdır.");
+            return;
+        }
+
         setLoading(true);
-        setError("");
         try {
-            const formData = new FormData();
-            formData.append("username", username);
-            formData.append("password", password);
-
-            const res = await api.post("/auth/token", formData, {
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            });
-
+            const res = await api.post("/auth/register", { username, password });
             localStorage.setItem("token", res.data.access_token);
-            localStorage.setItem("username", username);
+            localStorage.setItem("username", res.data.username);
             router.push("/");
         } catch (err: any) {
             setError(
-                err?.response?.data?.detail || "Giriş başarısız. Kullanıcı adı veya şifre hatalı."
+                err?.response?.data?.detail || "Kayıt başarısız. Lütfen tekrar deneyin."
             );
         } finally {
             setLoading(false);
         }
     };
 
+    const strength = password.length === 0 ? 0 : password.length < 6 ? 1 : password.length < 10 ? 2 : 3;
+    const strengthColors = ["", "bg-red-500", "bg-yellow-500", "bg-green-500"];
+    const strengthLabels = ["", "Zayıf", "Orta", "Güçlü"];
+
     return (
         <div className="min-h-screen w-full flex items-center justify-center bg-[var(--color-b-bg)] relative overflow-hidden">
-            {/* Decorative background */}
             <div className="absolute inset-0 pointer-events-none">
-                <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[var(--color-b-yellow)] opacity-5 rounded-full blur-3xl" />
-                <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-blue-500 opacity-5 rounded-full blur-3xl" />
+                <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-[var(--color-b-yellow)] opacity-5 rounded-full blur-3xl" />
+                <div className="absolute bottom-1/3 left-1/4 w-64 h-64 bg-purple-500 opacity-5 rounded-full blur-3xl" />
             </div>
 
             <div className="relative z-10 w-full max-w-md px-6">
-                {/* Logo */}
                 <div className="text-center mb-10">
                     <div className="inline-flex items-center gap-3 mb-4">
                         <div className="w-12 h-12 rounded-xl bg-[var(--color-b-yellow)] flex items-center justify-center font-black text-[#181a20] text-xl shadow-lg shadow-[rgba(252,213,53,0.3)]">
@@ -58,18 +64,17 @@ export default function LoginPage() {
                         <span className="text-3xl font-black text-white tracking-tight">Borsa Terminal</span>
                     </div>
                     <p className="text-[var(--color-b-muted)] text-sm">
-                        Profesyonel Hisse Senedi Analiz Platformu
+                        Yeni hesap oluşturun
                     </p>
                 </div>
 
-                {/* Card */}
                 <div className="glass-panel p-8 rounded-2xl border border-[var(--color-b-border)] shadow-2xl">
-                    <h2 className="text-2xl font-bold text-white mb-1">Giriş Yap</h2>
+                    <h2 className="text-2xl font-bold text-white mb-1">Hesap Oluştur</h2>
                     <p className="text-[var(--color-b-muted)] text-sm mb-6">
-                        Hesabınıza erişin
+                        Ücretsiz olarak hemen başlayın
                     </p>
 
-                    <form onSubmit={handleLogin} className="space-y-5">
+                    <form onSubmit={handleRegister} className="space-y-5">
                         <div>
                             <label className="block text-sm font-medium text-[var(--color-b-muted)] mb-2">
                                 Kullanıcı Adı
@@ -77,11 +82,12 @@ export default function LoginPage() {
                             <input
                                 type="text"
                                 value={username}
-                                onChange={(e) => setUsername(e.target.value)}
+                                onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s/g, ""))}
                                 placeholder="kullanici_adi"
                                 className="w-full px-4 py-3 bg-[#1e2329] border border-[var(--color-b-border)] rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-[var(--color-b-yellow)] transition-colors"
                                 autoComplete="username"
                             />
+                            <p className="text-xs text-gray-600 mt-1">En az 3 karakter, boşluk kullanılamaz</p>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-[var(--color-b-muted)] mb-2">
@@ -93,8 +99,43 @@ export default function LoginPage() {
                                 onChange={(e) => setPassword(e.target.value)}
                                 placeholder="••••••••"
                                 className="w-full px-4 py-3 bg-[#1e2329] border border-[var(--color-b-border)] rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-[var(--color-b-yellow)] transition-colors"
-                                autoComplete="current-password"
+                                autoComplete="new-password"
                             />
+                            {password.length > 0 && (
+                                <div className="mt-2 flex items-center gap-2">
+                                    <div className="flex gap-1 flex-1">
+                                        {[1, 2, 3].map((i) => (
+                                            <div
+                                                key={i}
+                                                className={`h-1 flex-1 rounded-full transition-all ${i <= strength ? strengthColors[strength] : "bg-[var(--color-b-border)]"}`}
+                                            />
+                                        ))}
+                                    </div>
+                                    <span className="text-xs text-gray-400">{strengthLabels[strength]}</span>
+                                </div>
+                            )}
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-[var(--color-b-muted)] mb-2">
+                                Şifre Tekrar
+                            </label>
+                            <input
+                                type="password"
+                                value={confirm}
+                                onChange={(e) => setConfirm(e.target.value)}
+                                placeholder="••••••••"
+                                className={`w-full px-4 py-3 bg-[#1e2329] border rounded-lg text-white placeholder-gray-600 focus:outline-none transition-colors ${
+                                    confirm && confirm !== password
+                                        ? "border-red-500 focus:border-red-500"
+                                        : confirm && confirm === password
+                                        ? "border-green-500 focus:border-green-500"
+                                        : "border-[var(--color-b-border)] focus:border-[var(--color-b-yellow)]"
+                                }`}
+                                autoComplete="new-password"
+                            />
+                            {confirm && confirm !== password && (
+                                <p className="text-xs text-red-400 mt-1">Şifreler eşleşmiyor</p>
+                            )}
                         </div>
 
                         {error && (
@@ -108,18 +149,18 @@ export default function LoginPage() {
                             disabled={loading}
                             className="w-full py-3 bg-[var(--color-b-yellow)] text-[#181a20] font-bold rounded-lg hover:bg-[#f0c929] transition-colors disabled:opacity-60 text-base shadow-lg shadow-[rgba(252,213,53,0.2)]"
                         >
-                            {loading ? "Giriş yapılıyor..." : "Giriş Yap →"}
+                            {loading ? "Hesap oluşturuluyor..." : "Kayıt Ol ve Başla →"}
                         </button>
                     </form>
 
                     <div className="mt-6 pt-6 border-t border-[var(--color-b-border)] text-center">
                         <p className="text-[var(--color-b-muted)] text-sm">
-                            Hesabınız yok mu?{" "}
+                            Zaten hesabınız var mı?{" "}
                             <Link
-                                href="/register"
+                                href="/login"
                                 className="text-[var(--color-b-yellow)] hover:underline font-semibold"
                             >
-                                Kayıt Ol
+                                Giriş Yap
                             </Link>
                         </p>
                     </div>

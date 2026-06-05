@@ -128,3 +128,26 @@ def init_db():
                 var FLOAT
             )
         """))
+
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS users (
+                username VARCHAR(255) PRIMARY KEY,
+                password_hash VARCHAR(255) NOT NULL,
+                email VARCHAR(255),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """))
+
+        conn.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS user_alarms (
+                id {serial_type} PRIMARY KEY,
+                username VARCHAR(255) NOT NULL,
+                ticker VARCHAR(20) NOT NULL,
+                condition VARCHAR(50) NOT NULL,
+                target_value FLOAT NOT NULL,
+                status VARCHAR(20) DEFAULT 'active',
+                note TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                triggered_at TIMESTAMP
+            )
+        """))

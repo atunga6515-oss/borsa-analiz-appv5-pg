@@ -1,83 +1,118 @@
+"use client";
 import type { Metadata } from "next";
-import Link from 'next/link';
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import "./globals.css";
 
-export const metadata: Metadata = {
-  title: "Borsa Terminali V5",
-  description: "Profesyonel Hisse Senedi Analiz Terminali",
-};
+const NAV_LINKS = [
+    { href: "/", label: "Piyasalar", icon: "📊" },
+    { href: "/screener", label: "Screener", icon: "⚡" },
+    { href: "/portfolio", label: "Portföy", icon: "💼" },
+    { href: "/top-picks", label: "Seçki", icon: "🎯" },
+    { href: "/analysis", label: "Analiz", icon: "🔬" },
+    { href: "/kap", label: "KAP", icon: "📰" },
+    { href: "/backtest", label: "Backtest", icon: "⚙️" },
+    { href: "/strategy-compare", label: "Kıyasla", icon: "🧪" },
+    { href: "/risk", label: "Risk", icon: "⚠️" },
+    { href: "/alarms", label: "Alarm", icon: "🔔" },
+];
+
+function NavBar() {
+    const router = useRouter();
+    const pathname = usePathname();
+    const [username, setUsername] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            setUsername(localStorage.getItem("username"));
+        }
+    }, [pathname]);
+
+    const handleLogout = () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("username");
+        setUsername(null);
+        router.push("/login");
+    };
+
+    const isAuthPage = pathname === "/login" || pathname === "/register";
+    if (isAuthPage) return null;
+
+    return (
+        <header className="glass-header h-16 flex items-center px-6 sticky top-0 z-50 justify-between">
+            <div className="flex items-center gap-8">
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded bg-[var(--color-b-yellow)] flex items-center justify-center font-bold text-[#181a20]">
+                        V5
+                    </div>
+                    <h1 className="text-xl font-bold text-white tracking-tight">Terminal</h1>
+                </div>
+                <nav className="hidden md:flex gap-1">
+                    {NAV_LINKS.map((link) => {
+                        const isActive = pathname === link.href;
+                        return (
+                            <Link
+                                key={link.href}
+                                href={link.href}
+                                className={`flex items-center gap-2 px-3 py-2 rounded text-sm font-medium transition-colors ${
+                                    isActive
+                                        ? "bg-[var(--color-b-panel)] border border-[var(--color-b-yellow)] text-[var(--color-b-yellow)]"
+                                        : "border border-transparent text-[var(--color-b-muted)] hover:bg-[var(--color-b-panel)] hover:border-[var(--color-b-border)] hover:text-white"
+                                }`}
+                            >
+                                <span>{link.icon}</span>
+                                <span>{link.label}</span>
+                            </Link>
+                        );
+                    })}
+                </nav>
+            </div>
+            <div className="flex items-center gap-3">
+                {username ? (
+                    <>
+                        <span className="text-[var(--color-b-muted)] text-sm">
+                            👤 <span className="text-white font-semibold">{username}</span>
+                        </span>
+                        <button
+                            onClick={handleLogout}
+                            className="text-sm px-3 py-1.5 rounded border border-[var(--color-b-border)] text-[var(--color-b-muted)] hover:border-red-500 hover:text-red-400 transition-colors"
+                        >
+                            Çıkış
+                        </button>
+                    </>
+                ) : (
+                    <>
+                        <Link
+                            href="/login"
+                            className="text-sm px-3 py-1.5 rounded border border-[var(--color-b-border)] text-[var(--color-b-muted)] hover:text-white hover:border-[var(--color-b-yellow)] transition-colors"
+                        >
+                            Giriş Yap
+                        </Link>
+                        <Link
+                            href="/register"
+                            className="bg-[var(--color-b-yellow)] text-[#181a20] px-4 py-1.5 rounded font-semibold text-sm hover:bg-[#f0c929] transition-colors"
+                        >
+                            Kayıt Ol
+                        </Link>
+                    </>
+                )}
+            </div>
+        </header>
+    );
+}
 
 export default function RootLayout({
-  children,
+    children,
 }: Readonly<{
-  children: React.ReactNode;
+    children: React.ReactNode;
 }>) {
-  return (
-    <html lang="tr">
-      <body className="antialiased min-h-screen flex flex-col">
-        {/* Navbar */}
-        <header className="glass-header h-16 flex items-center px-6 sticky top-0 z-50 justify-between">
-          <div className="flex items-center gap-8">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded bg-[var(--color-b-yellow)] flex items-center justify-center font-bold text-[#181a20]">
-                V5
-              </div>
-              <h1 className="text-xl font-bold text-white tracking-tight">Terminal</h1>
-            </div>
-            <nav className="hidden md:flex gap-6">
-              <Link href="/" className="flex items-center gap-3 p-3 rounded bg-[var(--color-b-panel)] border border-[var(--color-b-border)] text-white hover:border-[var(--color-b-yellow)] hover:text-[var(--color-b-yellow)] transition-colors">
-                <span className="text-lg">📊</span>
-                <span className="font-medium">Piyasalar (Dashboard)</span>
-              </Link>
-              <Link href="/screener" className="flex items-center gap-3 p-3 rounded hover:bg-[var(--color-b-panel)] border border-transparent hover:border-[var(--color-b-border)] text-[var(--color-b-muted)] hover:text-white transition-colors">
-                <span className="text-lg">⚡</span>
-                <span className="font-medium">Screener (Al-Sat)</span>
-              </Link>
-              <Link href="/portfolio" className="flex items-center gap-3 p-3 rounded hover:bg-[var(--color-b-panel)] border border-transparent hover:border-[var(--color-b-border)] text-[var(--color-b-muted)] hover:text-white transition-colors">
-                <span className="text-lg">💼</span>
-                <span className="font-medium">Sanal Portföy</span>
-              </Link>
-              <Link href="/top-picks" className="flex items-center gap-2 p-2 rounded hover:bg-[var(--color-b-panel)] border border-transparent hover:border-[var(--color-b-border)] text-[var(--color-b-muted)] hover:text-white transition-colors text-sm">
-                <span className="text-base">🎯</span>
-                <span className="font-medium">Seçki</span>
-              </Link>
-              <Link href="/analysis" className="flex items-center gap-2 p-2 rounded hover:bg-[var(--color-b-panel)] border border-transparent hover:border-[var(--color-b-border)] text-[var(--color-b-muted)] hover:text-white transition-colors text-sm">
-                <span className="text-base">🔬</span>
-                <span className="font-medium">Analiz</span>
-              </Link>
-              <Link href="/kap" className="flex items-center gap-2 p-2 rounded hover:bg-[var(--color-b-panel)] border border-transparent hover:border-[var(--color-b-border)] text-[var(--color-b-muted)] hover:text-white transition-colors text-sm">
-                <span className="text-base">📰</span>
-                <span className="font-medium">KAP</span>
-              </Link>
-              <Link href="/backtest" className="flex items-center gap-2 p-2 rounded hover:bg-[var(--color-b-panel)] border border-transparent hover:border-[var(--color-b-border)] text-[var(--color-b-muted)] hover:text-white transition-colors text-sm">
-                <span className="text-base">⚙️</span>
-                <span className="font-medium">Backtest</span>
-              </Link>
-              <Link href="/strategy-compare" className="flex items-center gap-2 p-2 rounded hover:bg-[var(--color-b-panel)] border border-transparent hover:border-[var(--color-b-border)] text-[var(--color-b-muted)] hover:text-white transition-colors text-sm">
-                <span className="text-base">🧪</span>
-                <span className="font-medium">Kıyasla</span>
-              </Link>
-              <Link href="/risk" className="flex items-center gap-2 p-2 rounded hover:bg-[var(--color-b-panel)] border border-transparent hover:border-[var(--color-b-border)] text-[var(--color-b-muted)] hover:text-white transition-colors text-sm">
-                <span className="text-base">⚠️</span>
-                <span className="font-medium">Risk</span>
-              </Link>
-              <Link href="/alarms" className="flex items-center gap-2 p-2 rounded hover:bg-[var(--color-b-panel)] border border-transparent hover:border-[var(--color-b-border)] text-[var(--color-b-muted)] hover:text-white transition-colors text-sm">
-                <span className="text-base">🔔</span>
-                <span className="font-medium">Alarm</span>
-              </Link>
-            </nav>
-          </div>
-          <div className="flex items-center gap-4">
-             <Link href="/login" className="text-[var(--color-b-muted)] hover:text-white transition-colors text-sm font-medium">Giriş Yap</Link>
-             <Link href="/login" className="bg-[var(--color-b-yellow)] text-[#181a20] px-4 py-1.5 rounded font-semibold text-sm hover:bg-[#f0c929] transition-colors">Kayıt Ol</Link>
-          </div>
-        </header>
-
-        {/* Main Content */}
-        <main className="flex-1 flex overflow-hidden">
-          {children}
-        </main>
-      </body>
-    </html>
-  );
+    return (
+        <html lang="tr">
+            <body className="antialiased min-h-screen flex flex-col">
+                <NavBar />
+                <main className="flex-1 flex overflow-hidden">{children}</main>
+            </body>
+        </html>
+    );
 }

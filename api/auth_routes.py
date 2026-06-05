@@ -1,9 +1,10 @@
 from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
+from typing import Optional
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
-from auth import verify_login
+from auth import verify_login, register_user
 
 # Security config
 SECRET_KEY = "your-secret-key-change-it" # In production, use environment variable
@@ -57,3 +58,17 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
 @router.get("/me")
 def read_users_me(current_user: str = Depends(get_current_user)):
     return {"username": current_user}
+
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+    email: Optional[str] = ""
+
+@router.post("/register")
+def register(req: RegisterRequest):
+    result = register_user(req.username, req.password, req.email or "")
+    if not result["ok"]:
+        raise HTTPException(status_code=400, detail=result["error"])
+    # Auto-login after registration
+    access_token = create_access_token(data={"sub": req.username})
+    return {"access_token": access_token, "token_type": "bearer", "username": req.username}

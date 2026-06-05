@@ -11,6 +11,7 @@ from api.data_routes import router as data_router
 from api.backtest_routes import router as backtest_router
 from api.analysis_routes import router as analysis_router
 from api.telegram_routes import router as telegram_routes
+from api.alarm_routes import router as alarm_router
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -42,6 +43,7 @@ app.include_router(kap_router)
 app.include_router(data_router)
 app.include_router(backtest_router)
 app.include_router(analysis_router)
+app.include_router(alarm_router)
 app.include_router(telegram_routes, prefix="/api/telegram", tags=["telegram"])
 
 @app.get("/")
