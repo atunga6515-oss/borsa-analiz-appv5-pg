@@ -5,7 +5,7 @@ import yfinance as yf
 import time
 
 @ttl_cache(ttl_seconds=3600*12)
-def get_company_profile(ticker_symbol: str) -> dict:
+def get_fundamental_data(ticker_symbol: str) -> dict:
     """Verilen hissenin temel analiz rasyolarını getirir. (Geliştirilmiş Robust Versiyon)"""
     try:
         tkr = ticker_symbol if ticker_symbol.endswith(".IS") else f"{ticker_symbol}.IS"

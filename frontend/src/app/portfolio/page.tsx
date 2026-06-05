@@ -56,6 +56,7 @@ export default function PortfolioPage() {
 
 
     return (
+        <>
         <div className="flex w-full h-full p-6 flex-col bg-[var(--color-b-bg)] text-[var(--color-b-text)]">
             <div className="flex justify-between items-center mb-6">
                 <div>
@@ -185,6 +186,6 @@ export default function PortfolioPage() {
                     </div>
                 </div>
             )}
-        </div>
+        </>
     );
 }
