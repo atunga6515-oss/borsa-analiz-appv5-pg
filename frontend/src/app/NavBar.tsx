@@ -35,7 +35,7 @@ export default function NavBar() {
         localStorage.removeItem("role");
         setUsername(null);
         setRole(null);
-        router.push("/login");
+        router.push("/");
     };
 
     const isAuthPage = pathname === "/login" || pathname === "/register";
