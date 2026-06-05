@@ -24,7 +24,9 @@ def get_db():
 
 def init_db():
     from sqlalchemy import text
-    # Bu fonksiyon tablo modelleri import edildikten sonra çağrılacak
+    import models  # Modellerin metadata'ya register olması için import ediyoruz
+    
+    # Tüm tabloları oluşturur (Ohlcv, Portfolio, vs.)
     Base.metadata.create_all(bind=engine)
     
     # Raw SQL tablolari icin CREATE IF NOT EXISTS (SQLite / Postgres uyumlu)

@@ -83,7 +83,7 @@ class Ohlcv(Base):
     volume = Column(BigInteger)
     
     __table_args__ = (
-        Index('idx_ticker_date', 'ticker', 'date'),
+        Index('idx_ticker_interval_date', 'ticker', 'interval', 'date'),
     )
 
 class FinancialData(Base):

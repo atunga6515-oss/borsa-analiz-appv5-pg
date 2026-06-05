@@ -1,44 +1,39 @@
-import sqlite3
 import os
 from auth import init_auth_db
-
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bist_cache.db")
+from database import init_db, engine
+from sqlalchemy import text
 
 def migrate():
     # 1. Auth DB Başlat
     init_auth_db()
     
-    conn = sqlite3.connect(DB_PATH)
+    print(f"Connecting to database engine: {engine.name}")
     
-    # 2. Portfolio tablosuna username ekle
-    try:
-        conn.execute("ALTER TABLE portfolio ADD COLUMN username TEXT")
-        # Mevcut verileri admin1'e ata
-        conn.execute("UPDATE portfolio SET username='admin1' WHERE username IS NULL")
-        print("Portfolio table updated.")
-    except sqlite3.OperationalError:
-        print("Portfolio table already updated or error.")
+    # 2. Base.metadata tablolari olustur
+    print("Creating all tables from models...")
+    init_db()
+    
+    # 3. Alter tables eger sqlite ve eski versiyonsa (manuel guncellemeler)
+    if engine.name == "sqlite":
+        import sqlite3
+        DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bist_cache.db")
+        if os.path.exists(DB_PATH):
+            conn = sqlite3.connect(DB_PATH)
+            
+            for table in ["portfolio", "scan_history", "watchlist"]:
+                try:
+                    conn.execute(f"ALTER TABLE {table} ADD COLUMN username TEXT")
+                    conn.execute(f"UPDATE {table} SET username='admin1' WHERE username IS NULL")
+                    print(f"{table} table updated with username.")
+                except sqlite3.OperationalError:
+                    print(f"{table} table already updated or error.")
+                    
+            conn.commit()
+            conn.close()
+    else:
+        # PostgreSQL vs icin
+        print("Running on PostgreSQL. Assuming models.py schema handles columns correctly.")
         
-    # 3. Scan History tablosuna username ekle
-    try:
-        conn.execute("ALTER TABLE scan_history ADD COLUMN username TEXT")
-        conn.execute("UPDATE scan_history SET username='admin1' WHERE username IS NULL")
-        print("Scan history table updated.")
-    except sqlite3.OperationalError:
-        print("Scan history table already updated or error.")
-        
-    # 4. Watchlist tablosuna username ekle
-    # Watchlist ticker unique olduğu için username ekleyip primary key'i değiştirmek daha karmaşık olabilir.
-    # En temizi tabloyu yeni şema ile oluşturmak.
-    try:
-        conn.execute("ALTER TABLE watchlist ADD COLUMN username TEXT")
-        conn.execute("UPDATE watchlist SET username='admin1' WHERE username IS NULL")
-        print("Watchlist table updated.")
-    except sqlite3.OperationalError:
-        print("Watchlist table already updated or error.")
-
-    conn.commit()
-    conn.close()
     print("Migration complete.")
 
 if __name__ == "__main__":
