@@ -74,9 +74,9 @@ export default function NavBar() {
                     })}
                     {role === "admin" && (
                         <a
-                            href="/admin"
+                            href="/panel"
                             className={`flex items-center gap-2 px-3 py-2 rounded text-sm font-bold transition-colors ${
-                                pathname.startsWith("/admin")
+                                pathname.startsWith("/panel")
                                     ? "bg-purple-900/60 border border-purple-500 text-purple-300"
                                     : "border border-transparent text-purple-400 hover:bg-purple-900/30 hover:border-purple-700 hover:text-purple-300"
                             }`}
@@ -92,7 +92,7 @@ export default function NavBar() {
                     <>
                         {role === "admin" && (
                             <a
-                                href="/admin"
+                                href="/panel"
                                 className="hidden sm:flex text-sm items-center gap-1 px-3 py-1.5 rounded bg-purple-900/30 border border-purple-600/50 text-purple-300 hover:bg-purple-900/60 hover:text-white transition-colors"
                             >
                                 ⚙️ <span className="font-semibold">Admin Paneli</span>

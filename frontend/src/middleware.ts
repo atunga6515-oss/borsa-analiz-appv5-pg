@@ -4,8 +4,8 @@ import type { NextRequest } from "next/server";
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
-    // /admin altındaki tüm rotaları koru
-    if (pathname.startsWith("/admin")) {
+    // /panel altındaki tüm rotaları koru
+    if (pathname.startsWith("/panel")) {
         const token = request.cookies.get("token")?.value
             || request.headers.get("authorization")?.replace("Bearer ", "");
 
@@ -21,5 +21,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-    matcher: ["/admin/:path*"],
+    matcher: ["/panel/:path*"],
 };
