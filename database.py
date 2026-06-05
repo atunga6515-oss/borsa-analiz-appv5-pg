@@ -21,6 +21,21 @@ if db_user and db_password and db_host and db_name:
 else:
     # Fallback olarak doğrudan DATABASE_URL değişkenini kullan
     DATABASE_URL = os.getenv("DATABASE_URL")
+    
+    # KULLANICI HATASINI TESPİT ET (Şifrede @ varsa SQLAlchemy patlar)
+    if DATABASE_URL and DATABASE_URL.startswith("postgres"):
+        if DATABASE_URL.count("@") > 1:
+            raise ValueError(
+                "\n\n[KRITIK HATA]: .env dosyasında DATABASE_URL kullanmışsınız ancak şifrenizin içinde "
+                "'@' işareti (veya benzeri özel karakterler) bulunuyor. Bu durum veritabanı sürücüsünün "
+                "sunucu adresini (localhost) yanlış anlamasına neden oluyor.\n"
+                "LÜTFEN .env dosyanızı şu şekilde DÜZELTİN (DATABASE_URL satırını SİLİN):\n"
+                "DB_USER=kullaniciadi\n"
+                "DB_PASSWORD=sifreniz\n"
+                "DB_HOST=localhost\n"
+                "DB_PORT=5432\n"
+                "DB_NAME=borsa_v5\n\n"
+            )
 
 if not DATABASE_URL:
     raise ValueError("Veritabanı bağlantı dizesi (DATABASE_URL veya DB_USER vb.) bulunamadı. Lütfen .env dosyasını kontrol edin.")
