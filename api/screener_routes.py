@@ -33,7 +33,8 @@ def bg_run_screener(task_id: str, symbols: list, username: str):
         df = run_screener(symbols, username, progress_bar=pb)
         
         if isinstance(df, pd.DataFrame):
-            df = df.replace([np.inf, -np.inf, np.nan], None)
+            df = df.replace([np.inf, -np.inf], np.nan)
+            df = df.fillna("-")
             scan_tasks[task_id]["results"] = df.to_dict(orient="records")
         else:
             scan_tasks[task_id]["results"] = []

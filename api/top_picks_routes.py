@@ -50,6 +50,14 @@ def start_top_picks(req: ScanRequest, background_tasks: BackgroundTasks, current
                 symbols = BIST_ALL_SYMBOLS
                 
             results = find_top_picks(symbol_list=symbols, top_n=req.top_n, progress_bar=pb)
+            
+            import pandas as pd
+            import numpy as np
+            if results:
+                df = pd.DataFrame(results)
+                df = df.replace([np.inf, -np.inf], np.nan).fillna("-")
+                results = df.to_dict(orient="records")
+            
             save_top_picks_history(current_user, results)
             scan_tasks[task_id]["status"] = "completed"
             scan_tasks[task_id]["results"] = results
