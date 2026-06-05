@@ -406,6 +406,10 @@ def _analyze_single_stock(sym: str, market_regime: dict = None) -> dict:
             "Sektör": sector
         }
     except Exception as e:
+        import traceback
+        import logging
+        logging.error(f"Error in _analyze_single_stock for {sym}: {str(e)}")
+        traceback.print_exc()
         return None
 
 # ============================================================

@@ -1,14 +1,15 @@
 import yfinance as yf
 import pandas as pd
+import numpy as np
 import os
 import requests
+from bs4 import BeautifulSoup
 import time
 from datetime import datetime, timedelta, timezone
 import pytz
 from cache_utils import ttl_cache
 from database import engine
 from sqlalchemy import text
-
 # Timezone Ayarı
 TR_TZ = pytz.timezone("Europe/Istanbul")
 
