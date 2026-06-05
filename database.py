@@ -1,8 +1,29 @@
 import os
+import urllib.parse
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://localhost/borsa_v5")
+# .env dosyasındaki değişkenleri sisteme yükle
+load_dotenv()
+
+# .env üzerinden parçalı okuma
+db_user = os.getenv("DB_USER")
+db_password = os.getenv("DB_PASSWORD")
+db_host = os.getenv("DB_HOST")
+db_port = os.getenv("DB_PORT", "5432")
+db_name = os.getenv("DB_NAME")
+
+if db_user and db_password and db_host and db_name:
+    # Kritik Güvenlik: Şifredeki ^, @, & gibi özel karakterleri güvenli url formatına dönüştürür
+    safe_password = urllib.parse.quote_plus(db_password)
+    DATABASE_URL = f"postgresql://{db_user}:{safe_password}@{db_host}:{db_port}/{db_name}"
+else:
+    # Fallback olarak doğrudan DATABASE_URL değişkenini kullan
+    DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    raise ValueError("Veritabanı bağlantı dizesi (DATABASE_URL veya DB_USER vb.) bulunamadı. Lütfen .env dosyasını kontrol edin.")
 
 # Render veya Heroku gibi servislerde bazen postgres:// kalabiliyor, sqlalchemy postgresql:// istiyor
 if DATABASE_URL.startswith("postgres://"):
