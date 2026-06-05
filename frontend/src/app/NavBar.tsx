@@ -86,7 +86,15 @@ export default function NavBar() {
             <div className="flex items-center gap-3">
                 {username ? (
                     <>
-                        <span className="text-[var(--color-b-muted)] text-sm">
+                        {role === "admin" && (
+                            <Link
+                                href="/admin"
+                                className="hidden sm:flex text-sm items-center gap-1 px-3 py-1.5 rounded bg-purple-900/30 border border-purple-600/50 text-purple-300 hover:bg-purple-900/60 hover:text-white transition-colors"
+                            >
+                                ⚙️ <span className="font-semibold">Admin Paneli</span>
+                            </Link>
+                        )}
+                        <span className="text-[var(--color-b-muted)] text-sm hidden sm:inline">
                             👤 <span className="text-white font-semibold">{username}</span>
                         </span>
                         <button
