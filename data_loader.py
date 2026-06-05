@@ -82,6 +82,9 @@ def _save_to_db(df: pd.DataFrame, ticker: str, interval: str):
             conn.execute(stmt)
             
         # Toplu yazma operasyonu
+        # Prevent PostgreSQL CardinalityViolation (duplicate rows in same batch)
+        df_db = df_db.drop_duplicates(subset=['ticker', 'date', 'interval'], keep='last')
+        
         df_db.to_sql('ohlcv', engine, if_exists='append', index=False, method=psql_upsert, chunksize=500)
     else:
         # SQLite fallback: hızlı execute_many insert/replace
