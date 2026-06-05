@@ -151,3 +151,33 @@ def init_db():
                 triggered_at TIMESTAMP
             )
         """))
+
+        # users tablosuna role, is_active, last_active alanları ekle (migration)
+        for col_def in [
+            ("role",        "VARCHAR(20)  DEFAULT 'user'"),
+            ("is_active",   "BOOLEAN      DEFAULT TRUE"),
+            ("last_active", "TIMESTAMP"),
+        ]:
+            col_name, col_type = col_def
+            try:
+                conn.execute(text(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col_name} {col_type}"))
+            except Exception:
+                pass  # Sütun zaten varsa atla (SQLite IF NOT EXISTS desteklemez)
+
+        conn.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS system_logs (
+                id {serial_type} PRIMARY KEY,
+                username   VARCHAR(255),
+                action     VARCHAR(255)  NOT NULL,
+                details    TEXT,
+                level      VARCHAR(20)   DEFAULT 'INFO',
+                created_at TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+            )
+        """))
+
+        # system_logs için index (sorgular hızlı olsun)
+        conn.execute(text("""
+            CREATE INDEX IF NOT EXISTS idx_system_logs_created
+            ON system_logs (created_at DESC)
+        """))
+

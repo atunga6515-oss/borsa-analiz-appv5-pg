@@ -20,17 +20,21 @@ export default function NavBar() {
     const router = useRouter();
     const pathname = usePathname();
     const [username, setUsername] = useState<string | null>(null);
+    const [role, setRole] = useState<string | null>(null);
 
     useEffect(() => {
         if (typeof window !== "undefined") {
             setUsername(localStorage.getItem("username"));
+            setRole(localStorage.getItem("role"));
         }
     }, [pathname]);
 
     const handleLogout = () => {
         localStorage.removeItem("token");
         localStorage.removeItem("username");
+        localStorage.removeItem("role");
         setUsername(null);
+        setRole(null);
         router.push("/login");
     };
 
@@ -64,6 +68,19 @@ export default function NavBar() {
                             </Link>
                         );
                     })}
+                    {role === "admin" && (
+                        <Link
+                            href="/admin"
+                            className={`flex items-center gap-2 px-3 py-2 rounded text-sm font-bold transition-colors ${
+                                pathname.startsWith("/admin")
+                                    ? "bg-purple-900/60 border border-purple-500 text-purple-300"
+                                    : "border border-transparent text-purple-400 hover:bg-purple-900/30 hover:border-purple-700 hover:text-purple-300"
+                            }`}
+                        >
+                            <span>⚙️</span>
+                            <span>Admin</span>
+                        </Link>
+                    )}
                 </nav>
             </div>
             <div className="flex items-center gap-3">
