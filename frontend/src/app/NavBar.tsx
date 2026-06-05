@@ -73,7 +73,7 @@ export default function NavBar() {
                         );
                     })}
                     {role === "admin" && (
-                        <Link
+                        <a
                             href="/admin"
                             className={`flex items-center gap-2 px-3 py-2 rounded text-sm font-bold transition-colors ${
                                 pathname.startsWith("/admin")
@@ -83,7 +83,7 @@ export default function NavBar() {
                         >
                             <span>⚙️</span>
                             <span>Admin</span>
-                        </Link>
+                        </a>
                     )}
                 </nav>
             </div>
@@ -91,12 +91,12 @@ export default function NavBar() {
                 {username ? (
                     <>
                         {role === "admin" && (
-                            <Link
+                            <a
                                 href="/admin"
                                 className="hidden sm:flex text-sm items-center gap-1 px-3 py-1.5 rounded bg-purple-900/30 border border-purple-600/50 text-purple-300 hover:bg-purple-900/60 hover:text-white transition-colors"
                             >
                                 ⚙️ <span className="font-semibold">Admin Paneli</span>
-                            </Link>
+                            </a>
                         )}
                         <span className="text-[var(--color-b-muted)] text-sm hidden sm:inline">
                             👤 <span className="text-white font-semibold">{username}</span>
