@@ -1,8 +1,10 @@
 "use client";
 import { useState } from "react";
 import api from "@/lib/api";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 export default function StrategyComparePage() {
+    const { requireAuth, AuthModal } = useRequireAuth();
     const [ticker, setTicker] = useState("THYAO");
     const [period, setPeriod] = useState("1y");
     const [loading, setLoading] = useState(false);
@@ -29,6 +31,7 @@ export default function StrategyComparePage() {
         }
     };
     return (
+        <>
         <div className="flex w-full h-full p-6 flex-col bg-[var(--color-b-bg)] text-[var(--color-b-text)] overflow-y-auto">
             <div className="mb-6">
                 <h1 className="text-3xl font-bold text-white mb-2">🧪 Strateji Karşılaştırma Motoru</h1>
@@ -53,7 +56,7 @@ export default function StrategyComparePage() {
                     <option value="2y">Zaman: Son 2 Yıl</option>
                 </select>
                 <button 
-                    onClick={handleCompare}
+                    onClick={() => requireAuth(handleCompare)}
                     disabled={loading}
                     className="px-6 py-3 bg-[var(--color-b-yellow)] text-black font-bold rounded hover:bg-yellow-500 transition-colors disabled:opacity-50"
                 >
@@ -89,5 +92,7 @@ export default function StrategyComparePage() {
                 )}
             </div>
         </div>
+        <AuthModal />
+        </>
     );
 }

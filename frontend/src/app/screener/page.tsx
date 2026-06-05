@@ -2,9 +2,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 export default function ScreenerPage() {
     const router = useRouter();
+    const { requireAuth, AuthModal } = useRequireAuth();
     const [scanResults, setScanResults] = useState<any[]>([]);
     const [scanning, setScanning] = useState(false);
     const [scanProgress, setScanProgress] = useState(0);
@@ -103,10 +105,12 @@ export default function ScreenerPage() {
     });
 
     const openModal = (ticker: string, price: string) => {
-        setModalTicker(ticker);
-        setModalPrice(price !== "-" ? parseFloat(price).toFixed(2) : "");
-        setModalQty("100");
-        setModalOpen(true);
+        requireAuth(() => {
+            setModalTicker(ticker);
+            setModalPrice(price !== "-" ? parseFloat(price).toFixed(2) : "");
+            setModalQty("100");
+            setModalOpen(true);
+        });
     };
 
     const handlePortfolioAdd = async (e: React.FormEvent) => {
@@ -127,7 +131,8 @@ export default function ScreenerPage() {
     };
     
     return (
-        <div className="flex w-full h-full p-6 flex-col bg-[var(--color-b-bg)] text-[var(--color-b-text)]">
+        <>
+        <div className="flex w-full h-full p-6 flex-col bg-[var(--color-b-bg)] text-[var(--color-b-text)] overflow-y-auto">
             <div className="flex justify-between items-end mb-6">
                 <div>
                     <h1 className="text-3xl font-bold text-white mb-2">⚡ Al-Sat Screener</h1>
@@ -172,7 +177,7 @@ export default function ScreenerPage() {
                     </div>
                 </div>
                 <button 
-                    onClick={runScan} 
+                    onClick={() => requireAuth(runScan)} 
                     disabled={scanning}
                     className="px-6 py-3 bg-[var(--color-b-yellow)] text-black font-bold rounded hover:bg-yellow-500 transition-colors disabled:opacity-50 min-w-[200px]"
                 >
@@ -333,5 +338,7 @@ export default function ScreenerPage() {
                 </div>
             )}
         </div>
+        <AuthModal />
+        </>
     );
 }

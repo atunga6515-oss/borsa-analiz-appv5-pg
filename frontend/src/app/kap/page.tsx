@@ -1,8 +1,10 @@
 "use client";
 import { useState } from "react";
 import api from "@/lib/api";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 export default function KapPage() {
+    const { requireAuth, AuthModal } = useRequireAuth();
     const [ticker, setTicker] = useState("");
     const [loading, setLoading] = useState(false);
     const [kapData, setKapData] = useState<any>(null);
@@ -23,7 +25,8 @@ export default function KapPage() {
     };
 
     return (
-        <div className="flex w-full h-full p-6 flex-col bg-[var(--color-b-bg)] text-[var(--color-b-text)]">
+        <>
+        <div className="flex w-full h-full p-6 flex-col bg-[var(--color-b-bg)] text-[var(--color-b-text)] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
                 <div>
                     <h1 className="text-3xl font-bold text-white mb-2">📰 KAP Haber Analizi (Yapay Zeka)</h1>
@@ -40,7 +43,7 @@ export default function KapPage() {
                     className="p-3 bg-[#1e2329] border border-[var(--color-b-border)] rounded text-white font-bold w-64 focus:outline-none focus:border-[var(--color-b-yellow)]"
                 />
                 <button 
-                    onClick={fetchKap}
+                    onClick={() => requireAuth(fetchKap)}
                     disabled={loading}
                     className="px-6 py-3 bg-[var(--color-b-yellow)] text-black font-bold rounded hover:bg-yellow-500 transition-colors disabled:opacity-50"
                 >
@@ -110,5 +113,7 @@ export default function KapPage() {
                 </table>
             </div>
         </div>
+        <AuthModal />
+        </>
     );
 }

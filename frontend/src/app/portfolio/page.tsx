@@ -1,8 +1,10 @@
 "use client";
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 export default function PortfolioPage() {
+    const { requireAuth, AuthModal } = useRequireAuth();
     const [positions, setPositions] = useState([]);
     const [loading, setLoading] = useState(true);
     
@@ -64,7 +66,7 @@ export default function PortfolioPage() {
                     <p className="text-[var(--color-b-muted)]">Açık pozisyonlarınızı ve kâr/zarar durumunuzu takip edin</p>
                 </div>
                 <button 
-                    onClick={() => setShowModal(true)}
+                    onClick={() => requireAuth(() => setShowModal(true))}
                     className="px-6 py-3 bg-[var(--color-b-green)] text-black font-bold rounded hover:bg-green-500 transition-colors"
                 >
                     + Yeni İşlem Ekle
@@ -186,6 +188,7 @@ export default function PortfolioPage() {
                     </div>
                 </div>
             )}
+        <AuthModal />
         </>
     );
 }

@@ -1,8 +1,10 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import api from "@/lib/api";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 export default function TopPicksPage() {
+    const { requireAuth, AuthModal } = useRequireAuth();
     const [picks, setPicks] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [historyDates, setHistoryDates] = useState<string[]>([]);
@@ -205,6 +207,7 @@ export default function TopPicksPage() {
     };
 
     return (
+        <>
         <div className="flex w-full h-full p-6 flex-col bg-[var(--color-b-bg)] text-[var(--color-b-text)] overflow-y-auto">
             <div className="flex justify-between items-end mb-6">
                 <div>
@@ -257,7 +260,7 @@ export default function TopPicksPage() {
                     </div>
                     <div className="flex flex-col justify-end">
                         <button 
-                            onClick={handleScan}
+                            onClick={() => requireAuth(handleScan)}
                             disabled={loading}
                             className="px-6 py-2 h-[42px] bg-[var(--color-b-yellow)] text-black font-bold rounded hover:bg-yellow-500 transition-colors"
                         >
@@ -358,7 +361,7 @@ export default function TopPicksPage() {
                                         </td>
                                         <td className="p-4 text-center">
                                             <button 
-                                                onClick={() => openModal(tckr, prc)}
+                                                onClick={() => requireAuth(() => openModal(tckr, prc))}
                                                 className="text-xs bg-[#1e2329] text-[var(--color-b-green)] hover:bg-[var(--color-b-green)] hover:text-black border border-[var(--color-b-green)] px-3 py-1 rounded transition-colors"
                                             >
                                                 Portföye Ekle
@@ -454,5 +457,7 @@ export default function TopPicksPage() {
                 </div>
             )}
         </div>
+        <AuthModal />
+        </>
     );
 }

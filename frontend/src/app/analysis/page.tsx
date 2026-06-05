@@ -2,8 +2,10 @@
 import { useState } from "react";
 import api from "@/lib/api";
 import TradingChart from "@/components/TradingChart";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 export default function AnalysisPage() {
+    const { requireAuth, AuthModal } = useRequireAuth();
     const [ticker, setTicker] = useState("THYAO");
     const [data, setData] = useState<any>(null);
     const [chartData, setChartData] = useState<any[]>([]);
@@ -37,7 +39,7 @@ export default function AnalysisPage() {
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        fetchAnalysis(ticker);
+        requireAuth(() => fetchAnalysis(ticker));
     };
 
     const getDecisionColor = (decision: string) => {
@@ -77,6 +79,7 @@ ${ssot.summary || "-"}`;
     };
 
     return (
+        <>
         <div className="flex w-full h-full p-6 flex-col bg-[var(--color-b-bg)] text-[var(--color-b-text)] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
                 <div>
@@ -102,7 +105,8 @@ ${ssot.summary || "-"}`;
                     </form>
                     {data && (
                         <button 
-                            onClick={handleSendTelegram}
+                            type="button"
+                            onClick={() => requireAuth(handleSendTelegram)}
                             className="bg-[#24A1DE] hover:bg-[#1d82b5] text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
                             disabled={loading}
                         >
@@ -277,5 +281,7 @@ ${ssot.summary || "-"}`;
                 </div>
             )}
         </div>
+        <AuthModal />
+        </>
     );
 }

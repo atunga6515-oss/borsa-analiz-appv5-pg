@@ -1,8 +1,10 @@
 "use client";
 import { useState } from "react";
 import api from "@/lib/api";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 export default function BacktestPage() {
+    const { requireAuth, AuthModal } = useRequireAuth();
     const [ticker, setTicker] = useState("THYAO");
     const [capital, setCapital] = useState(100000);
     const [days, setDays] = useState(180);
@@ -29,6 +31,7 @@ export default function BacktestPage() {
     };
 
     return (
+        <>
         <div className="flex w-full h-full p-6 flex-col bg-[var(--color-b-bg)] text-[var(--color-b-text)] overflow-y-auto">
             <div className="mb-6">
                 <h1 className="text-3xl font-bold text-white mb-2">💼 Gelişmiş Backtest Modülü</h1>
@@ -67,7 +70,7 @@ export default function BacktestPage() {
                     </select>
                 </div>
                 <button 
-                    onClick={runBacktest}
+                    onClick={() => requireAuth(runBacktest)}
                     disabled={loading}
                     className="px-8 py-3 bg-[var(--color-b-yellow)] text-black font-bold rounded hover:bg-yellow-500 transition-colors disabled:opacity-50"
                 >
@@ -110,5 +113,7 @@ export default function BacktestPage() {
                 </div>
             )}
         </div>
+        <AuthModal />
+        </>
     );
 }

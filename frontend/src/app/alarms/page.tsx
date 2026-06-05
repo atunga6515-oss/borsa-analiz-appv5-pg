@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 const CONDITION_MAP: Record<string, string> = {
     price_above: "Fiyat Şunu Geçerse ↑",
@@ -21,6 +22,7 @@ interface Alarm {
 }
 
 export default function AlarmsPage() {
+    const { requireAuth, AuthModal } = useRequireAuth();
     const [alarms, setAlarms] = useState<Alarm[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -102,6 +104,7 @@ export default function AlarmsPage() {
     };
 
     return (
+        <>
         <div className="flex w-full h-full p-6 flex-col bg-[var(--color-b-bg)] text-[var(--color-b-text)] overflow-y-auto">
             {/* Header */}
             <div className="mb-6 flex justify-between items-center">
@@ -112,7 +115,7 @@ export default function AlarmsPage() {
                     </p>
                 </div>
                 <button
-                    onClick={() => setModalOpen(true)}
+                    onClick={() => requireAuth(() => setModalOpen(true))}
                     className="px-6 py-3 bg-[var(--color-b-yellow)] text-black font-bold rounded-lg hover:bg-yellow-400 transition-colors shadow-lg shadow-[rgba(252,213,53,0.2)]"
                 >
                     + Yeni Alarm Kur
@@ -287,5 +290,7 @@ export default function AlarmsPage() {
                 </div>
             )}
         </div>
+        <AuthModal />
+        </>
     );
 }
