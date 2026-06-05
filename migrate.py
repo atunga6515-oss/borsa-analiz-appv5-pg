@@ -25,6 +25,9 @@ def migrate():
         models.Base.metadata.create_all(bind=database.engine)
         print("[INFO] create_all() executed.")
         
+        # SQLAlchemy autobegin işlemini commit ile sonlandırıyoruz ki AUTOCOMMIT moduna geçebilelim
+        conn.commit()
+        
         # ZORLA CREATE TABLE (autocommit mode via execution_options)
         print("[INFO] Executing RAW SQL for ohlcv table with isolated isolation_level...")
         with conn.execution_options(isolation_level="AUTOCOMMIT"):
