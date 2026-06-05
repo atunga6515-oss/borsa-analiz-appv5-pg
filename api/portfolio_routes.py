@@ -11,6 +11,7 @@ class TransactionRequest(BaseModel):
     type: str # 'ALIS' or 'SATIS'
     quantity: float
     price: float
+    date: str = None
 
 @router.get("/")
 def fetch_portfolio(current_user: str = Depends(get_current_user)):
@@ -29,7 +30,7 @@ def fetch_portfolio_summary(current_user: str = Depends(get_current_user)):
 @router.post("/transaction")
 def create_transaction(req: TransactionRequest, current_user: str = Depends(get_current_user)):
     if req.type == "ALIS":
-        alis_yap(current_user, req.ticker, req.quantity, req.price)
+        alis_yap(current_user, req.ticker, req.quantity, req.price, alis_tarihi=req.date)
     else:
         # Note: satis_yap takes trade_id, so this might need adjustment later
         pass

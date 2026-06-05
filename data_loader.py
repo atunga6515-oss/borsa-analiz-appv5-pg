@@ -4,8 +4,8 @@ import os
 import requests
 import time
 from datetime import datetime, timedelta, timezone
-import streamlit as st
 import pytz
+from cache_utils import ttl_cache
 from database import engine
 from sqlalchemy import text
 
@@ -181,7 +181,7 @@ def _clean_yf_data(data: pd.DataFrame, ticker: str) -> pd.DataFrame:
 # ANA FONKSİYONLAR (Dışarıya açık API)
 # ============================================================
 
-@st.cache_data(ttl=300)
+@ttl_cache(ttl_seconds=300)
 def fetch_data(symbol: str, interval: str = "1d", period: str = "1y") -> pd.DataFrame:
     """
     Akıllı veri çekme fonksiyonu:
@@ -248,7 +248,7 @@ def fetch_data(symbol: str, interval: str = "1d", period: str = "1y") -> pd.Data
     return final_df
 
 
-@st.cache_data(ttl=300)
+@ttl_cache(ttl_seconds=300)
 def fetch_multiple_close_prices(symbols: list, interval: str = "1d", period: str = "1mo") -> pd.DataFrame:
     """
     Korelasyon/Screener hesabı için birden fazla hissenin kapanış fiyatını çeker.
@@ -269,7 +269,7 @@ def fetch_multiple_close_prices(symbols: list, interval: str = "1d", period: str
     return result
 
 
-@st.cache_data(ttl=300)
+@ttl_cache(ttl_seconds=300)
 def fetch_weekly_data(symbol: str, period: str = "2y") -> pd.DataFrame:
     """
     Öncelikle Multi-Timeframe analiz (MTF) için haftalık veri çeker.

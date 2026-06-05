@@ -1,5 +1,4 @@
 import pandas as pd
-import streamlit as st
 import urllib.request
 import urllib.parse
 import xml.etree.ElementTree as ET

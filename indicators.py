@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import ta
-import streamlit as st
+import warnings
 from patterns import detect_candlestick_patterns
 from signals_engine import calculate_100_indicators, get_core_signal
 

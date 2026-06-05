@@ -55,3 +55,25 @@ def run_backtest(req: BacktestRequest):
         "trades": trades,
         "equity_curve": equity_curve.to_dict(orient="records")
     }
+
+from strategy_comparator import compare_strategies
+
+class CompareRequest(BaseModel):
+    ticker: str
+    period: str = "1y"
+
+@router.post("/compare")
+def run_compare(req: CompareRequest):
+    # Eğer kullanıcı virgülle ayırdıysa sadece ilkini alıyoruz, çünkü comparator 1 df bekliyor
+    first_ticker = req.ticker.split(",")[0].strip().upper()
+    df = fetch_data(first_ticker, interval="1d", period=req.period)
+    if df.empty:
+        return {"error": f"{first_ticker} için veri bulunamadı."}
+        
+    comp_df = compare_strategies(df)
+    if comp_df.empty:
+        return {"error": "Karşılaştırma hesaplanamadı."}
+        
+    # Replace NaN with None for JSON serialization
+    comp_df = comp_df.replace({np.nan: None})
+    return {"data": comp_df.to_dict(orient="records")}

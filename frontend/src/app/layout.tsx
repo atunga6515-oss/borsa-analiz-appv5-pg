@@ -68,8 +68,8 @@ export default function RootLayout({
             </nav>
           </div>
           <div className="flex items-center gap-4">
-             <button className="text-[var(--color-b-muted)] hover:text-white transition-colors text-sm font-medium">Giriş Yap</button>
-             <button className="bg-[var(--color-b-yellow)] text-[#181a20] px-4 py-1.5 rounded font-semibold text-sm hover:bg-[#f0c929] transition-colors">Kayıt Ol</button>
+             <Link href="/login" className="text-[var(--color-b-muted)] hover:text-white transition-colors text-sm font-medium">Giriş Yap</Link>
+             <Link href="/login" className="bg-[var(--color-b-yellow)] text-[#181a20] px-4 py-1.5 rounded font-semibold text-sm hover:bg-[#f0c929] transition-colors">Kayıt Ol</Link>
           </div>
         </header>
 

@@ -1,5 +1,6 @@
-import streamlit as st
-import pandas as pd
+import requests
+import logging
+from cache_utils import ttl_cache
 import urllib.request
 import urllib.parse
 import xml.etree.ElementTree as ET
@@ -17,23 +18,20 @@ TR_TZ = pytz.timezone("Europe/Istanbul")
 def _get_client():
     api_key = None
     try:
-        api_key = st.secrets.get("GEMINI_API_KEY")
+        api_key = os.environ.get("GEMINI_API_KEY")
     except Exception:
         pass
     
-    if not api_key:
-        api_key = os.environ.get("GEMINI_API_KEY")
-        
     if api_key:
         try:
             return genai.Client(api_key=api_key)
         except Exception as e:
-            st.error(f"Gemini Client Başlatma Hatası: {str(e)}")
+            logging.error(f"Gemini Client Başlatma Hatası: {str(e)}")
     else:
-        st.warning("⚠️ API Anahtarı bulunamadı! Lütfen '.streamlit/secrets.toml' dosyasına veya sistem ortam değişkenlerine 'GEMINI_API_KEY' ekleyin.")
+        logging.warning("⚠️ API Anahtarı bulunamadı! Lütfen sistem ortam değişkenlerine 'GEMINI_API_KEY' ekleyin.")
     return None
 
-@st.cache_data(ttl=3600, show_spinner=False)
+@ttl_cache(ttl_seconds=3600)
 def analyze_sentiment_with_ai(news_items):
     """
     Haber listesini Gemini AI ile batch olarak analiz eder.

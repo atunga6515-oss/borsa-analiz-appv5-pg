@@ -4,15 +4,18 @@ import os
 from database import engine
 from sqlalchemy import text
 
-def alis_yap(username: str, ticker: str, adet: float, fiyat: float, not_text: str = "", sl: float = None, tp: float = None, var_risk: float = None):
+def alis_yap(username: str, ticker: str, adet: float, fiyat: float, not_text: str = "", sl: float = None, tp: float = None, var_risk: float = None, alis_tarihi: str = None):
     """Sanal portföye hisse alımı ekler."""
+    if alis_tarihi is None:
+        alis_tarihi = datetime.now().strftime("%Y-%m-%d %H:%M")
+        
     with engine.begin() as conn:
         conn.execute(text("""
             INSERT INTO portfolio (username, ticker, adet, alis_fiyati, alis_tarihi, durum, not_text, sl, tp, var)
             VALUES (:u, :t, :a, :f, :d, 'ACIK', :n, :sl, :tp, :var)
         """), {
             "u": username, "t": ticker.upper(), "a": adet, "f": fiyat, 
-            "d": datetime.now().strftime("%Y-%m-%d %H:%M"), "n": not_text,
+            "d": alis_tarihi, "n": not_text,
             "sl": sl, "tp": tp, "var": var_risk
         })
 
