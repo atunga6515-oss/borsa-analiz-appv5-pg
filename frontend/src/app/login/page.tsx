@@ -31,6 +31,10 @@ export default function LoginPage() {
             localStorage.setItem("token", res.data.access_token);
             localStorage.setItem("username", res.data.username || username);
             localStorage.setItem("role", res.data.role || "user");
+            
+            // Set cookie for Next.js middleware
+            document.cookie = `token=${res.data.access_token}; path=/; max-age=86400`;
+
             router.push("/");
         } catch (err: any) {
             setError(
