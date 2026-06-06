@@ -92,7 +92,7 @@ def analyze_stock(req: AIAnalysisRequest, current_user: str = Depends(get_curren
             result_text = response.text
         except Exception as e:
             log_action(current_user, "AI_ERROR", str(e), level="ERROR")
-            raise HTTPException(status_code=500, detail="Yapay Zeka sunucularına bağlanılamadı.")
+            raise HTTPException(status_code=500, detail=f"Yapay Zeka sunucularına bağlanılamadı. Hata detayı: {str(e)}")
 
         # 4. Save History and Deduct Quota
         conn.execute(
