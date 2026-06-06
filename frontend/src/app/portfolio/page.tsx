@@ -28,7 +28,7 @@ export default function PortfolioPage() {
     const fetchPortfolio = async () => {
         setLoading(true);
         try {
-            const res = await api.get('/portfolio');
+            const res = await api.get('/portfolio/');
             if (res.data && res.data.data) {
                 setPositions(res.data.data);
             }
