@@ -97,8 +97,20 @@ def analyze_stock(req: AIAnalysisRequest, current_user: str = Depends(get_curren
                 )
             result_text = response.text
         except Exception as e:
-            log_action(current_user, "AI_ERROR", str(e), level="ERROR")
-            raise HTTPException(status_code=500, detail=f"Yapay Zeka sunucularına bağlanılamadı. Hata detayı: {str(e)}")
+            available_models = []
+            try:
+                for m in genai.list_models():
+                    if 'generateContent' in m.supported_generation_methods:
+                        available_models.append(m.name)
+            except Exception:
+                pass
+                
+            err_msg = str(e)
+            if available_models:
+                err_msg += f" || Kullanılabilir Modeller: {', '.join(available_models)}"
+                
+            log_action(current_user, "AI_ERROR", err_msg, level="ERROR")
+            raise HTTPException(status_code=500, detail=f"Yapay Zeka sunucularına bağlanılamadı. Hata detayı: {err_msg}")
 
         # 4. Save History and Deduct Quota
         conn.execute(
