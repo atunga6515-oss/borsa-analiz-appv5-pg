@@ -34,22 +34,22 @@ def satis_yap(trade_id: int, satis_fiyati: float):
 def acik_pozisyonlar(username: str) -> pd.DataFrame:
     """Belirli kullanıcıya ait tüm açık (satılmamış) pozisyonları döndürür."""
     with engine.connect() as conn:
-        query = "SELECT id, ticker, adet, alis_fiyati, alis_tarihi, not_text, sl, tp, var FROM portfolio WHERE durum='ACIK' AND username=%(u)s ORDER BY alis_tarihi DESC" if engine.name == 'postgresql' else "SELECT id, ticker, adet, alis_fiyati, alis_tarihi, not_text, sl, tp, var FROM portfolio WHERE durum='ACIK' AND username=? ORDER BY alis_tarihi DESC"
-        df = pd.read_sql_query(query, conn, params={"u": username} if engine.name == 'postgresql' else (username,))
+        query = text("SELECT id, ticker, adet, alis_fiyati, alis_tarihi, not_text, sl, tp, var FROM portfolio WHERE durum='ACIK' AND username=:u ORDER BY alis_tarihi DESC")
+        df = pd.read_sql_query(query, conn, params={"u": username})
     return df
 
 def kapali_pozisyonlar(username: str) -> pd.DataFrame:
     """Belirli kullanıcıya ait tüm kapatılmış (satılmış) pozisyonları döndürür."""
     with engine.connect() as conn:
-        query = "SELECT id, ticker, adet, alis_fiyati, alis_tarihi, satis_fiyati, satis_tarihi, not_text, sl, tp, var FROM portfolio WHERE durum='KAPALI' AND username=%(u)s ORDER BY satis_tarihi DESC" if engine.name == 'postgresql' else "SELECT id, ticker, adet, alis_fiyati, alis_tarihi, satis_fiyati, satis_tarihi, not_text, sl, tp, var FROM portfolio WHERE durum='KAPALI' AND username=? ORDER BY satis_tarihi DESC"
-        df = pd.read_sql_query(query, conn, params={"u": username} if engine.name == 'postgresql' else (username,))
+        query = text("SELECT id, ticker, adet, alis_fiyati, alis_tarihi, satis_fiyati, satis_tarihi, not_text, sl, tp, var FROM portfolio WHERE durum='KAPALI' AND username=:u ORDER BY satis_tarihi DESC")
+        df = pd.read_sql_query(query, conn, params={"u": username})
     return df
 
 def tum_islemler(username: str) -> pd.DataFrame:
     """Kullanıcıya ait açık ve kapalı tüm işlemleri döndürür."""
     with engine.connect() as conn:
-        query = "SELECT * FROM portfolio WHERE username=%(u)s ORDER BY alis_tarihi DESC" if engine.name == 'postgresql' else "SELECT * FROM portfolio WHERE username=? ORDER BY alis_tarihi DESC"
-        df = pd.read_sql_query(query, conn, params={"u": username} if engine.name == 'postgresql' else (username,))
+        query = text("SELECT * FROM portfolio WHERE username=:u ORDER BY alis_tarihi DESC")
+        df = pd.read_sql_query(query, conn, params={"u": username})
     return df
 
 def islemi_sil(trade_id: int):

@@ -98,15 +98,19 @@ class RegisterRequest(BaseModel):
 
 
 @router.post("/register", response_model=Token)
-def register(req: RegisterRequest):
+def register(req: RegisterRequest, current_user: str = Depends(get_current_user)):
+    role = get_user_role(current_user)
+    if current_user != "admin1":
+        raise HTTPException(status_code=403, detail="Sadece admin1 yeni kullanıcı oluşturabilir.")
+    
     result = register_user(req.username, req.password, req.email or "")
     if not result["ok"]:
         raise HTTPException(status_code=400, detail=result["error"])
-    role = get_user_role(req.username)
-    access_token = create_access_token(data={"sub": req.username, "role": role})
+    
+    # We don't return a token for the new user, we just return success
     return {
-        "access_token": access_token,
+        "access_token": "created",
         "token_type": "bearer",
         "username": req.username,
-        "role": role,
+        "role": get_user_role(req.username),
     }
