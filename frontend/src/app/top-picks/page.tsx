@@ -8,8 +8,8 @@ export default function TopPicksPage() {
     const { requireAuth, AuthModal } = useRequireAuth();
     const [picks, setPicks] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
-    const [historyDates, setHistoryDates] = useState<string[]>([]);
-    const [selectedDate, setSelectedDate] = useState("");
+    const [historyDates, setHistoryDates] = useState<any[]>([]);
+    const [selectedHistoryId, setSelectedHistoryId] = useState("");
     const [topN, setTopN] = useState<number>(5);
     const [pool, setPool] = useState<string>("BIST30");
     const [sortConfig, setSortConfig] = useState<{key: string, direction: 'asc'|'desc'} | null>(null);
@@ -39,9 +39,10 @@ export default function TopPicksPage() {
             const res = await api.get('/top_picks/history-dates');
             if (res.data && res.data.dates) {
                 setHistoryDates(res.data.dates);
-                if (res.data.dates.length > 0 && !selectedDate && !loading) {
-                    setSelectedDate(res.data.dates[0]);
-                    fetchHistoryByDate(res.data.dates[0]);
+                if (res.data.dates.length > 0 && !selectedHistoryId && !loading) {
+                    const firstId = res.data.dates[0].id.toString();
+                    setSelectedHistoryId(firstId);
+                    fetchHistoryById(firstId);
                 }
             }
         } catch (error) {
@@ -49,11 +50,11 @@ export default function TopPicksPage() {
         }
     };
 
-    const fetchHistoryByDate = async (date: string) => {
-        if (!date) return;
+    const fetchHistoryById = async (id: string) => {
+        if (!id) return;
         setLoading(true);
         try {
-            const res = await api.get(`/top_picks/history?date=${date}`);
+            const res = await api.get(`/top_picks/history/${id}`);
             if (res.data && res.data.data) {
                 setPicks(res.data.data);
             }
@@ -64,11 +65,11 @@ export default function TopPicksPage() {
         }
     };
 
-    const handleDateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const d = e.target.value;
-        setSelectedDate(d);
-        if (d) {
-            fetchHistoryByDate(d);
+    const handleHistoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const id = e.target.value;
+        setSelectedHistoryId(id);
+        if (id) {
+            fetchHistoryById(id);
         } else {
             setPicks([]);
         }
@@ -78,7 +79,7 @@ export default function TopPicksPage() {
         if (!confirm(`${topN} hisselik derin tarama başlatılacak. Onaylıyor musunuz?`)) return;
         setLoading(true);
         setPicks([]);
-        setSelectedDate("");
+        setSelectedHistoryId("");
         setScanProgress(0);
         setScanText("Hazırlanıyor...");
         try {
@@ -253,13 +254,13 @@ export default function TopPicksPage() {
                     <div className="flex flex-col">
                         <label className="text-xs text-[var(--color-b-muted)] mb-1">Geçmiş Taramalar</label>
                         <select 
-                            value={selectedDate} 
-                            onChange={handleDateChange}
+                            value={selectedHistoryId} 
+                            onChange={handleHistoryChange}
                             className="bg-[#1e2329] border border-[var(--color-b-border)] text-white px-3 py-2 rounded focus:outline-none"
                         >
                             <option value="">-- Yeni Tarama --</option>
                             {historyDates.map(d => (
-                                <option key={d} value={d}>{d}</option>
+                                <option key={d.id} value={d.id}>{d.run_date}</option>
                             ))}
                         </select>
                     </div>

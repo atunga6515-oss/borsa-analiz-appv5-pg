@@ -25,29 +25,38 @@ def save_top_picks_history(username: str, results: list):
     """Top 5 sonuçlarını veritabanına JSON olarak kaydeder."""
     if not results:
         return
-    now_str = datetime.now(TR_TZ).strftime("%Y-%m-%d %H:%M")
+    now_str = datetime.now(TR_TZ).strftime("%Y-%m-%d %H:%M:%S")
     with engine.begin() as conn:
         conn.execute(
             text("INSERT INTO top_picks_history (username, run_date, results_json) VALUES (:u, :d, :r)"),
             {"u": username, "d": now_str, "r": json.dumps(results)}
         )
+        # Sadece son 30 kalsın
+        conn.execute(text("""
+            DELETE FROM top_picks_history 
+            WHERE username = :u AND id NOT IN (
+                SELECT id FROM top_picks_history 
+                WHERE username = :u 
+                ORDER BY id DESC LIMIT 30
+            )
+        """), {"u": username})
 
 def get_top_picks_history_dates(username: str) -> list:
-    """Kaydedilmiş analiz tarihlerini döndürür."""
+    """Kaydedilmiş analiz tarihlerini id ve run_date olarak döndürür."""
     with engine.connect() as conn:
         cursor = conn.execute(
-            text("SELECT DISTINCT run_date FROM top_picks_history WHERE username=:u ORDER BY run_date DESC"),
+            text("SELECT id, run_date FROM top_picks_history WHERE username=:u ORDER BY id DESC"),
             {"u": username}
         )
-        dates = [row[0] for row in cursor.fetchall()]
+        dates = [{"id": row[0], "run_date": row[1]} for row in cursor.fetchall()]
     return dates
 
-def get_top_picks_by_date(username: str, run_date: str) -> list:
-    """Belirli bir tarihteki analiz sonuçlarını döndürür."""
+def get_top_picks_by_date(username: str, history_id: int) -> list:
+    """Belirli bir ID'deki analiz sonuçlarını döndürür."""
     with engine.connect() as conn:
         cursor = conn.execute(
-            text("SELECT results_json FROM top_picks_history WHERE username=:u AND run_date=:d"),
-            {"u": username, "d": run_date}
+            text("SELECT results_json FROM top_picks_history WHERE username=:u AND id=:id"),
+            {"u": username, "id": history_id}
         )
         row = cursor.fetchone()
     if row:

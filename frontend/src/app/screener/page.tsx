@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
@@ -15,6 +15,10 @@ export default function ScreenerPage() {
     const [scanMode, setScanMode] = useState("BIST30");
     const [sortConfig, setSortConfig] = useState<{key: string | null, direction: 'asc' | 'desc'}>({ key: null, direction: 'asc' });
     
+    // History State
+    const [historyList, setHistoryList] = useState<any[]>([]);
+    const [selectedHistoryId, setSelectedHistoryId] = useState<string>("");
+    
     // AI Modal State
     const [aiModalOpen, setAiModalOpen] = useState(false);
     const [aiProps, setAiProps] = useState<any>({ ticker: "", price: 0 });
@@ -25,6 +29,43 @@ export default function ScreenerPage() {
     const [modalTicker, setModalTicker] = useState("");
     const [modalPrice, setModalPrice] = useState("");
     const [modalQty, setModalQty] = useState("100");
+    
+    const fetchHistoryList = async () => {
+        try {
+            const res = await api.get('/screener/history');
+            if (res.data && res.data.data) {
+                setHistoryList(res.data.data);
+            }
+        } catch(e) {
+            console.error("Geçmiş çekilemedi", e);
+        }
+    };
+    
+    // İlk yüklemede history'yi çek (kullanıcı giriş yapmışsa api interceptor çalışır ama requireAuth ile de yapabiliriz)
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        if (token) {
+            fetchHistoryList();
+        }
+    }, []);
+    
+    const loadHistoryDetails = async (id: string) => {
+        if (!id) return;
+        setScanning(true);
+        setScanText("Geçmiş sonuçlar yükleniyor...");
+        try {
+            const res = await api.get(`/screener/history/${id}`);
+            if (res.data && res.data.data) {
+                setScanResults(res.data.data);
+            } else {
+                setScanResults([]);
+            }
+        } catch(e) {
+            console.error("Detay hatası:", e);
+        } finally {
+            setScanning(false);
+        }
+    };
     
     const runScan = async () => {
         setScanning(true);
@@ -49,6 +90,7 @@ export default function ScreenerPage() {
                             setScanResults(sData.data || []);
                             setScanning(false);
                             setScanProgress(100);
+                            fetchHistoryList(); // Taramadan sonra listeyi yenile
                         } else if (sData.status === "error") {
                             clearInterval(intervalId);
                             console.error("Tarama hatası:", sData.text);
@@ -176,7 +218,7 @@ export default function ScreenerPage() {
                         </div>
                     )}
                     
-                    <div className="flex gap-4 mt-4">
+                    <div className="flex gap-4 mt-4 items-center flex-wrap">
                         {["BIST30", "BIST100", "BIST_ALL"].map(mode => (
                             <label key={mode} className="flex items-center gap-2 cursor-pointer text-sm">
                                 <input 
@@ -191,6 +233,29 @@ export default function ScreenerPage() {
                                 {mode === "BIST30" ? "BIST 30 (Hızlı)" : mode === "BIST100" ? "BIST 100" : "Tüm Hisseler"}
                             </label>
                         ))}
+                        
+                        {/* Geçmiş Dropdown */}
+                        {historyList.length > 0 && (
+                            <div className="ml-auto flex items-center gap-2">
+                                <span className="text-sm text-gray-400">Son 30 Tarama:</span>
+                                <select 
+                                    className="bg-[var(--color-b-card)] border border-gray-700 text-white text-sm rounded px-3 py-1.5 focus:outline-none focus:border-[var(--color-b-yellow)]"
+                                    value={selectedHistoryId}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setSelectedHistoryId(val);
+                                        if (val) loadHistoryDetails(val);
+                                    }}
+                                >
+                                    <option value="">Seçiniz...</option>
+                                    {historyList.map(h => (
+                                        <option key={h.id} value={h.id}>
+                                            {h.run_date}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                     </div>
                 </div>
                 <button 

@@ -9,9 +9,9 @@ def fetch_history_dates(current_user: str = Depends(get_current_user)):
     dates = get_top_picks_history_dates(current_user)
     return {"dates": dates}
 
-@router.get("/history")
-def fetch_history_by_date(date: str, current_user: str = Depends(get_current_user)):
-    data = get_top_picks_by_date(current_user, date)
+@router.get("/history/{history_id}")
+def fetch_history_by_id(history_id: int, current_user: str = Depends(get_current_user)):
+    data = get_top_picks_by_date(current_user, history_id)
     return {"data": data}
 
 from pydantic import BaseModel

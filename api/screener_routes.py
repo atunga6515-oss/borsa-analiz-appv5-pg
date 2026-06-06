@@ -9,6 +9,13 @@ from screener import (
     BIST30_SYMBOLS, BIST100_SYMBOLS, BIST_ALL_SYMBOLS
 )
 from api.auth_routes import get_current_user
+from database import engine
+from sqlalchemy import text
+from datetime import datetime
+import pytz
+import json
+
+TR_TZ = pytz.timezone("Europe/Istanbul")
 
 router = APIRouter(prefix="/api/screener", tags=["screener"])
 
@@ -35,7 +42,27 @@ def bg_run_screener(task_id: str, symbols: list, username: str):
         if isinstance(df, pd.DataFrame):
             df = df.replace([np.inf, -np.inf], np.nan)
             df = df.fillna("-")
-            scan_tasks[task_id]["results"] = df.to_dict(orient="records")
+            results_list = df.to_dict(orient="records")
+            scan_tasks[task_id]["results"] = results_list
+            
+            # Kayıt işlemi
+            run_date = datetime.now(TR_TZ).strftime("%Y-%m-%d %H:%M:%S")
+            res_json = json.dumps(results_list)
+            
+            with engine.begin() as conn:
+                conn.execute(text("""
+                    INSERT INTO screener_history (username, run_date, results_json)
+                    VALUES (:u, :d, :r)
+                """), {"u": username, "d": run_date, "r": res_json})
+                
+                conn.execute(text("""
+                    DELETE FROM screener_history 
+                    WHERE username = :u AND id NOT IN (
+                        SELECT id FROM screener_history 
+                        WHERE username = :u 
+                        ORDER BY id DESC LIMIT 30
+                    )
+                """), {"u": username})
         else:
             scan_tasks[task_id]["results"] = []
             
@@ -55,11 +82,30 @@ class ScanRequest(BaseModel):
     scan_mode: str = "BIST30" # BIST30, BIST100, BIST_ALL
 
 @router.get("/history")
-def fetch_history(days_back: int = 7, current_user: str = Depends(get_current_user)):
-    df = get_scan_history(current_user, days_back)
-    if isinstance(df, pd.DataFrame):
-        return {"data": df.to_dict(orient="records")}
-    return {"data": []}
+def fetch_history(current_user: str = Depends(get_current_user)):
+    with engine.connect() as conn:
+        df = pd.read_sql_query(
+            text("SELECT id, run_date FROM screener_history WHERE username=:u ORDER BY id DESC"), 
+            conn, params={"u": current_user}
+        )
+    return {"data": df.to_dict(orient="records")}
+
+@router.get("/history/{history_id}")
+def fetch_history_detail(history_id: int, current_user: str = Depends(get_current_user)):
+    with engine.connect() as conn:
+        result = conn.execute(
+            text("SELECT results_json FROM screener_history WHERE id=:id AND username=:u"),
+            {"id": history_id, "u": current_user}
+        ).fetchone()
+        
+    if not result:
+        return {"data": []}
+    
+    try:
+        data = json.loads(result[0])
+        return {"data": data}
+    except:
+        return {"data": []}
 
 @router.post("/scan")
 def start_scan(background_tasks: BackgroundTasks, req: ScanRequest = None, current_user: str = Depends(get_current_user)):
