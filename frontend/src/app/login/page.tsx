@@ -119,13 +119,7 @@ export default function LoginPage() {
 
                     <div className="mt-6 pt-6 border-t border-[var(--color-b-border)] text-center">
                         <p className="text-[var(--color-b-muted)] text-sm">
-                            Hesabınız yok mu?{" "}
-                            <Link
-                                href="/register"
-                                className="text-[var(--color-b-yellow)] hover:underline font-semibold"
-                            >
-                                Kayıt Ol
-                            </Link>
+                            Sisteme kayıt olmak için yöneticinizle iletişime geçin.
                         </p>
                     </div>
                 </div>

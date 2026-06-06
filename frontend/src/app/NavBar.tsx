@@ -112,15 +112,9 @@ export default function NavBar() {
                     <>
                         <Link
                             href="/login"
-                            className="text-sm px-3 py-1.5 rounded border border-[var(--color-b-border)] text-[var(--color-b-muted)] hover:text-white hover:border-[var(--color-b-yellow)] transition-colors"
-                        >
-                            Giriş Yap
-                        </Link>
-                        <Link
-                            href="/register"
                             className="bg-[var(--color-b-yellow)] text-[#181a20] px-4 py-1.5 rounded font-semibold text-sm hover:bg-[#f0c929] transition-colors"
                         >
-                            Kayıt Ol
+                            Giriş Yap
                         </Link>
                     </>
                 )}

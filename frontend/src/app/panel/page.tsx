@@ -61,10 +61,18 @@ export default function AdminPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [updating, setUpdating] = useState<string | null>(null);
+    const [showAddUser, setShowAddUser] = useState(false);
+    const [newUsername, setNewUsername] = useState("");
+    const [newPassword, setNewPassword] = useState("");
+    const [newEmail, setNewEmail] = useState("");
+    const [newRole, setNewRole] = useState("user");
+    const [currentUser, setCurrentUser] = useState("");
 
     // ── Access guard ──────────────────────────────────────────────────────────
     useEffect(() => {
         const role = localStorage.getItem("role");
+        const u = localStorage.getItem("username");
+        setCurrentUser(u || "");
         if (role !== "admin") {
             router.push("/");
         }
@@ -131,6 +139,28 @@ export default function AdminPage() {
         } finally { setUpdating(null); }
     };
 
+    const handleAddUser = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setUpdating("new");
+        try {
+            await api.post("/auth/register", { username: newUsername, password: newPassword, email: newEmail });
+            if (newRole === "admin") {
+                await api.put(`/admin/users/${newUsername}/status`, { role: "admin" });
+            }
+            setShowAddUser(false);
+            setNewUsername("");
+            setNewPassword("");
+            setNewEmail("");
+            setNewRole("user");
+            fetchUsers();
+            fetchStats();
+        } catch (e: any) {
+            alert(e?.response?.data?.detail || "Kullanıcı eklenemedi.");
+        } finally {
+            setUpdating(null);
+        }
+    };
+
     // ── Render ────────────────────────────────────────────────────────────────
     return (
         <div className="flex w-full h-full flex-col bg-[var(--color-b-bg)] text-[var(--color-b-text)] overflow-y-auto p-6">
@@ -183,6 +213,45 @@ export default function AdminPage() {
 
             {/* ── TAB: Kullanıcı Yönetimi ── */}
             {tab === "users" && (
+                <div className="flex flex-col gap-4 flex-1">
+                    {currentUser === "admin1" && (
+                        <div className="flex justify-end">
+                            <button
+                                onClick={() => setShowAddUser(!showAddUser)}
+                                className="bg-[var(--color-b-yellow)] text-[#181a20] px-4 py-2 rounded-lg font-bold text-sm hover:bg-[#f0c929] transition-colors"
+                            >
+                                {showAddUser ? "✕ İptal" : "+ Yeni Kullanıcı Ekle"}
+                            </button>
+                        </div>
+                    )}
+
+                    {showAddUser && (
+                        <form onSubmit={handleAddUser} className="glass-panel p-5 rounded-xl border border-[var(--color-b-border)] grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+                            <div>
+                                <label className="block text-xs text-[var(--color-b-muted)] mb-1">Kullanıcı Adı</label>
+                                <input required value={newUsername} onChange={e => setNewUsername(e.target.value)} className="w-full bg-[#1e2329] border border-[var(--color-b-border)] rounded px-3 py-2 text-sm text-white" />
+                            </div>
+                            <div>
+                                <label className="block text-xs text-[var(--color-b-muted)] mb-1">Şifre</label>
+                                <input required type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full bg-[#1e2329] border border-[var(--color-b-border)] rounded px-3 py-2 text-sm text-white" />
+                            </div>
+                            <div>
+                                <label className="block text-xs text-[var(--color-b-muted)] mb-1">E-posta (Opsiyonel)</label>
+                                <input value={newEmail} onChange={e => setNewEmail(e.target.value)} className="w-full bg-[#1e2329] border border-[var(--color-b-border)] rounded px-3 py-2 text-sm text-white" />
+                            </div>
+                            <div>
+                                <label className="block text-xs text-[var(--color-b-muted)] mb-1">Rol</label>
+                                <select value={newRole} onChange={e => setNewRole(e.target.value)} className="w-full bg-[#1e2329] border border-[var(--color-b-border)] rounded px-3 py-2 text-sm text-white">
+                                    <option value="user">User</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                            </div>
+                            <button disabled={updating === "new"} type="submit" className="bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 rounded px-4 text-sm transition-colors disabled:opacity-50">
+                                {updating === "new" ? "Ekleniyor..." : "Ekle"}
+                            </button>
+                        </form>
+                    )}
+
                 <div className="glass-panel rounded-xl overflow-hidden flex-1">
                     <table className="w-full text-left border-collapse text-sm">
                         <thead className="bg-[#1e2329] text-[var(--color-b-muted)] sticky top-0">
@@ -224,31 +293,36 @@ export default function AdminPage() {
                                         </span>
                                     </td>
                                     <td className="p-4">
-                                        <div className="flex gap-2 flex-wrap">
-                                            <button
-                                                onClick={() => toggleActive(u.username, u.is_active)}
-                                                disabled={updating === u.username}
-                                                className={`text-xs px-3 py-1.5 rounded border transition-colors disabled:opacity-50 ${
-                                                    u.is_active
-                                                        ? "border-red-700 text-red-400 hover:bg-red-900/30"
-                                                        : "border-green-700 text-green-400 hover:bg-green-900/30"
-                                                }`}
-                                            >
-                                                {u.is_active ? "Askıya Al" : "Aktif Et"}
-                                            </button>
-                                            <button
-                                                onClick={() => changeRole(u.username, u.role === "admin" ? "user" : "admin")}
-                                                disabled={updating === u.username}
-                                                className="text-xs px-3 py-1.5 rounded border border-purple-700 text-purple-400 hover:bg-purple-900/30 transition-colors disabled:opacity-50"
-                                            >
-                                                {u.role === "admin" ? "User Yap" : "Admin Yap"}
-                                            </button>
-                                        </div>
+                                        {u.username !== "admin1" ? (
+                                            <div className="flex gap-2 flex-wrap">
+                                                <button
+                                                    onClick={() => toggleActive(u.username, u.is_active)}
+                                                    disabled={updating === u.username}
+                                                    className={`text-xs px-3 py-1.5 rounded border transition-colors disabled:opacity-50 ${
+                                                        u.is_active
+                                                            ? "border-red-700 text-red-400 hover:bg-red-900/30"
+                                                            : "border-green-700 text-green-400 hover:bg-green-900/30"
+                                                    }`}
+                                                >
+                                                    {u.is_active ? "Askıya Al" : "Aktif Et"}
+                                                </button>
+                                                <button
+                                                    onClick={() => changeRole(u.username, u.role === "admin" ? "user" : "admin")}
+                                                    disabled={updating === u.username}
+                                                    className="text-xs px-3 py-1.5 rounded border border-purple-700 text-purple-400 hover:bg-purple-900/30 transition-colors disabled:opacity-50"
+                                                >
+                                                    {u.role === "admin" ? "User Yap" : "Admin Yap"}
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <span className="text-[var(--color-b-muted)] text-xs italic">Sistem Yöneticisi</span>
+                                        )}
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
+                </div>
                 </div>
             )}
 
