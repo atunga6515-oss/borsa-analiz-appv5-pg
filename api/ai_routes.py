@@ -82,15 +82,15 @@ def analyze_stock(req: AIAnalysisRequest, current_user: str = Depends(get_curren
         """
 
         try:
-            # Önce 1.5-flash modelini dene, olmazsa gemini-pro kullan
+            # En son çıkan Gemini Flash modelini kullan
             try:
-                model = genai.GenerativeModel('gemini-1.5-flash-latest')
+                model = genai.GenerativeModel('gemini-flash-latest')
                 response = model.generate_content(
                     system_prompt + "\n\n" + user_prompt,
                     generation_config=genai.types.GenerationConfig(temperature=0.7)
                 )
             except Exception:
-                model = genai.GenerativeModel('gemini-pro')
+                model = genai.GenerativeModel('gemini-2.5-flash')
                 response = model.generate_content(
                     system_prompt + "\n\n" + user_prompt,
                     generation_config=genai.types.GenerationConfig(temperature=0.7)
