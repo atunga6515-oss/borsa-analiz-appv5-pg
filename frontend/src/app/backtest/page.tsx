@@ -8,6 +8,10 @@ export default function BacktestPage() {
     const [ticker, setTicker] = useState("THYAO");
     const [capital, setCapital] = useState(100000);
     const [days, setDays] = useState(180);
+    const [buyThreshold, setBuyThreshold] = useState(65);
+    const [sellThreshold, setSellThreshold] = useState(45);
+    const [stopLoss, setStopLoss] = useState(5);
+    const [takeProfit, setTakeProfit] = useState(15);
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<any>(null);
 
@@ -18,7 +22,11 @@ export default function BacktestPage() {
             const res = await api.post('/backtest/', {
                 ticker: ticker.toUpperCase(),
                 initial_capital: capital,
-                lookback_days: days
+                lookback_days: days,
+                buy_threshold: buyThreshold,
+                sell_threshold: sellThreshold,
+                stop_loss_pct: stopLoss,
+                take_profit_pct: takeProfit
             });
             if (res.data) {
                 setResult(res.data);
@@ -69,6 +77,45 @@ export default function BacktestPage() {
                         <option value={365}>Son 1 Yıl (365 Gün)</option>
                     </select>
                 </div>
+                
+                {/* Yeni Parametreler */}
+                <div>
+                    <label className="block text-sm text-[var(--color-b-muted)] mb-2">Alım Skoru (≥)</label>
+                    <input 
+                        type="number" 
+                        value={buyThreshold}
+                        onChange={(e) => setBuyThreshold(Number(e.target.value))}
+                        className="p-3 bg-[#1e2329] border border-[var(--color-b-border)] rounded text-[var(--color-b-green)] font-bold w-32 focus:outline-none focus:border-[var(--color-b-yellow)]"
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm text-[var(--color-b-muted)] mb-2">Satım Skoru (≤)</label>
+                    <input 
+                        type="number" 
+                        value={sellThreshold}
+                        onChange={(e) => setSellThreshold(Number(e.target.value))}
+                        className="p-3 bg-[#1e2329] border border-[var(--color-b-border)] rounded text-[var(--color-b-red)] font-bold w-32 focus:outline-none focus:border-[var(--color-b-yellow)]"
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm text-[var(--color-b-muted)] mb-2">Stop Loss (%)</label>
+                    <input 
+                        type="number" 
+                        value={stopLoss}
+                        onChange={(e) => setStopLoss(Number(e.target.value))}
+                        className="p-3 bg-[#1e2329] border border-[var(--color-b-border)] rounded text-[var(--color-b-red)] font-bold w-32 focus:outline-none focus:border-[var(--color-b-yellow)]"
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm text-[var(--color-b-muted)] mb-2">Take Profit (%)</label>
+                    <input 
+                        type="number" 
+                        value={takeProfit}
+                        onChange={(e) => setTakeProfit(Number(e.target.value))}
+                        className="p-3 bg-[#1e2329] border border-[var(--color-b-border)] rounded text-[var(--color-b-green)] font-bold w-32 focus:outline-none focus:border-[var(--color-b-yellow)]"
+                    />
+                </div>
+
                 <button 
                     onClick={() => requireAuth(runBacktest)}
                     disabled={loading}
@@ -79,6 +126,7 @@ export default function BacktestPage() {
             </div>
 
             {result && !result.error && (
+                <>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
                     <div className="glass-panel p-6 rounded-lg text-center border-l-4 border-[var(--color-b-green)]">
                         <p className="text-[var(--color-b-muted)] mb-2">Net Getiri</p>
@@ -93,9 +141,9 @@ export default function BacktestPage() {
                         </h2>
                     </div>
                     <div className="glass-panel p-6 rounded-lg text-center border-l-4 border-[var(--color-b-yellow)]">
-                        <p className="text-[var(--color-b-muted)] mb-2">Al/Sat İşlem Sayısı</p>
-                        <h2 className="text-3xl font-bold text-white">
-                            {result.number_of_trades} İşlem
+                        <p className="text-[var(--color-b-muted)] mb-2">Başarı Oranı (Win Rate)</p>
+                        <h2 className={`text-3xl font-bold ${result.win_rate > 50 ? "text-[var(--color-b-green)]" : "text-[var(--color-b-red)]"}`}>
+                            %{result.win_rate?.toFixed(1)}
                         </h2>
                     </div>
                     <div className="glass-panel p-6 rounded-lg text-center border-l-4 border-[var(--color-b-red)]">
@@ -105,6 +153,28 @@ export default function BacktestPage() {
                         </h2>
                     </div>
                 </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div className="glass-panel p-6 rounded-lg text-center border-l-4 border-blue-500">
+                        <p className="text-[var(--color-b-muted)] mb-2">Al/Sat İşlem Sayısı</p>
+                        <h2 className="text-3xl font-bold text-white">
+                            {result.number_of_trades} İşlem
+                        </h2>
+                    </div>
+                    <div className="glass-panel p-6 rounded-lg text-center border-l-4 border-purple-500">
+                        <p className="text-[var(--color-b-muted)] mb-2">Kâr Faktörü (Profit Factor)</p>
+                        <h2 className={`text-3xl font-bold ${result.profit_factor > 1 ? "text-[var(--color-b-green)]" : "text-[var(--color-b-red)]"}`}>
+                            {result.profit_factor?.toFixed(2)}
+                        </h2>
+                    </div>
+                    <div className="glass-panel p-6 rounded-lg text-center border-l-4 border-orange-500">
+                        <p className="text-[var(--color-b-muted)] mb-2">Sharpe Oranı</p>
+                        <h2 className="text-3xl font-bold text-white">
+                            {result.sharpe_ratio?.toFixed(2)}
+                        </h2>
+                    </div>
+                </div>
+                </>
             )}
             
             {result && result.error && (

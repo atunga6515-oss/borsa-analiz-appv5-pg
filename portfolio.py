@@ -10,14 +10,38 @@ def alis_yap(username: str, ticker: str, adet: float, fiyat: float, not_text: st
         alis_tarihi = datetime.now().strftime("%Y-%m-%d %H:%M")
         
     with engine.begin() as conn:
-        conn.execute(text("""
-            INSERT INTO portfolio (username, ticker, adet, alis_fiyati, alis_tarihi, durum, not_text, sl, tp, var)
-            VALUES (:u, :t, :a, :f, :d, 'ACIK', :n, :sl, :tp, :var)
-        """), {
-            "u": username, "t": ticker.upper(), "a": adet, "f": fiyat, 
-            "d": alis_tarihi, "n": not_text,
-            "sl": sl, "tp": tp, "var": var_risk
-        })
+        # Check if an open position already exists
+        existing = conn.execute(text("""
+            SELECT id, adet, alis_fiyati FROM portfolio 
+            WHERE username=:u AND ticker=:t AND durum='ACIK'
+        """), {"u": username, "t": ticker.upper()}).fetchone()
+        
+        if existing:
+            # Merge logic
+            trade_id = existing[0]
+            eski_adet = float(existing[1])
+            eski_fiyat = float(existing[2])
+            
+            yeni_adet = eski_adet + adet
+            yeni_ortalama_fiyat = ((eski_adet * eski_fiyat) + (adet * fiyat)) / yeni_adet
+            
+            conn.execute(text("""
+                UPDATE portfolio 
+                SET adet=:a, alis_fiyati=:f, alis_tarihi=:d, not_text=:n, sl=:sl, tp=:tp, var=:var 
+                WHERE id=:id
+            """), {
+                "a": round(yeni_adet, 2), "f": round(yeni_ortalama_fiyat, 4), "d": alis_tarihi,
+                "n": not_text, "sl": sl, "tp": tp, "var": var_risk, "id": trade_id
+            })
+        else:
+            conn.execute(text("""
+                INSERT INTO portfolio (username, ticker, adet, alis_fiyati, alis_tarihi, durum, not_text, sl, tp, var)
+                VALUES (:u, :t, :a, :f, :d, 'ACIK', :n, :sl, :tp, :var)
+            """), {
+                "u": username, "t": ticker.upper(), "a": adet, "f": fiyat, 
+                "d": alis_tarihi, "n": not_text,
+                "sl": sl, "tp": tp, "var": var_risk
+            })
 
 def satis_yap(trade_id: int, satis_fiyati: float):
     """Açık pozisyonu kapatır (sanal satış)."""
@@ -62,21 +86,26 @@ def portfoy_temizle(username: str):
     with engine.begin() as conn:
         conn.execute(text("DELETE FROM portfolio WHERE username=:u"), {"u": username})
 
-def pozisyon_guncelle(trade_id: int, yeni_adet: float, yeni_fiyat: float):
-    """Mevcut bir pozisyonun adet ve maliyet bilgilerini günceller."""
+def pozisyon_guncelle(trade_id: int, yeni_adet: float, yeni_fiyat: float, yeni_tarih: str = None):
+    """Mevcut bir pozisyonun adet, maliyet ve tarih bilgilerini günceller."""
     with engine.begin() as conn:
-        trade = conn.execute(text("SELECT sl FROM portfolio WHERE id=:id"), {"id": trade_id}).fetchone()
+        trade = conn.execute(text("SELECT sl, alis_tarihi FROM portfolio WHERE id=:id"), {"id": trade_id}).fetchone()
         
         new_var = None
-        if trade and trade[0] is not None:
-            sl = trade[0]
-            new_var = round((yeni_fiyat - sl) * yeni_adet, 2)
+        current_date = yeni_tarih
+        
+        if trade:
+            if current_date is None:
+                current_date = trade[1]
+            if trade[0] is not None:
+                sl = trade[0]
+                new_var = round((yeni_fiyat - sl) * yeni_adet, 2)
             
         if new_var is not None:
             conn.execute(text("""
-                UPDATE portfolio SET adet=:a, alis_fiyati=:f, var=:v WHERE id=:id
-            """), {"a": yeni_adet, "f": yeni_fiyat, "v": new_var, "id": trade_id})
+                UPDATE portfolio SET adet=:a, alis_fiyati=:f, alis_tarihi=:d, var=:v WHERE id=:id
+            """), {"a": yeni_adet, "f": yeni_fiyat, "d": current_date, "v": new_var, "id": trade_id})
         else:
             conn.execute(text("""
-                UPDATE portfolio SET adet=:a, alis_fiyati=:f WHERE id=:id
-            """), {"a": yeni_adet, "f": yeni_fiyat, "id": trade_id})
+                UPDATE portfolio SET adet=:a, alis_fiyati=:f, alis_tarihi=:d WHERE id=:id
+            """), {"a": yeni_adet, "f": yeni_fiyat, "d": current_date, "id": trade_id})

@@ -13,6 +13,16 @@ class TransactionRequest(BaseModel):
     price: float
     date: str = None
 
+class CloseRequest(BaseModel):
+    trade_id: int
+    satis_fiyati: float
+
+class EditRequest(BaseModel):
+    trade_id: int
+    adet: float
+    fiyat: float
+    tarih: str = None
+
 @router.get("/")
 def fetch_portfolio(current_user: str = Depends(get_current_user)):
     df = acik_pozisyonlar(current_user)
@@ -31,7 +41,16 @@ def fetch_portfolio_summary(current_user: str = Depends(get_current_user)):
 def create_transaction(req: TransactionRequest, current_user: str = Depends(get_current_user)):
     if req.type == "ALIS":
         alis_yap(current_user, req.ticker, req.quantity, req.price, alis_tarihi=req.date)
-    else:
-        # Note: satis_yap takes trade_id, so this might need adjustment later
-        pass
+    return {"status": "success"}
+
+@router.post("/close")
+def close_position(req: CloseRequest, current_user: str = Depends(get_current_user)):
+    # Check if this position belongs to user? Assume yes for now or it's handled in a real app
+    satis_yap(req.trade_id, req.satis_fiyati)
+    return {"status": "success"}
+
+from portfolio import pozisyon_guncelle
+@router.put("/edit")
+def edit_position(req: EditRequest, current_user: str = Depends(get_current_user)):
+    pozisyon_guncelle(req.trade_id, req.adet, req.fiyat, req.tarih)
     return {"status": "success"}

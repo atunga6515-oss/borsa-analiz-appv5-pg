@@ -13,6 +13,10 @@ class BacktestRequest(BaseModel):
     initial_capital: float = 100000.0
     commission_rate: float = 0.002
     lookback_days: int = 180
+    buy_threshold: float = 65.0
+    sell_threshold: float = 45.0
+    stop_loss_pct: float = 5.0
+    take_profit_pct: float = 15.0
 
 @router.post("/")
 def run_backtest(req: BacktestRequest):
@@ -25,7 +29,11 @@ def run_backtest(req: BacktestRequest):
         df_full=df, 
         initial_capital=req.initial_capital,
         commission_rate=req.commission_rate,
-        lookback_days=req.lookback_days
+        lookback_days=req.lookback_days,
+        buy_threshold=req.buy_threshold,
+        sell_threshold=req.sell_threshold,
+        stop_loss_pct=req.stop_loss_pct,
+        take_profit_pct=req.take_profit_pct
     )
     
     if "error" in result:
@@ -52,6 +60,10 @@ def run_backtest(req: BacktestRequest):
         "alpha_bh": result["alpha_bh"],
         "alpha_rf": result["alpha_rf"],
         "number_of_trades": result["number_of_trades"],
+        "win_rate": result["win_rate"],
+        "profit_factor": result["profit_factor"],
+        "sharpe_ratio": result["sharpe_ratio"],
+        "sortino_ratio": result["sortino_ratio"],
         "trades": trades,
         "equity_curve": equity_curve.to_dict(orient="records")
     }
