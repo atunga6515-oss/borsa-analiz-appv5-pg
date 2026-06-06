@@ -52,6 +52,18 @@ def get_user_role(username: str) -> str:
         return "user"
 
 
+def get_user_quota(username: str) -> int:
+    """Kullanıcının AI kotasını döndürür. Bulunamazsa 0 döner."""
+    try:
+        with engine.connect() as conn:
+            row = conn.execute(
+                text("SELECT ai_quota FROM users WHERE username=:u"), {"u": username}
+            ).fetchone()
+        return row[0] if row and row[0] is not None else 0
+    except Exception:
+        return 0
+
+
 def touch_last_active(username: str):
     """Kullanıcının son aktif zamanını günceller."""
     try:

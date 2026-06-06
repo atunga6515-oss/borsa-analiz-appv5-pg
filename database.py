@@ -152,11 +152,12 @@ def init_db():
             )
         """))
 
-        # users tablosuna role, is_active, last_active alanları ekle (migration)
+        # users tablosuna role, is_active, last_active, ai_quota alanları ekle (migration)
         for col_def in [
             ("role",        "VARCHAR(20)  DEFAULT 'user'"),
             ("is_active",   "BOOLEAN      DEFAULT TRUE"),
             ("last_active", "TIMESTAMP"),
+            ("ai_quota",    "INTEGER      DEFAULT 5"),
         ]:
             col_name, col_type = col_def
             try:
@@ -172,6 +173,17 @@ def init_db():
                 details    TEXT,
                 level      VARCHAR(20)   DEFAULT 'INFO',
                 created_at TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+            )
+        """))
+
+        conn.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS ai_analyses_history (
+                id {serial_type} PRIMARY KEY,
+                username VARCHAR(255) NOT NULL,
+                ticker VARCHAR(20) NOT NULL,
+                run_date VARCHAR(50) NOT NULL,
+                result_text TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """))
 

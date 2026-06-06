@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import api from "@/lib/api";
 
 const NAV_LINKS = [
     { href: "/", label: "Piyasalar", icon: "📊" },
@@ -21,11 +22,22 @@ export default function NavBar() {
     const pathname = usePathname();
     const [username, setUsername] = useState<string | null>(null);
     const [role, setRole] = useState<string | null>(null);
+    const [aiQuota, setAiQuota] = useState<number | null>(null);
 
     useEffect(() => {
         if (typeof window !== "undefined") {
-            setUsername(localStorage.getItem("username"));
+            const u = localStorage.getItem("username");
+            setUsername(u);
             setRole(localStorage.getItem("role"));
+            
+            if (u) {
+                // Her sayfa değişiminde güncel kotayı çek
+                api.get('/auth/me').then(res => {
+                    if (res.data && res.data.ai_quota !== undefined) {
+                        setAiQuota(res.data.ai_quota);
+                    }
+                }).catch(() => {});
+            }
         }
     }, [pathname]);
 
@@ -39,6 +51,7 @@ export default function NavBar() {
 
         setUsername(null);
         setRole(null);
+        setAiQuota(null);
         router.push("/");
     };
 
@@ -90,6 +103,12 @@ export default function NavBar() {
             <div className="flex items-center gap-3">
                 {username ? (
                     <>
+                        {aiQuota !== null && (
+                            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-900/30 border border-blue-700/50 text-blue-300 text-xs font-bold cursor-help" title="Yapay Zeka Analiz Krediniz">
+                                <span>🤖</span>
+                                <span>AI: {aiQuota}</span>
+                            </div>
+                        )}
                         {role === "admin" && (
                             <a
                                 href="/panel"

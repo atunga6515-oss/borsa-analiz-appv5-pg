@@ -8,6 +8,7 @@ interface UserRow {
     username: string; email: string; role: string;
     is_active: boolean; last_active: string | null;
     created_at: string | null; alarm_count: number;
+    ai_quota: number;
 }
 interface Session { username: string; role: string; last_active: string; }
 interface LogRow {
@@ -139,6 +140,24 @@ export default function AdminPage() {
         } finally { setUpdating(null); }
     };
 
+    const changeQuota = async (username: string, newQuota: number) => {
+        if (!currentUser) return;
+        if (currentUser !== "admin1") {
+            alert("Bu işlemi sadece Ana Yönetici (admin1) yapabilir.");
+            return;
+        }
+        
+        try {
+            setUpdating(username);
+            await api.put(`/admin/users/${username}/status`, { ai_quota: newQuota });
+            await fetchUsers();
+        } catch (e: any) {
+            alert(e?.response?.data?.detail || "Kullanıcı kotası güncellenemedi.");
+        } finally {
+            setUpdating(null);
+        }
+    };
+
     const handleAddUser = async (e: React.FormEvent) => {
         e.preventDefault();
         setUpdating("new");
@@ -256,7 +275,7 @@ export default function AdminPage() {
                     <table className="w-full text-left border-collapse text-sm">
                         <thead className="bg-[#1e2329] text-[var(--color-b-muted)] sticky top-0">
                             <tr>
-                                {["Kullanıcı", "E-posta", "Rol", "Alarmlar", "Son Aktif", "Durum", "İşlemler"].map(h => (
+                                {["Kullanıcı", "E-posta", "Rol", "Alarmlar", "AI Kota", "Son Aktif", "Durum", "İşlemler"].map(h => (
                                     <th key={h} className="p-4 border-b border-[var(--color-b-border)] font-semibold">{h}</th>
                                 ))}
                             </tr>
@@ -280,6 +299,18 @@ export default function AdminPage() {
                                         </span>
                                     </td>
                                     <td className="p-4 text-[var(--color-b-yellow)] font-bold">{u.alarm_count}</td>
+                                    <td className="p-4">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[var(--color-b-yellow)] font-bold">{u.ai_quota ?? 0}</span>
+                                            {currentUser === "admin1" && (
+                                                <div className="flex flex-col gap-0.5">
+                                                    <button onClick={() => changeQuota(u.username, (u.ai_quota ?? 0) + 5)} disabled={updating === u.username} className="text-[10px] bg-purple-900/50 hover:bg-purple-600 px-1.5 rounded disabled:opacity-50 text-white leading-none py-1">
+                                                        +5
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </td>
                                     <td className="p-4 text-[var(--color-b-muted)] text-xs">
                                         {u.last_active ? new Date(u.last_active).toLocaleString("tr-TR") : "—"}
                                     </td>

@@ -87,8 +87,10 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
 
 @router.get("/me")
 def read_users_me(current_user: str = Depends(get_current_user)):
+    from auth import get_user_role, get_user_quota
     role = get_user_role(current_user)
-    return {"username": current_user, "role": role}
+    quota = get_user_quota(current_user)
+    return {"username": current_user, "role": role, "ai_quota": quota}
 
 
 class RegisterRequest(BaseModel):

@@ -14,6 +14,12 @@ export default function ScreenerPage() {
     const [scanMode, setScanMode] = useState("BIST30");
     const [sortConfig, setSortConfig] = useState<{key: string | null, direction: 'asc' | 'desc'}>({ key: null, direction: 'asc' });
     
+    // AI Modal State
+    const [aiModalOpen, setAiModalOpen] = useState(false);
+    const [aiLoading, setAiLoading] = useState(false);
+    const [aiResult, setAiResult] = useState<string | null>(null);
+    const [aiTicker, setAiTicker] = useState("");
+    
     // Portfolio Modal State
     const [modalOpen, setModalOpen] = useState(false);
     const [modalTicker, setModalTicker] = useState("");
@@ -130,6 +136,29 @@ export default function ScreenerPage() {
         }
     };
     
+    const handleAIAnalysis = async (row: any) => {
+        setAiTicker(row["Hisse"]);
+        setAiResult(null);
+        setAiModalOpen(true);
+        setAiLoading(true);
+        
+        try {
+            const res = await api.post('/ai/analyze', {
+                ticker: row["Hisse"],
+                price: parseFloat(row["Fiyat"] || 0),
+                rsi: parseFloat(row["RSI"] || 0),
+                macd_signal: row["MACD_Signal"],
+                trend: row["Trend_Durumu"] || row["Piyasa Kararı"]
+            });
+            setAiResult(res.data.analysis);
+        } catch(error: any) {
+            console.error("AI Hatası:", error);
+            setAiResult(error.response?.data?.detail || "AI analizi sırasında bir hata oluştu.");
+        } finally {
+            setAiLoading(false);
+        }
+    };
+
     return (
         <>
         <div className="flex w-full h-full p-6 flex-col bg-[var(--color-b-bg)] text-[var(--color-b-text)] overflow-y-auto">
@@ -280,6 +309,12 @@ export default function ScreenerPage() {
                                             >
                                                 Portföye Ekle
                                             </button>
+                                            <button 
+                                                onClick={() => requireAuth(() => handleAIAnalysis(row))}
+                                                className="text-xs flex items-center gap-1 bg-purple-900/20 text-purple-400 hover:bg-purple-600 hover:text-white border border-purple-700/50 px-3 py-1 rounded transition-colors font-bold"
+                                            >
+                                                <span>✨</span> AI Analiz
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -334,6 +369,40 @@ export default function ScreenerPage() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* AI Analysis Modal */}
+            {aiModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+                    <div className="bg-[#181a20] border border-purple-900/50 rounded-lg shadow-2xl shadow-purple-900/20 w-full max-w-2xl flex flex-col overflow-hidden max-h-[90vh]">
+                        <div className="bg-gradient-to-r from-[#1e2329] to-purple-900/20 p-4 flex justify-between items-center border-b border-purple-900/30">
+                            <div className="flex items-center gap-2">
+                                <span className="text-xl">🤖</span>
+                                <h3 className="font-bold text-lg text-white">Yapay Zeka Broker Analizi: <span className="text-[var(--color-b-yellow)]">{aiTicker}</span></h3>
+                            </div>
+                            <button onClick={() => setAiModalOpen(false)} className="text-[var(--color-b-muted)] hover:text-white transition-colors">✕</button>
+                        </div>
+                        <div className="p-6 overflow-y-auto custom-scrollbar">
+                            {aiLoading ? (
+                                <div className="flex flex-col items-center justify-center py-12 gap-4">
+                                    <div className="text-5xl animate-bounce">🤖</div>
+                                    <p className="text-[var(--color-b-yellow)] font-medium text-center animate-pulse">
+                                        Teknik veriler inceleniyor...<br/>
+                                        <span className="text-sm text-[var(--color-b-muted)]">Broker raporu hazırlanıyor. Lütfen bekleyin.</span>
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="text-[var(--color-b-text)] text-sm leading-relaxed prose prose-invert prose-p:my-2 prose-headings:my-3 prose-headings:text-purple-300">
+                                    {aiResult ? (
+                                        <div dangerouslySetInnerHTML={{ __html: aiResult.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-bold">$1</strong>') }} />
+                                    ) : (
+                                        <p className="text-red-400">Analiz üretilemedi.</p>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}

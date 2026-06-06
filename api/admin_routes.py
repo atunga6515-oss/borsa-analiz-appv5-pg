@@ -28,11 +28,12 @@ def list_users(admin: str = Depends(get_current_admin)):
                 u.is_active,
                 u.last_active,
                 u.created_at,
+                u.ai_quota,
                 COUNT(a.id) AS alarm_count
             FROM users u
             LEFT JOIN user_alarms a
                 ON a.username = u.username AND a.status = 'active'
-            GROUP BY u.username, u.email, u.role, u.is_active, u.last_active, u.created_at
+            GROUP BY u.username, u.email, u.role, u.is_active, u.last_active, u.created_at, u.ai_quota
             ORDER BY u.created_at DESC
         """)).fetchall()
 
@@ -45,7 +46,8 @@ def list_users(admin: str = Depends(get_current_admin)):
                 "is_active":   r[3] if r[3] is not None else True,
                 "last_active": str(r[4]) if r[4] else None,
                 "created_at":  str(r[5]) if r[5] else None,
-                "alarm_count": r[6] or 0,
+                "ai_quota":    r[6] or 0,
+                "alarm_count": r[7] or 0,
             }
             for r in rows
         ]
@@ -58,6 +60,7 @@ def list_users(admin: str = Depends(get_current_admin)):
 class UserStatusUpdate(BaseModel):
     is_active: Optional[bool] = None
     role: Optional[str] = None   # "user" | "admin"
+    ai_quota: Optional[int] = None
 
 
 @router.put("/users/{username}/status")
@@ -83,6 +86,10 @@ def update_user_status(
     if body.role is not None:
         updates.append("role = :role")
         params["role"] = body.role
+
+    if body.ai_quota is not None:
+        updates.append("ai_quota = :ai_quota")
+        params["ai_quota"] = body.ai_quota
 
     if not updates:
         raise HTTPException(status_code=400, detail="Güncellenecek alan belirtilmedi.")

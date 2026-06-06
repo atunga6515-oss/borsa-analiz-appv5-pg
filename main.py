@@ -13,6 +13,7 @@ from api.analysis_routes import router as analysis_router
 from api.telegram_routes import router as telegram_routes
 from api.alarm_routes import router as alarm_router
 from api.admin_routes import router as admin_router
+from api.ai_routes import router as ai_router
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -47,6 +48,7 @@ app.include_router(analysis_router)
 app.include_router(alarm_router)
 app.include_router(admin_router)
 app.include_router(telegram_routes, prefix="/api/telegram", tags=["telegram"])
+app.include_router(ai_router)
 
 @app.get("/")
 def read_root():
