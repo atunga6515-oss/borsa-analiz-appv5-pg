@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
+import AIAnalyzeModal from "../components/AIAnalyzeModal";
 
 export default function PortfolioPage() {
     const { requireAuth, AuthModal } = useRequireAuth();
@@ -13,6 +14,10 @@ export default function PortfolioPage() {
     const [newTicker, setNewTicker] = useState("");
     const [newQuantity, setNewQuantity] = useState("");
     const [newPrice, setNewPrice] = useState("");
+
+    // AI Modal State
+    const [aiModalOpen, setAiModalOpen] = useState(false);
+    const [aiProps, setAiProps] = useState<any>({ ticker: "", price: 0 });
     const [newDate, setNewDate] = useState("");
 
 
@@ -106,7 +111,16 @@ export default function PortfolioPage() {
                                     <td className="p-4 text-white font-medium">{row.adet} Lot</td>
                                     <td className="p-4 text-white font-medium">{row.alis_fiyati} ₺</td>
                                     <td className="p-4 text-[var(--color-b-muted)]">{row.alis_tarihi}</td>
-                                    <td className="p-4 text-right">
+                                    <td className="p-4 text-right flex justify-end gap-2">
+                                        <button 
+                                            onClick={() => {
+                                                setAiProps({ ticker: row.ticker, price: row.alis_fiyati });
+                                                setAiModalOpen(true);
+                                            }}
+                                            className="text-xs bg-purple-900/50 text-purple-300 border border-purple-700 font-bold px-3 py-1 rounded hover:bg-purple-600 hover:text-white transition-colors"
+                                        >
+                                            ✨ AI Analiz
+                                        </button>
                                         <button className="text-xs bg-[var(--color-b-red)] text-black font-bold px-3 py-1 rounded hover:bg-red-500 transition-colors">
                                             Pozisyonu Kapat
                                         </button>
@@ -188,6 +202,11 @@ export default function PortfolioPage() {
                     </div>
                 </div>
             )}
+            <AIAnalyzeModal 
+                isOpen={aiModalOpen}
+                onClose={() => setAiModalOpen(false)}
+                {...aiProps}
+            />
         <AuthModal />
         </>
     );

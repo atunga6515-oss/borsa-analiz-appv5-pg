@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from "react";
 import api from "@/lib/api";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
+import AIAnalyzeModal from "../components/AIAnalyzeModal";
 
 export default function TopPicksPage() {
     const { requireAuth, AuthModal } = useRequireAuth();
@@ -19,6 +20,10 @@ export default function TopPicksPage() {
     const [modalTicker, setModalTicker] = useState("");
     const [modalPrice, setModalPrice] = useState("");
     const [modalQty, setModalQty] = useState("100");
+
+    // AI Modal State
+    const [aiModalOpen, setAiModalOpen] = useState(false);
+    const [aiProps, setAiProps] = useState<any>({ ticker: "", price: 0 });
     
     // Progress Tracking
     const [scanProgress, setScanProgress] = useState<number>(0);
@@ -359,7 +364,16 @@ export default function TopPicksPage() {
                                         <td className="p-4 text-white font-medium">
                                             {typeof row.graham_value === 'number' ? `${row.graham_value.toFixed(2)} ₺` : row.graham_value || "-"}
                                         </td>
-                                        <td className="p-4 text-center">
+                                        <td className="p-4 text-center flex justify-center gap-2">
+                                            <button 
+                                                onClick={() => {
+                                                    setAiProps({ ticker: tckr, price: prc });
+                                                    setAiModalOpen(true);
+                                                }}
+                                                className="text-xs bg-purple-900/50 text-purple-300 border border-purple-700 hover:bg-purple-600 hover:text-white px-3 py-1 rounded transition-colors"
+                                            >
+                                                ✨ AI Analiz
+                                            </button>
                                             <button 
                                                 onClick={() => requireAuth(() => openModal(tckr, prc))}
                                                 className="text-xs bg-[#1e2329] text-[var(--color-b-green)] hover:bg-[var(--color-b-green)] hover:text-black border border-[var(--color-b-green)] px-3 py-1 rounded transition-colors"
@@ -457,6 +471,11 @@ export default function TopPicksPage() {
                 </div>
             )}
         </div>
+            <AIAnalyzeModal 
+                isOpen={aiModalOpen}
+                onClose={() => setAiModalOpen(false)}
+                {...aiProps}
+            />
         <AuthModal />
         </>
     );

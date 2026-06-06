@@ -71,7 +71,9 @@ def update_user_status(
 ):
     """Kullanıcıyı askıya al veya rolünü değiştir."""
     if username == admin:
-        raise HTTPException(status_code=400, detail="Kendi hesabınızı değiştiremezsiniz.")
+        # Kendi rolünü veya durumunu değiştiremez, ama kendi kotasını artırabilir.
+        if body.role is not None or body.is_active is not None:
+            raise HTTPException(status_code=400, detail="Kendi rolünüzü veya durumunuzu değiştiremezsiniz.")
 
     if body.role and body.role not in ("user", "admin"):
         raise HTTPException(status_code=400, detail="Geçersiz rol. 'user' veya 'admin' olmalı.")

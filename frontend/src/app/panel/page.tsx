@@ -302,13 +302,17 @@ export default function AdminPage() {
                                     <td className="p-4">
                                         <div className="flex items-center gap-2">
                                             <span className="text-[var(--color-b-yellow)] font-bold">{u.ai_quota ?? 0}</span>
-                                            {currentUser === "admin1" && (
-                                                <div className="flex flex-col gap-0.5">
-                                                    <button onClick={() => changeQuota(u.username, (u.ai_quota ?? 0) + 5)} disabled={updating === u.username} className="text-[10px] bg-purple-900/50 hover:bg-purple-600 px-1.5 rounded disabled:opacity-50 text-white leading-none py-1">
-                                                        +5
-                                                    </button>
-                                                </div>
-                                            )}
+                                            {/* Tüm adminler kota düzenleyebilir */}
+                                            <div className="flex flex-col gap-0.5">
+                                                <button onClick={() => {
+                                                    const val = prompt(`${u.username} için yeni kota:`, String(u.ai_quota ?? 0));
+                                                    if (val !== null && !isNaN(parseInt(val, 10))) {
+                                                        changeQuota(u.username, parseInt(val, 10));
+                                                    }
+                                                }} disabled={updating === u.username} className="text-[10px] bg-purple-900/50 hover:bg-purple-600 px-2 rounded disabled:opacity-50 text-white leading-none py-1 border border-purple-700">
+                                                    ✏️ Düzenle
+                                                </button>
+                                            </div>
                                         </div>
                                     </td>
                                     <td className="p-4 text-[var(--color-b-muted)] text-xs">

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
+import AIAnalyzeModal from "../components/AIAnalyzeModal";
 
 export default function ScreenerPage() {
     const router = useRouter();
@@ -16,9 +17,8 @@ export default function ScreenerPage() {
     
     // AI Modal State
     const [aiModalOpen, setAiModalOpen] = useState(false);
-    const [aiLoading, setAiLoading] = useState(false);
-    const [aiResult, setAiResult] = useState<string | null>(null);
-    const [aiTicker, setAiTicker] = useState("");
+    const [aiProps, setAiProps] = useState<any>({ ticker: "", price: 0 });
+    
     
     // Portfolio Modal State
     const [modalOpen, setModalOpen] = useState(false);
@@ -136,27 +136,15 @@ export default function ScreenerPage() {
         }
     };
     
-    const handleAIAnalysis = async (row: any) => {
-        setAiTicker(row["Hisse"]);
-        setAiResult(null);
+    const handleAIAnalysis = (row: any) => {
+        setAiProps({
+            ticker: row["Hisse"],
+            price: parseFloat(row["Fiyat"] || 0),
+            rsi: parseFloat(row["RSI"] || 0),
+            macd_signal: row["MACD_Signal"],
+            trend: row["Trend_Durumu"] || row["Piyasa Kararı"]
+        });
         setAiModalOpen(true);
-        setAiLoading(true);
-        
-        try {
-            const res = await api.post('/ai/analyze', {
-                ticker: row["Hisse"],
-                price: parseFloat(row["Fiyat"] || 0),
-                rsi: parseFloat(row["RSI"] || 0),
-                macd_signal: row["MACD_Signal"],
-                trend: row["Trend_Durumu"] || row["Piyasa Kararı"]
-            });
-            setAiResult(res.data.analysis);
-        } catch(error: any) {
-            console.error("AI Hatası:", error);
-            setAiResult(error.response?.data?.detail || "AI analizi sırasında bir hata oluştu.");
-        } finally {
-            setAiLoading(false);
-        }
     };
 
     return (
@@ -373,39 +361,11 @@ export default function ScreenerPage() {
                 </div>
             )}
 
-            {/* AI Analysis Modal */}
-            {aiModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-                    <div className="bg-[#181a20] border border-purple-900/50 rounded-lg shadow-2xl shadow-purple-900/20 w-full max-w-2xl flex flex-col overflow-hidden max-h-[90vh]">
-                        <div className="bg-gradient-to-r from-[#1e2329] to-purple-900/20 p-4 flex justify-between items-center border-b border-purple-900/30">
-                            <div className="flex items-center gap-2">
-                                <span className="text-xl">🤖</span>
-                                <h3 className="font-bold text-lg text-white">Yapay Zeka Broker Analizi: <span className="text-[var(--color-b-yellow)]">{aiTicker}</span></h3>
-                            </div>
-                            <button onClick={() => setAiModalOpen(false)} className="text-[var(--color-b-muted)] hover:text-white transition-colors">✕</button>
-                        </div>
-                        <div className="p-6 overflow-y-auto custom-scrollbar">
-                            {aiLoading ? (
-                                <div className="flex flex-col items-center justify-center py-12 gap-4">
-                                    <div className="text-5xl animate-bounce">🤖</div>
-                                    <p className="text-[var(--color-b-yellow)] font-medium text-center animate-pulse">
-                                        Teknik veriler inceleniyor...<br/>
-                                        <span className="text-sm text-[var(--color-b-muted)]">Broker raporu hazırlanıyor. Lütfen bekleyin.</span>
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="text-[var(--color-b-text)] text-sm leading-relaxed prose prose-invert prose-p:my-2 prose-headings:my-3 prose-headings:text-purple-300">
-                                    {aiResult ? (
-                                        <div dangerouslySetInnerHTML={{ __html: aiResult.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-bold">$1</strong>') }} />
-                                    ) : (
-                                        <p className="text-red-400">Analiz üretilemedi.</p>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
+        <AIAnalyzeModal 
+            isOpen={aiModalOpen}
+            onClose={() => setAiModalOpen(false)}
+            {...aiProps}
+        />
         </div>
         <AuthModal />
         </>
