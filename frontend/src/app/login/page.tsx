@@ -36,6 +36,9 @@ function LoginContent() {
                 headers: { "Content-Type": "application/x-www-form-urlencoded" },
             });
 
+            if (res.data.access_token) {
+                localStorage.setItem("token", res.data.access_token);
+            }
             localStorage.setItem("username", res.data.username || username);
             localStorage.setItem("role", res.data.role || "user");
 

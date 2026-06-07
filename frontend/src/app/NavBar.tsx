@@ -38,10 +38,11 @@ export default function NavBar() {
                 }
             })
             .catch(() => {
-                // Cookie geçersiz/süresi dolmuş — NavBar'da giriş yap göster
+                // Cookie/Token geçersiz/süresi dolmuş — NavBar'da giriş yap göster
                 setUsername(null);
                 setRole(null);
                 setAiQuota(null);
+                localStorage.removeItem("token");
                 localStorage.removeItem("username");
                 localStorage.removeItem("role");
             });
@@ -54,6 +55,7 @@ export default function NavBar() {
             console.error("Logout error", e);
         }
         
+        localStorage.removeItem("token");
         localStorage.removeItem("username");
         localStorage.removeItem("role");
 

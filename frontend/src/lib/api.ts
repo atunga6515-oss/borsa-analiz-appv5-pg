@@ -5,9 +5,15 @@ const api = axios.create({
   withCredentials: true,
 });
 
-// Otomatik token ekleme (Artık Cookie üzerinden gidiyor)
+// Otomatik token ekleme (Geriye dönük uyumluluk ve cross-origin HTTP desteği için)
 api.interceptors.request.use(
   (config) => {
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token');
+      if (token && config.headers) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    }
     return config;
   },
   (error) => Promise.reject(error)
