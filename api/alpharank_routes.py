@@ -107,7 +107,7 @@ def send_to_telegram(current_user: str = Depends(get_current_user)):
         
     chat_id = row[0] if row else None
     if not chat_id:
-        raise HTTPException(status_code=400, detail="Telegram entegrasyonunuz bulunamadı. Ayarlar menüsünden Chat ID ekleyin.")
+        raise HTTPException(status_code=400, detail="Telegram ID'niz yok. Lütfen ekrandaki '⚙️ Ayarlar' butonuna tıklayarak ID'nizi girin (Eğer butonu göremiyorsanız sayfayı yenileyin veya npm run build yapın).")
         
     # Son analizi veritabanından al (yeniden çalıştırıp vakit kaybetmemek için)
     with engine.connect() as conn:
