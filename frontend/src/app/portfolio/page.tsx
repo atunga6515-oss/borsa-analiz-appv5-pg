@@ -137,6 +137,14 @@ export default function PortfolioPage() {
         }
     };
 
+    const handleAddToAlphaRank = async (ticker: string) => {
+        try {
+            const res = await api.post('/alpharank/pool/add', { ticker });
+            alert(res.data.message);
+        } catch (err: any) {
+            alert(err.response?.data?.detail || 'AlphaRank havuzuna eklenemedi.');
+        }
+    };
 
     const handleOptimize = async () => {
         if (positions.length < 2) {
@@ -274,12 +282,18 @@ export default function PortfolioPage() {
                                     <td className="p-4 text-right flex justify-end gap-2 items-center">
                                         <button 
                                             onClick={() => {
-                                                setAiProps({ ticker: row.ticker, price: row.alis_fiyati });
+                                                setAiProps({ ticker: row.ticker, price: liveData ? liveData.price : row.alis_fiyati });
                                                 setAiModalOpen(true);
                                             }}
                                             className="text-xs bg-purple-900/50 text-purple-300 border border-purple-700 font-bold px-3 py-1 rounded hover:bg-purple-600 hover:text-white transition-colors"
                                         >
                                             ✨ AI
+                                        </button>
+                                        <button 
+                                            onClick={() => handleAddToAlphaRank(row.ticker)}
+                                            className="text-xs bg-[#1e2329] text-blue-400 font-bold border border-blue-500 px-3 py-1 rounded hover:bg-blue-500 hover:text-white transition-colors"
+                                        >
+                                            AlphaRank
                                         </button>
                                         <button 
                                             onClick={() => {
