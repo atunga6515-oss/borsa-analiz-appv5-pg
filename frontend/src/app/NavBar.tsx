@@ -5,18 +5,18 @@ import { useRouter, usePathname } from "next/navigation";
 import api from "@/lib/api";
 
 const NAV_LINKS = [
-    { href: "/", label: "Piyasalar", icon: "📊" },
-    { href: "/screener", label: "Screener", icon: "⚡" },
-    { href: "/portfolio", label: "Portföy", icon: "💼" },
-    { href: "/top-picks", label: "Seçki", icon: "🎯" },
-    { href: "/analysis", label: "Analiz", icon: "🔬" },
-    { href: "/alpharank", label: "AlphaRank 15D", icon: "🚀" },
-    { href: "/kap", label: "KAP", icon: "📰" },
-    { href: "/backtest", label: "Backtest", icon: "⚙️" },
-    { href: "/strategy-compare", label: "Kıyasla", icon: "🧪" },
-    { href: "/heatmap", label: "Heatmap", icon: "🗺️" },
-    { href: "/risk", label: "Risk", icon: "⚠️" },
-    { href: "/alarms", label: "Alarm", icon: "🔔" },
+    { href: "/", label: "Piyasalar", icon: "📊", tooltip: "Genel piyasa durumu, endeksler ve anlık takipler. Günlük özetleri inceleyin." },
+    { href: "/screener", label: "Screener", icon: "⚡", tooltip: "Tüm BIST hisselerini temel ve teknik kriterlere göre saniyeler içinde tarayın." },
+    { href: "/portfolio", label: "Portföy", icon: "💼", tooltip: "Sanal portföyünüzü oluşturun, işlemlerinizi kaydedin. Kâr/zarar durumunuzu takip edin." },
+    { href: "/top-picks", label: "Seçki", icon: "🎯", tooltip: "100+ teknik indikatörle analiz edilen en yüksek potansiyelli hisseleri görün." },
+    { href: "/analysis", label: "Analiz", icon: "🔬", tooltip: "Bir hissenin 100 günlük teknik ve temel detaylarını derinlemesine inceleyin." },
+    { href: "/alpharank", label: "AlphaRank 15D", icon: "🚀", tooltip: "Takip listenizdeki hisseleri 15 günlük yükseliş potansiyellerine göre sıralayın." },
+    { href: "/kap", label: "KAP", icon: "📰", tooltip: "Şirketlerin Kamuyu Aydınlatma Platformu (KAP) bildirimlerini anlık takip edin." },
+    { href: "/backtest", label: "Backtest", icon: "⚙️", tooltip: "Geçmiş verilere dayanarak indikatörlerin al-sat stratejilerini test edin." },
+    { href: "/strategy-compare", label: "Kıyasla", icon: "🧪", tooltip: "Farklı al-sat stratejilerinin geçmiş getiri performanslarını birbiriyle kıyaslayın." },
+    { href: "/heatmap", label: "Heatmap", icon: "🗺️", tooltip: "Borsanın genel durumunu sektörlere göre ısı haritası üzerinden görselleştirin." },
+    { href: "/risk", label: "Risk", icon: "⚠️", tooltip: "Portföyünüzün ve piyasanın risk durumunu, volatilite oranlarını analiz edin." },
+    { href: "/alarms", label: "Alarm", icon: "🔔", tooltip: "Fiyat veya teknik indikatör hedefleri belirleyin. Gerçekleştiğinde bildirim alın." },
 ];
 
 export default function NavBar() {
@@ -86,6 +86,7 @@ export default function NavBar() {
                             <Link
                                 key={link.href}
                                 href={link.href}
+                                title={link.tooltip}
                                 className={`flex items-center gap-2 px-3 py-2 rounded text-sm font-medium transition-colors ${
                                     isActive
                                         ? "bg-[var(--color-b-panel)] border border-[var(--color-b-yellow)] text-[var(--color-b-yellow)]"
