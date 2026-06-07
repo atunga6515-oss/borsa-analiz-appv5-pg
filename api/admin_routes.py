@@ -37,7 +37,7 @@ def list_users(admin: str = Depends(get_current_admin)):
                 ON a.username = u.username AND a.status = 'active'
             GROUP BY u.username, u.email, u.phone, u.role, u.is_active, u.last_active, u.created_at, u.ai_quota, u.subscription_expires_at
             ORDER BY u.created_at DESC
-        "")).fetchall()
+        """)).fetchall()
 
     return {
         "users": [
