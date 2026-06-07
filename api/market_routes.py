@@ -68,3 +68,26 @@ def fetch_heatmap(current_user: str = Depends(get_current_user)):
         print("Heatmap fetch error:", e)
         
     return {"data": heatmap_data}
+
+@router.get("/calendar")
+def fetch_macro_calendar(current_user: str = Depends(get_current_user)):
+    """
+    Önemli Makroekonomik takvim verilerini döner (TCMB, FED, Enflasyon).
+    Not: Gerçek bir API bağlamadan önce statik bir veri seti ile simüle edilmektedir.
+    """
+    import datetime
+    
+    now = datetime.datetime.now()
+    
+    # Örnek kritik takvim verisi (yaklaşan olaylar için tarihler dinamik kaydırılabilir veya API bağlanabilir)
+    events = [
+        {"id": 1, "date": "2024-06-27", "time": "14:00", "country": "TR", "event": "TCMB Faiz Kararı", "importance": "High", "forecast": "50.00%", "previous": "50.00%"},
+        {"id": 2, "date": "2024-07-03", "time": "10:00", "country": "TR", "event": "TÜFE (Yıllık)", "importance": "High", "forecast": "72.50%", "previous": "75.45%"},
+        {"id": 3, "date": "2024-07-31", "time": "21:00", "country": "US", "event": "FED Faiz Kararı", "importance": "High", "forecast": "5.50%", "previous": "5.50%"},
+        {"id": 4, "date": "2024-08-05", "time": "10:00", "country": "TR", "event": "TÜFE (Yıllık)", "importance": "High", "forecast": "60.00%", "previous": "71.60%"},
+        {"id": 5, "date": "2024-08-20", "time": "14:00", "country": "TR", "event": "TCMB Faiz Kararı", "importance": "High", "forecast": "50.00%", "previous": "50.00%"},
+        {"id": 6, "date": "2024-09-18", "time": "21:00", "country": "US", "event": "FED Faiz Kararı", "importance": "High", "forecast": "5.25%", "previous": "5.50%"},
+        {"id": 7, "date": "2024-11-05", "time": "00:00", "country": "US", "event": "ABD Başkanlık Seçimleri", "importance": "High", "forecast": "-", "previous": "-"},
+    ]
+    
+    return {"data": events}

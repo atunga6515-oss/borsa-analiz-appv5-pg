@@ -21,7 +21,10 @@ export default function Home() {
     const [newTicker, setNewTicker] = useState("");
     const [showAddInput, setShowAddInput] = useState(false);
 
-    // Initial Load of Watchlist from Backend
+    // Calendar state
+    const [calendar, setCalendar] = useState<any[]>([]);
+    
+    // Initial Load of Watchlist and Calendar
     useEffect(() => {
         const fetchWatchlist = async () => {
             try {
@@ -96,6 +99,14 @@ export default function Home() {
             }
         };
         fetchWatchlist();
+
+        // Fetch Calendar
+        api.get('/market/calendar').then(res => {
+            if(res.data && res.data.data) {
+                setCalendar(res.data.data);
+            }
+        }).catch(err => console.error("Calendar fetch error:", err));
+
     }, []);
 
     // Drag and Drop refs
@@ -322,6 +333,45 @@ export default function Home() {
                         )}
                     </div>
                 </div>
+
+                {/* Macro Calendar Widget */}
+                <div className="glass-panel h-48 flex flex-col overflow-hidden">
+                    <div className="p-3 border-b border-[var(--color-b-border)] flex items-center justify-between bg-[#1e2329]">
+                        <h3 className="font-bold text-white text-sm">📅 Makroekonomik Takvim</h3>
+                        <span className="text-xs text-[var(--color-b-muted)]">TCMB & FED & Enflasyon</span>
+                    </div>
+                    <div className="flex-1 overflow-auto p-0">
+                        <table className="w-full text-left text-sm border-collapse">
+                            <thead className="bg-[#181a20] text-[var(--color-b-muted)] text-xs sticky top-0">
+                                <tr>
+                                    <th className="p-2 border-b border-[var(--color-b-border)] font-semibold">Tarih</th>
+                                    <th className="p-2 border-b border-[var(--color-b-border)] font-semibold">Saat</th>
+                                    <th className="p-2 border-b border-[var(--color-b-border)] font-semibold">Ülke</th>
+                                    <th className="p-2 border-b border-[var(--color-b-border)] font-semibold">Olay</th>
+                                    <th className="p-2 border-b border-[var(--color-b-border)] font-semibold">Beklenti</th>
+                                    <th className="p-2 border-b border-[var(--color-b-border)] font-semibold">Önceki</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {calendar.length === 0 ? (
+                                    <tr><td colSpan={6} className="p-4 text-center text-[var(--color-b-muted)]">Veri Bekleniyor...</td></tr>
+                                ) : (
+                                    calendar.map((ev, i) => (
+                                        <tr key={i} className="hover:bg-[#1e2329] border-b border-[var(--color-b-border)] transition-colors">
+                                            <td className="p-2 text-white">{ev.date}</td>
+                                            <td className="p-2 text-[var(--color-b-muted)]">{ev.time}</td>
+                                            <td className="p-2 text-white font-bold">{ev.country === 'TR' ? '🇹🇷' : '🇺🇸'}</td>
+                                            <td className="p-2 text-[var(--color-b-yellow)] font-medium">{ev.event}</td>
+                                            <td className="p-2 text-white">{ev.forecast}</td>
+                                            <td className="p-2 text-[var(--color-b-muted)]">{ev.previous}</td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
             </section>
         </div>
     );
