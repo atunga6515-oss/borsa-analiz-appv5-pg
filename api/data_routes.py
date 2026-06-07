@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from data_loader import fetch_data, get_live_price
 from indicators import calculate_indicators
 import pandas as pd
