@@ -103,7 +103,13 @@ def _run_momentum(df: pd.DataFrame, initial_capital: float = 100000.0, commissio
     AL: SMA20 > SMA50 VE RSI > 50 VE ADX > 25
     SAT: SMA20 < SMA50 VEYA RSI < 40
     """
-    df = calculate_indicators(df.copy())
+    # Gereksiz 100 indikatörü hesaplamamak için sadece gerekenleri hesaplıyoruz (Optimizasyon)
+    df['SMA_20'] = ta.trend.sma_indicator(df['Close'], window=20)
+    df['SMA_50'] = ta.trend.sma_indicator(df['Close'], window=50)
+    df['RSI_14'] = ta.momentum.rsi(df['Close'], window=14)
+    
+    adx_ind = ta.trend.ADXIndicator(high=df['High'], low=df['Low'], close=df['Close'], window=14)
+    df['ADX'] = adx_ind.adx()
     
     capital = initial_capital
     position = 0
@@ -170,7 +176,8 @@ def _run_mean_reversion(df: pd.DataFrame, initial_capital: float = 100000.0, com
     AL: RSI < 30 VE Fiyat alt Bollinger Band'ın altında
     SAT: RSI > 70 VEYA Fiyat üst Bollinger Band'ın üzerinde
     """
-    df = calculate_indicators(df.copy())
+    # Yalnızca gerekli indikatörleri hesaplıyoruz
+    df['RSI_14'] = ta.momentum.rsi(df['Close'], window=14)
     
     # Bollinger Bands hesapla
     bb = ta.volatility.BollingerBands(close=df['Close'], window=20, window_dev=2)
@@ -240,7 +247,7 @@ def _run_breakout(df: pd.DataFrame, initial_capital: float = 100000.0, commissio
     AL: Fiyat son 20 günlük zirveyi kırdı VE hacim ortalamanın 1.5x üzerinde
     SAT: Fiyat son 20 günlük dibi kırdı VEYA ATR trailing stop
     """
-    df = calculate_indicators(df.copy())
+    # Yalnızca gerekli verileri hesaplıyoruz (calculate_indicators(df) çağrılmadı)
     
     # Donchian Channels
     df['DC_high'] = df['High'].rolling(window=20).max()
@@ -323,7 +330,7 @@ def _run_macd_crossover(df: pd.DataFrame, initial_capital: float = 100000.0, com
     AL: MACD > Signal VE Histogram pozitife döndü
     SAT: MACD < Signal VE Histogram negatife döndü
     """
-    df = calculate_indicators(df.copy())
+    # Sadece MACD gerekiyor
     
     macd = ta.trend.MACD(close=df['Close'], window_slow=26, window_fast=12, window_sign=9)
     df['MACD_line'] = macd.macd()

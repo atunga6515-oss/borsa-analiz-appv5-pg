@@ -31,7 +31,8 @@ def calculate_indicators(df: pd.DataFrame, ticker: str = None) -> pd.DataFrame:
 
     try:
         # Momentum
-        df['RSI_14'] = ta.momentum.rsi(df['Close'], window=14)
+        # RSI, ADX, SMA, EMA vb. indikatörler doğrudan calculate_100_indicators içinde 
+        # hesaplandığı için mükerrer hesaplama yapmamak adına buradan kaldırılmıştır.
         
         macd = ta.trend.MACD(close=df['Close'], window_fast=12, window_slow=26, window_sign=9)
         df['MACD'] = macd.macd()
@@ -42,22 +43,7 @@ def calculate_indicators(df: pd.DataFrame, ticker: str = None) -> pd.DataFrame:
         df['STOCHk_14_3_3'] = stoch.stoch()
         df['STOCHd_14_3_3'] = stoch.stoch_signal()
         
-        df['ADX_14'] = ta.trend.adx(df['High'], df['Low'], df['Close'], window=14)
-        
-        # Trend
-        df['SMA_20'] = ta.trend.sma_indicator(df['Close'], window=20)
-        df['SMA_50'] = ta.trend.sma_indicator(df['Close'], window=50)
-        if len(df) >= 200:
-            df['SMA_200'] = ta.trend.sma_indicator(df['Close'], window=200)
-        else:
-            df['SMA_200'] = np.nan
-            
-        df['EMA_20'] = ta.trend.ema_indicator(df['Close'], window=20)
-        df['EMA_50'] = ta.trend.ema_indicator(df['Close'], window=50)
-        if len(df) >= 200:
-            df['EMA_200'] = ta.trend.ema_indicator(df['Close'], window=200)
-        else:
-            df['EMA_200'] = np.nan
+        # Trend (SSOT mimarisi gereği calculate_100_indicators'a devredildi)
 
         # SuperTrend mantığı (basitleştirilmiş)
         atr_st = ta.volatility.average_true_range(df['High'], df['Low'], df['Close'], window=10)
