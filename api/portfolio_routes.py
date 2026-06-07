@@ -129,7 +129,7 @@ def optimize_portfolio_endpoint(req: OptimizeRequest, current_user: str = Depend
             
             user_prompt = f"Risk Profili: {req.risk_profile}\nOptimum Dağılım: {opt_res['weights']}\nBeklenen Yıllık Getiri: %{opt_res['metrics']['expected_annual_return_pct']}\nBeklenen Yıllık Volatilite: %{opt_res['metrics']['expected_annual_volatility_pct']}\nSharpe Oranı: {opt_res['metrics']['sharpe_ratio']}"
             
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            model = genai.GenerativeModel('gemini-2.5-flash')
             response = model.generate_content(
                 system_prompt + "\n\n" + user_prompt,
                 generation_config=genai.types.GenerationConfig(temperature=0.7)
