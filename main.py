@@ -15,6 +15,7 @@ from api.telegram_routes import router as telegram_routes
 from api.alarm_routes import router as alarm_router
 from api.admin_routes import router as admin_router
 from api.ai_routes import router as ai_router
+from api.market_routes import router as market_router
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -70,6 +71,7 @@ app.include_router(alarm_router)
 app.include_router(admin_router)
 app.include_router(telegram_routes, prefix="/api/telegram", tags=["telegram"])
 app.include_router(ai_router)
+app.include_router(market_router)
 
 @app.get("/")
 def read_root():

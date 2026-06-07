@@ -13,6 +13,7 @@ const NAV_LINKS = [
     { href: "/kap", label: "KAP", icon: "📰" },
     { href: "/backtest", label: "Backtest", icon: "⚙️" },
     { href: "/strategy-compare", label: "Kıyasla", icon: "🧪" },
+    { href: "/heatmap", label: "Heatmap", icon: "🗺️" },
     { href: "/risk", label: "Risk", icon: "⚠️" },
     { href: "/alarms", label: "Alarm", icon: "🔔" },
 ];
