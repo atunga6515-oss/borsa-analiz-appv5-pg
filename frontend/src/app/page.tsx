@@ -50,15 +50,14 @@ export default function Home() {
                     console.error("Portföy çekerken hata:", portErr);
                 }
                 
-                // LocalStorage'daki sıralamayı kontrol et
+                // SADECE DB'DEN GELENLERİ KULLAN, localstorage sadece db listesindeki elemanları sıralamak için kullanılsın
+                // Başka bir userın localstorage'ı ile karışmasını engelliyoruz
                 const savedOrder = localStorage.getItem('watchlistOrder');
                 if (savedOrder && savedOrder !== "undefined") {
                     try {
                         const parsedOrder = JSON.parse(savedOrder);
-                        // Eğer DB'den hiç dönmemişse bile, db hatasına karşılık localStorage'ı state'e verebiliriz, ama güvenli olması için ikisini birleştirelim.
-                        const mergedList = Array.from(new Set([...wlFromDb, ...parsedOrder]));
-                        // Sadece db'de olanları dizmeyelim, merge edilmiş listeyi localStorage sırasına göre dizelim ki localdeki uçmasın.
-                        mergedList.sort((a: string, b: string) => {
+                        // Db'den gelen listeyi, local storage'daki sıraya göre diz
+                        wlFromDb.sort((a: string, b: string) => {
                             const idxA = parsedOrder.indexOf(a);
                             const idxB = parsedOrder.indexOf(b);
                             if (idxA === -1 && idxB === -1) return 0;
@@ -66,7 +65,6 @@ export default function Home() {
                             if (idxB === -1) return -1;
                             return idxA - idxB;
                         });
-                        wlFromDb = mergedList;
                     } catch(e) {
                         console.error("Localstorage parsing error", e);
                     }
@@ -199,9 +197,9 @@ export default function Home() {
     const changePrefix = currentPriceInfo && currentPriceInfo.change > 0 ? "+" : "";
 
     return (
-        <div className="flex w-full h-full p-4 gap-4 bg-[var(--color-b-bg)] text-[var(--color-b-text)]">
+        <div className="flex w-full h-full p-4 gap-4 bg-[var(--color-b-bg)] text-[var(--color-b-text)] overflow-hidden">
             {/* Sidebar / Watchlist */}
-            <aside className="w-80 glass-panel flex flex-col p-4">
+            <aside className="w-80 glass-panel flex flex-col p-4 min-h-0">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="font-bold text-lg">Piyasa İzleme</h2>
                     <button 
@@ -265,7 +263,7 @@ export default function Home() {
             </aside>
 
             {/* Main Content (Chart & Signals) */}
-            <section className="flex-1 flex flex-col gap-4">
+            <section className="flex-1 flex flex-col gap-4 min-h-0">
                 {/* Upper Info Bar */}
                 <div className="glass-panel p-4 flex items-center gap-8">
                     <div>

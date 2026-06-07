@@ -8,7 +8,7 @@ from typing import Optional, List
 from sqlalchemy import text
 from database import engine
 from api.auth_routes import get_current_admin
-from auth import log_action
+from auth import log_action, hash_password
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -61,6 +61,8 @@ class UserStatusUpdate(BaseModel):
     is_active: Optional[bool] = None
     role: Optional[str] = None   # "user" | "admin"
     ai_quota: Optional[int] = None
+    email: Optional[str] = None
+    password: Optional[str] = None
 
 
 @router.put("/users/{username}/status")
@@ -92,6 +94,17 @@ def update_user_status(
     if body.ai_quota is not None:
         updates.append("ai_quota = :ai_quota")
         params["ai_quota"] = body.ai_quota
+
+    if body.email is not None:
+        updates.append("email = :email")
+        params["email"] = body.email
+
+    if body.password:
+        if len(body.password) < 6:
+            raise HTTPException(status_code=400, detail="Şifre en az 6 karakter olmalıdır.")
+        new_hash = hash_password(body.password)
+        updates.append("password_hash = :password_hash")
+        params["password_hash"] = new_hash
 
     if not updates:
         raise HTTPException(status_code=400, detail="Güncellenecek alan belirtilmedi.")

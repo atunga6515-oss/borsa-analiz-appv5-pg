@@ -148,15 +148,42 @@ export default function AdminPage() {
     };
 
     const changeQuota = async (username: string, newQuota: number) => {
-        // Backend zaten admin rolü kontrolu yapıyor; UI'dan admin1 hardcode kaldırıldı
+        setUpdating(username);
         try {
-            setUpdating(username);
             await api.put(`/admin/users/${username}/status`, { ai_quota: newQuota });
-            await fetchUsers();
+            setUsers(prev => prev.map(u => u.username === username ? { ...u, ai_quota: newQuota } : u));
         } catch (e: any) {
             alert(e?.response?.data?.detail || "Kullanıcı kotası güncellenemedi.");
         } finally {
             setUpdating(null);
+        }
+    };
+
+    const changeEmail = async (username: string, currentEmail: string) => {
+        const val = prompt(`${username} için yeni e-posta:`, currentEmail || "");
+        if (val !== null) {
+            setUpdating(username);
+            try {
+                await api.put(`/admin/users/${username}/status`, { email: val });
+                setUsers(prev => prev.map(u => u.username === username ? { ...u, email: val } : u));
+            } catch (e: any) {
+                alert(e?.response?.data?.detail || "E-posta güncellenemedi.");
+            } finally { setUpdating(null); }
+        }
+    };
+
+    const changePassword = async (username: string) => {
+        const val = prompt(`${username} için yeni şifre (en az 6 karakter):`);
+        if (val !== null && val.length >= 6) {
+            setUpdating(username);
+            try {
+                await api.put(`/admin/users/${username}/status`, { password: val });
+                alert("Şifre başarıyla güncellendi.");
+            } catch (e: any) {
+                alert(e?.response?.data?.detail || "Şifre güncellenemedi.");
+            } finally { setUpdating(null); }
+        } else if (val !== null) {
+            alert("Şifre en az 6 karakter olmalıdır.");
         }
     };
 
@@ -348,6 +375,20 @@ export default function AdminPage() {
                                                     className="text-xs px-3 py-1.5 rounded border border-purple-700 text-purple-400 hover:bg-purple-900/30 transition-colors disabled:opacity-50"
                                                 >
                                                     {u.role === "admin" ? "User Yap" : "Admin Yap"}
+                                                </button>
+                                                <button
+                                                    onClick={() => changeEmail(u.username, u.email)}
+                                                    disabled={updating === u.username}
+                                                    className="text-xs px-3 py-1.5 rounded border border-blue-700 text-blue-400 hover:bg-blue-900/30 transition-colors disabled:opacity-50"
+                                                >
+                                                    E-posta
+                                                </button>
+                                                <button
+                                                    onClick={() => changePassword(u.username)}
+                                                    disabled={updating === u.username}
+                                                    className="text-xs px-3 py-1.5 rounded border border-orange-700 text-orange-400 hover:bg-orange-900/30 transition-colors disabled:opacity-50"
+                                                >
+                                                    Şifre
                                                 </button>
                                             </div>
                                         ) : (
