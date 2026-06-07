@@ -12,6 +12,8 @@ export default function BacktestPage() {
     const [sellThreshold, setSellThreshold] = useState(45);
     const [stopLoss, setStopLoss] = useState(5);
     const [takeProfit, setTakeProfit] = useState(15);
+    const [slippage, setSlippage] = useState(0.2);
+    const [commissionRate, setCommissionRate] = useState(0.002);
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<any>(null);
 
@@ -26,7 +28,9 @@ export default function BacktestPage() {
                 buy_threshold: buyThreshold,
                 sell_threshold: sellThreshold,
                 stop_loss_pct: stopLoss,
-                take_profit_pct: takeProfit
+                take_profit_pct: takeProfit,
+                slippage_pct: slippage,
+                commission_rate: commissionRate
             });
             if (res.data) {
                 setResult(res.data);
@@ -113,6 +117,26 @@ export default function BacktestPage() {
                         value={takeProfit}
                         onChange={(e) => setTakeProfit(Number(e.target.value))}
                         className="p-3 bg-[#1e2329] border border-[var(--color-b-border)] rounded text-[var(--color-b-green)] font-bold w-32 focus:outline-none focus:border-[var(--color-b-yellow)]"
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm text-[var(--color-b-muted)] mb-2">Kayma / Slippage (%)</label>
+                    <input 
+                        type="number" 
+                        step="0.1"
+                        value={slippage}
+                        onChange={(e) => setSlippage(Number(e.target.value))}
+                        className="p-3 bg-[#1e2329] border border-[var(--color-b-border)] rounded text-white font-bold w-32 focus:outline-none focus:border-[var(--color-b-yellow)]"
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm text-[var(--color-b-muted)] mb-2">Komisyon Oranı</label>
+                    <input 
+                        type="number" 
+                        step="0.001"
+                        value={commissionRate}
+                        onChange={(e) => setCommissionRate(Number(e.target.value))}
+                        className="p-3 bg-[#1e2329] border border-[var(--color-b-border)] rounded text-white font-bold w-32 focus:outline-none focus:border-[var(--color-b-yellow)]"
                     />
                 </div>
 

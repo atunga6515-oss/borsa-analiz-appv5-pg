@@ -10,7 +10,8 @@ def run_advanced_backtest(
     buy_threshold: float = 65.0,
     sell_threshold: float = 45.0,
     stop_loss_pct: float = 5.0,
-    take_profit_pct: float = 15.0
+    take_profit_pct: float = 15.0,
+    slippage_pct: float = 0.0
 ):
     """
     Gelişmiş Portföy Simülasyonu.
@@ -82,17 +83,18 @@ def run_advanced_backtest(
                 sell_reason = "Signal"
                 
         if should_sell:
-            gross_value = position * current_price
+            sell_price = current_price * (1 - (slippage_pct / 100.0))
+            gross_value = position * sell_price
             cost = gross_value * commission_rate
             capital = capital + gross_value - cost
             
             # Kâr/Zarar hesabı (yüzde)
-            trade_return = ((current_price - entry_price) / entry_price) * 100
+            trade_return = ((sell_price - entry_price) / entry_price) * 100
             
             trades.append({
                 'Date': date, 
                 'Type': 'SELL', 
-                'Price': current_price, 
+                'Price': sell_price, 
                 'Score': score,
                 'Reason': sell_reason,
                 'ReturnPct': trade_return
@@ -102,15 +104,16 @@ def run_advanced_backtest(
 
         # ALIM KARARI
         if score >= buy_threshold and position == 0:
-            qty = capital / current_price
+            execution_price = current_price * (1 + (slippage_pct / 100.0))
+            qty = capital / execution_price
             cost = capital * commission_rate
             position = qty
-            entry_price = current_price
-            capital = capital - (qty * current_price) - cost
+            entry_price = execution_price
+            capital = capital - (qty * execution_price) - cost
             trades.append({
                 'Date': date, 
                 'Type': 'BUY', 
-                'Price': current_price, 
+                'Price': execution_price, 
                 'Score': score,
                 'Reason': 'Signal'
             })

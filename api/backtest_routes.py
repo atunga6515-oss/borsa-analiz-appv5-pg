@@ -19,6 +19,7 @@ class BacktestRequest(BaseModel):
     sell_threshold: float = 45.0
     stop_loss_pct: float = 5.0
     take_profit_pct: float = 15.0
+    slippage_pct: float = 0.0
 
 @router.post("/")
 @limiter.limit("10/minute")
@@ -36,7 +37,8 @@ def run_backtest(request: Request, req: BacktestRequest, current_user: str = Dep
         buy_threshold=req.buy_threshold,
         sell_threshold=req.sell_threshold,
         stop_loss_pct=req.stop_loss_pct,
-        take_profit_pct=req.take_profit_pct
+        take_profit_pct=req.take_profit_pct,
+        slippage_pct=req.slippage_pct
     )
     
     if "error" in result:
