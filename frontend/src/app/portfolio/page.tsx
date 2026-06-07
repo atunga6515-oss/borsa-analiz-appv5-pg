@@ -34,6 +34,13 @@ export default function PortfolioPage() {
     const [closePrice, setClosePrice] = useState("");
 
 
+    // Optimize Modal State
+    const [optimizeModalOpen, setOptimizeModalOpen] = useState(false);
+    const [optimizeRisk, setOptimizeRisk] = useState("Medium");
+    const [optimizeLoading, setOptimizeLoading] = useState(false);
+    const [optimizeResult, setOptimizeResult] = useState<any>(null);
+
+
     useEffect(() => {
         fetchPortfolio();
     }, []);
@@ -124,6 +131,29 @@ export default function PortfolioPage() {
     };
 
 
+    const handleOptimize = async () => {
+        if (positions.length < 2) {
+            alert("Optimizasyon için portföyünüzde en az 2 hisse bulunmalıdır.");
+            return;
+        }
+        setOptimizeLoading(true);
+        setOptimizeResult(null);
+        try {
+            const uniqueTickers = Array.from(new Set(positions.map((p: any) => p.ticker)));
+            const res = await api.post('/portfolio/optimize', {
+                tickers: uniqueTickers,
+                risk_profile: optimizeRisk
+            });
+            if (res.data.status === "success") {
+                setOptimizeResult(res.data);
+            }
+        } catch (error: any) {
+            alert(error.response?.data?.detail || "Optimizasyon başarısız oldu.");
+        } finally {
+            setOptimizeLoading(false);
+        }
+    };
+
     return (
         <>
         <div className="flex w-full h-full p-6 flex-col bg-[var(--color-b-bg)] text-[var(--color-b-text)]">
@@ -132,12 +162,26 @@ export default function PortfolioPage() {
                     <h1 className="text-3xl font-bold text-white mb-2">💼 Sanal Portföy</h1>
                     <p className="text-[var(--color-b-muted)]">Açık pozisyonlarınızı ve kâr/zarar durumunuzu takip edin</p>
                 </div>
-                <button 
-                    onClick={() => requireAuth(() => setShowModal(true))}
-                    className="px-6 py-3 bg-[var(--color-b-green)] text-black font-bold rounded hover:bg-green-500 transition-colors"
-                >
-                    + Yeni İşlem Ekle
-                </button>
+                <div className="flex gap-3">
+                    <button 
+                        onClick={() => requireAuth(() => {
+                            if(positions.length < 2) {
+                                alert("Optimizasyon için en az 2 hisse eklemelisiniz.");
+                                return;
+                            }
+                            setOptimizeModalOpen(true);
+                        })}
+                        className="px-6 py-3 bg-indigo-600 text-white font-bold rounded hover:bg-indigo-500 transition-colors"
+                    >
+                        🪄 AI ile Optimize Et
+                    </button>
+                    <button 
+                        onClick={() => requireAuth(() => setShowModal(true))}
+                        className="px-6 py-3 bg-[var(--color-b-green)] text-black font-bold rounded hover:bg-green-500 transition-colors"
+                    >
+                        + Yeni İşlem Ekle
+                    </button>
+                </div>
             </div>
             
             <div className="glass-panel flex-1 overflow-auto rounded-lg">
@@ -376,6 +420,89 @@ export default function PortfolioPage() {
                 onClose={() => setAiModalOpen(false)}
                 {...aiProps}
             />
+
+            {/* Optimize Modal */}
+            {optimizeModalOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+                    <div className="bg-[#181a20] p-6 rounded-lg border border-[var(--color-b-border)] w-[600px] shadow-2xl max-h-[90vh] overflow-y-auto">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-xl font-bold text-indigo-400">🪄 AI Portföy Optimizasyonu</h2>
+                            <button onClick={() => setOptimizeModalOpen(false)} className="text-gray-400 hover:text-white">✕</button>
+                        </div>
+                        
+                        {!optimizeResult ? (
+                            <div className="flex flex-col gap-4">
+                                <p className="text-sm text-[var(--color-b-muted)]">
+                                    Modern Portföy Teorisi (Markowitz) algoritması ile portföyünüzdeki hisselerin ağırlıklarını optimize eder. Hedefinize uygun risk profilini seçin:
+                                </p>
+                                
+                                <div>
+                                    <label className="block text-sm text-[var(--color-b-muted)] mb-1">Risk Profili</label>
+                                    <select 
+                                        value={optimizeRisk}
+                                        onChange={(e) => setOptimizeRisk(e.target.value)}
+                                        className="w-full p-2 bg-[#1e2329] border border-[var(--color-b-border)] rounded text-white focus:outline-none focus:border-indigo-500"
+                                    >
+                                        <option value="Low">Düşük Risk (Minimum Volatilite)</option>
+                                        <option value="Medium">Dengeli (Maksimum Sharpe Oranı)</option>
+                                        <option value="High">Yüksek Risk (Maksimum Getiri)</option>
+                                    </select>
+                                </div>
+                                
+                                <button 
+                                    onClick={handleOptimize}
+                                    disabled={optimizeLoading}
+                                    className="mt-4 px-4 py-3 bg-indigo-600 text-white font-bold rounded hover:bg-indigo-500 disabled:opacity-50"
+                                >
+                                    {optimizeLoading ? "Hesaplanıyor... (Bu işlem 15-20 saniye sürebilir)" : "Optimizasyonu Başlat"}
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col gap-6">
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div className="bg-[#1e2329] p-4 rounded text-center border border-[var(--color-b-border)]">
+                                        <div className="text-xs text-[var(--color-b-muted)]">Beklenen Yıllık Getiri</div>
+                                        <div className="text-xl font-bold text-[var(--color-b-green)]">% {optimizeResult.optimization.metrics.expected_annual_return_pct}</div>
+                                    </div>
+                                    <div className="bg-[#1e2329] p-4 rounded text-center border border-[var(--color-b-border)]">
+                                        <div className="text-xs text-[var(--color-b-muted)]">Yıllık Volatilite (Risk)</div>
+                                        <div className="text-xl font-bold text-[var(--color-b-red)]">% {optimizeResult.optimization.metrics.expected_annual_volatility_pct}</div>
+                                    </div>
+                                    <div className="bg-[#1e2329] p-4 rounded text-center border border-[var(--color-b-border)]">
+                                        <div className="text-xs text-[var(--color-b-muted)]">Sharpe Oranı</div>
+                                        <div className="text-xl font-bold text-white">{optimizeResult.optimization.metrics.sharpe_ratio}</div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h3 className="text-lg font-bold text-white mb-3">Optimum Dağılım</h3>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {Object.entries(optimizeResult.optimization.weights).map(([ticker, weight]: any) => (
+                                            <div key={ticker} className="flex justify-between items-center bg-[#1e2329] p-3 rounded border border-[var(--color-b-border)]">
+                                                <span className="font-bold text-[var(--color-b-yellow)]">{ticker}</span>
+                                                <span className="text-white">% {weight}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="bg-indigo-900/20 border border-indigo-500/30 p-4 rounded text-indigo-100 text-sm leading-relaxed">
+                                    <h3 className="text-lg font-bold text-indigo-400 mb-2">🤖 AI Değerlendirmesi</h3>
+                                    <div dangerouslySetInnerHTML={{ __html: optimizeResult.ai_commentary.replace(/\n/g, '<br/>') }} />
+                                </div>
+
+                                <button 
+                                    onClick={() => setOptimizeModalOpen(false)}
+                                    className="px-4 py-2 bg-gray-600 text-white font-bold rounded hover:bg-gray-500"
+                                >
+                                    Kapat
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
         <AuthModal />
         </>
     );

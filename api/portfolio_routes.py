@@ -1,10 +1,21 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from typing import List
+import os
+import google.generativeai as genai
+from sqlalchemy import text
+from database import engine
+from portfolio_optimizer import optimize_portfolio
 import pandas as pd
 from portfolio import alis_yap, satis_yap, acik_pozisyonlar, kapali_pozisyonlar
 from api.auth_routes import get_current_user
 
 router = APIRouter(prefix="/api/portfolio", tags=["portfolio"])
+
+# Load Gemini API Key
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
 
 class TransactionRequest(BaseModel):
     ticker: str
@@ -22,6 +33,10 @@ class EditRequest(BaseModel):
     adet: float
     fiyat: float
     tarih: str = None
+
+class OptimizeRequest(BaseModel):
+    tickers: List[str]
+    risk_profile: str = "Medium" # Low, Medium, High
 
 @router.get("/")
 def fetch_portfolio(current_user: str = Depends(get_current_user)):
@@ -64,3 +79,70 @@ def edit_position(req: EditRequest, current_user: str = Depends(get_current_user
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"status": "success"}
+
+@router.post("/optimize")
+def optimize_portfolio_endpoint(req: OptimizeRequest, current_user: str = Depends(get_current_user)):
+    if len(req.tickers) < 2:
+        raise HTTPException(status_code=400, detail="Optimizasyon için en az 2 hisse seçmelisiniz.")
+        
+    if len(req.tickers) > 20:
+        raise HTTPException(status_code=400, detail="Maksimum 20 hisse seçebilirsiniz.")
+
+    # 1. Kota Kontrolü (Sadece AI kullanılacaksa kotayı düşelim, ama optimizasyon her halükarda çalışsın)
+    # Şimdilik sadece başarılı optimizasyon sonrası AI için kota kontrolü yapalım.
+    with engine.begin() as conn:
+        result = conn.execute(
+            text("UPDATE users SET ai_quota = ai_quota - 1 WHERE username=:u AND ai_quota > 0 RETURNING ai_quota"),
+            {"u": current_user}
+        ).fetchone()
+
+        if result is None:
+            # Kota yetersizse bile matematiksel optimizasyonu yap ama AI yorumu ekleme.
+            has_quota = False
+        else:
+            has_quota = True
+
+    # 2. Matematiksel Optimizasyon
+    opt_res = optimize_portfolio(req.tickers, risk_profile=req.risk_profile)
+    
+    if "error" in opt_res:
+        # Hata varsa kotayı iade et
+        if has_quota:
+            with engine.begin() as conn:
+                conn.execute(text("UPDATE users SET ai_quota = ai_quota + 1 WHERE username=:u"), {"u": current_user})
+        raise HTTPException(status_code=400, detail=opt_res["error"])
+
+    # 3. AI Yorumu Üretimi
+    ai_commentary = "Yapay zeka analiz kotanız kalmadığı için sadece matematiksel dağılım gösterilmektedir."
+    
+    if has_quota and GEMINI_API_KEY:
+        try:
+            system_prompt = (
+                "Sen kıdemli bir BIST (Borsa İstanbul) Portföy Yöneticisisin. "
+                "Kullanıcıya Markowitz Modern Portföy Teorisi kullanılarak hesaplanmış optimum hisse ağırlıkları verilecek. "
+                "Lütfen bu dağılımı incele ve Markdown formatında kısa, profesyonel bir değerlendirme yap.\n"
+                "1. Neden bu hisselere bu ağırlıklar verilmiş olabilir? (Korelasyon, getiri, volatilite mantığı)\n"
+                "2. Seçilen Risk Profiline göre bu dağılımın avantajı nedir?\n"
+                "Son olarak küçük puntolarla 'Yatırım tavsiyesi değildir (YTD).' uyarısını ekle."
+            )
+            
+            user_prompt = f"Risk Profili: {req.risk_profile}\nOptimum Dağılım: {opt_res['weights']}\nBeklenen Yıllık Getiri: %{opt_res['metrics']['expected_annual_return_pct']}\nBeklenen Yıllık Volatilite: %{opt_res['metrics']['expected_annual_volatility_pct']}\nSharpe Oranı: {opt_res['metrics']['sharpe_ratio']}"
+            
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            response = model.generate_content(
+                system_prompt + "\n\n" + user_prompt,
+                generation_config=genai.types.GenerationConfig(temperature=0.7)
+            )
+            ai_commentary = response.text
+        except Exception as e:
+            ai_commentary = f"Yapay zeka analizi oluşturulurken hata oluştu. Matematiksel sonuçlar geçerlidir. Hata: {str(e)}"
+            # Kotayı iade et
+            with engine.begin() as conn:
+                conn.execute(text("UPDATE users SET ai_quota = ai_quota + 1 WHERE username=:u"), {"u": current_user})
+
+    return {
+        "status": "success",
+        "optimization": opt_res,
+        "ai_commentary": ai_commentary,
+        "has_quota": has_quota
+    }
