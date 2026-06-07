@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import init_db
+from auth import init_auth_db
 from api.auth_routes import router as auth_router
 from api.screener_routes import router as screener_router
 from api.portfolio_routes import router as portfolio_router
@@ -51,6 +52,7 @@ app.add_middleware(
 @app.on_event("startup")
 def startup_event():
     init_db()
+    init_auth_db()
     print("Database initialized successfully.")
 
 app.include_router(auth_router)

@@ -29,11 +29,12 @@ def list_users(admin: str = Depends(get_current_admin)):
                 u.last_active,
                 u.created_at,
                 u.ai_quota,
+                u.phone,
                 COUNT(a.id) AS alarm_count
             FROM users u
             LEFT JOIN user_alarms a
                 ON a.username = u.username AND a.status = 'active'
-            GROUP BY u.username, u.email, u.role, u.is_active, u.last_active, u.created_at, u.ai_quota
+            GROUP BY u.username, u.email, u.phone, u.role, u.is_active, u.last_active, u.created_at, u.ai_quota
             ORDER BY u.created_at DESC
         """)).fetchall()
 
@@ -47,7 +48,8 @@ def list_users(admin: str = Depends(get_current_admin)):
                 "last_active": str(r[4]) if r[4] else None,
                 "created_at":  str(r[5]) if r[5] else None,
                 "ai_quota":    r[6] or 0,
-                "alarm_count": r[7] or 0,
+                "phone":       r[7] or "",
+                "alarm_count": r[8] or 0,
             }
             for r in rows
         ]
@@ -63,6 +65,7 @@ class UserStatusUpdate(BaseModel):
     ai_quota: Optional[int] = None
     email: Optional[str] = None
     password: Optional[str] = None
+    phone: Optional[str] = None
 
 
 @router.put("/users/{username}/status")
@@ -98,6 +101,10 @@ def update_user_status(
     if body.email is not None:
         updates.append("email = :email")
         params["email"] = body.email
+
+    if body.phone is not None:
+        updates.append("phone = :phone")
+        params["phone"] = body.phone
 
     if body.password:
         if len(body.password) < 6:

@@ -5,7 +5,7 @@ import api from "@/lib/api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface UserRow {
-    username: string; email: string; role: string;
+    username: string; email: string; phone: string; role: string;
     is_active: boolean; last_active: string | null;
     created_at: string | null; alarm_count: number;
     ai_quota: number;
@@ -172,6 +172,19 @@ export default function AdminPage() {
         }
     };
 
+    const changePhone = async (username: string, currentPhone: string) => {
+        const val = prompt(`${username} için yeni telefon:`, currentPhone || "");
+        if (val !== null) {
+            setUpdating(username);
+            try {
+                await api.put(`/admin/users/${username}/status`, { phone: val });
+                setUsers(prev => prev.map(u => u.username === username ? { ...u, phone: val } : u));
+            } catch (e: any) {
+                alert(e?.response?.data?.detail || "Telefon güncellenemedi.");
+            } finally { setUpdating(null); }
+        }
+    };
+
     const changePassword = async (username: string) => {
         const val = prompt(`${username} için yeni şifre (en az 6 karakter):`);
         if (val !== null && val.length >= 6) {
@@ -303,20 +316,21 @@ export default function AdminPage() {
                     <table className="w-full text-left border-collapse text-sm">
                         <thead className="bg-[#1e2329] text-[var(--color-b-muted)] sticky top-0">
                             <tr>
-                                {["Kullanıcı", "E-posta", "Rol", "Alarmlar", "AI Kota", "Son Aktif", "Durum", "İşlemler"].map(h => (
+                                {["Kullanıcı", "E-posta", "Telefon", "Rol", "Alarmlar", "AI Kota", "Son Aktif", "Durum", "İşlemler"].map(h => (
                                     <th key={h} className="p-4 border-b border-[var(--color-b-border)] font-semibold">{h}</th>
                                 ))}
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr><td colSpan={7} className="p-12 text-center text-[var(--color-b-muted)]">⏳ Yükleniyor...</td></tr>
+                                <tr><td colSpan={8} className="p-12 text-center text-[var(--color-b-muted)]">⏳ Yükleniyor...</td></tr>
                             ) : users.length === 0 ? (
-                                <tr><td colSpan={7} className="p-12 text-center text-[var(--color-b-muted)]">Kullanıcı bulunamadı.</td></tr>
+                                <tr><td colSpan={8} className="p-12 text-center text-[var(--color-b-muted)]">Kullanıcı bulunamadı.</td></tr>
                             ) : users.map(u => (
                                 <tr key={u.username} className="hover:bg-[#1e2329] transition-colors border-b border-[var(--color-b-border)]">
                                     <td className="p-4 font-bold text-white">{u.username}</td>
                                     <td className="p-4 text-[var(--color-b-muted)]">{u.email || "—"}</td>
+                                    <td className="p-4 text-[var(--color-b-muted)]">{u.phone || "—"}</td>
                                     <td className="p-4">
                                         <span className={`px-2 py-0.5 rounded text-xs font-bold border ${
                                             u.role === "admin"
@@ -382,6 +396,13 @@ export default function AdminPage() {
                                                     className="text-xs px-3 py-1.5 rounded border border-blue-700 text-blue-400 hover:bg-blue-900/30 transition-colors disabled:opacity-50"
                                                 >
                                                     E-posta
+                                                </button>
+                                                <button
+                                                    onClick={() => changePhone(u.username, u.phone)}
+                                                    disabled={updating === u.username}
+                                                    className="text-xs px-3 py-1.5 rounded border border-indigo-700 text-indigo-400 hover:bg-indigo-900/30 transition-colors disabled:opacity-50"
+                                                >
+                                                    Telefon
                                                 </button>
                                                 <button
                                                     onClick={() => changePassword(u.username)}

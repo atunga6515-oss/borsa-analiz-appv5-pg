@@ -35,12 +35,19 @@ def init_auth_db():
                 username VARCHAR(255) PRIMARY KEY,
                 password_hash VARCHAR(255) NOT NULL,
                 email VARCHAR(255),
+                phone VARCHAR(50),
                 role VARCHAR(20) DEFAULT 'user',
                 is_active BOOLEAN DEFAULT TRUE,
                 last_active TIMESTAMP,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """))
+
+        # Mevcut veritabanında phone kolonu yoksa ekle (Migration)
+        try:
+            conn.execute(text("ALTER TABLE users ADD COLUMN phone VARCHAR(50)"))
+        except Exception:
+            pass  # Zaten varsa hata verecek ve geçecek
 
         # Varsayılan admin kullanıcıları üretimi üretim ortamında kapatıldı
         # İlk admin kullanıcısının doğrudan veritabanı komutu veya güvenli bir CLI scripti ile oluşturulması önerilir.
