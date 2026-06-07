@@ -114,16 +114,18 @@ def send_to_telegram(current_user: str = Depends(get_current_user)):
     if not results:
         raise HTTPException(status_code=400, detail="Havuzunuz boş. Lütfen hisse ekleyin.")
         
-    # Telegram mesajını formatla
-    msg = "🚀 *AlphaRank 15D - Analiz Raporu*\n\n"
+    # Telegram mesajını formatla (HTML kullanarak Markdown parsing hatalarını önleyelim)
+    msg = "🚀 <b>AlphaRank 15D - Analiz Raporu</b>\n\n"
     for r in results:
-        msg += f"🏅 *Sıra:* {r['rank']}\n"
-        msg += f"📈 *Hisse:* {r['ticker']}\n"
-        msg += f"💵 *Fiyat:* {r['price']} TL\n"
-        msg += f"🔥 *Yükseliş Olasılığı:* %{r['score']}\n"
-        msg += "📝 *Gerekçeler:*\n"
+        msg += f"🏅 <b>Sıra:</b> {r['rank']}\n"
+        msg += f"📈 <b>Hisse:</b> {r['ticker']}\n"
+        msg += f"💵 <b>Fiyat:</b> {r['price']} TL\n"
+        msg += f"🔥 <b>Yükseliş Olasılığı:</b> %{r['score']}\n"
+        msg += "📝 <b>Gerekçeler:</b>\n"
         for ev in r['evidences']:
-            msg += f"  - {ev}\n"
+            # Replace angle brackets to avoid breaking HTML
+            ev_clean = str(ev).replace("<", "&lt;").replace(">", "&gt;")
+            msg += f"  - {ev_clean}\n"
         msg += "\n"
         
     bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -131,9 +133,13 @@ def send_to_telegram(current_user: str = Depends(get_current_user)):
         # Eğer henüz TELEGRAM_BOT_TOKEN yoksa sahte başarı dönelim (UI testi için)
         return {"status": "success", "message": "Bot token eksik, ancak mesaj formatlandı.", "preview": msg}
         
+    # Eğer metin 4000 karakterden uzunsa Telegram sınırına (4096) takılmamak için kırpalım.
+    if len(msg) > 4000:
+        msg = msg[:4000] + "\n\n<i>...Mesaj çok uzun olduğu için kesildi.</i>"
+
     # Gerçek gönderim
     url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-    payload = {"chat_id": chat_id, "text": msg, "parse_mode": "Markdown"}
+    payload = {"chat_id": chat_id, "text": msg, "parse_mode": "HTML"}
     resp = requests.post(url, json=payload)
     
     if resp.status_code == 200:
