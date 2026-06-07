@@ -159,6 +159,10 @@ def fetch_portfolio_analysis(current_user: str = Depends(get_current_user)):
     except ImportError:
         return {"data": { "sectors": [], "weighted_pe": 0, "weighted_pb": 0 }}
         
+    # Eğer 'Mevcut_Deger' yoksa yatırım maliyeti üzerinden ağırlık hesapla
+    if 'Mevcut_Deger' not in df.columns:
+        df['Mevcut_Deger'] = df['adet'] * df['alis_fiyati']
+        
     total_value = df['Mevcut_Deger'].sum()
     if total_value == 0:
         return {"data": { "sectors": [], "weighted_pe": 0, "weighted_pb": 0 }}
@@ -168,7 +172,7 @@ def fetch_portfolio_analysis(current_user: str = Depends(get_current_user)):
     sector_values = {}
     
     for _, row in df.iterrows():
-        ticker = row['Hisse']
+        ticker = row['ticker']
         val = row['Mevcut_Deger']
         weight = val / total_value
         
