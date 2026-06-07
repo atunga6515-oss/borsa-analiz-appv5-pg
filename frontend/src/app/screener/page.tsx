@@ -158,6 +158,17 @@ export default function ScreenerPage() {
         });
     };
 
+    const handleAddToAlphaRank = async (ticker: string) => {
+        requireAuth(async () => {
+            try {
+                const res = await api.post('/alpharank/pool/add', { ticker });
+                alert(res.data.message);
+            } catch (err: any) {
+                alert(err.response?.data?.detail || 'AlphaRank havuzuna eklenemedi.');
+            }
+        });
+    };
+
     const handlePortfolioAdd = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
@@ -369,6 +380,12 @@ export default function ScreenerPage() {
                                                 className="text-xs bg-[#1e2329] text-[var(--color-b-green)] hover:bg-[var(--color-b-green)] hover:text-black border border-[var(--color-b-green)] px-3 py-1 rounded transition-colors"
                                             >
                                                 Portföye Ekle
+                                            </button>
+                                            <button 
+                                                onClick={() => handleAddToAlphaRank(row["Hisse"])}
+                                                className="text-xs bg-[#1e2329] text-blue-400 hover:bg-blue-500 hover:text-white border border-blue-500 px-3 py-1 rounded transition-colors"
+                                            >
+                                                AlphaRank
                                             </button>
                                             <button 
                                                 onClick={() => requireAuth(() => handleAIAnalysis(row))}
