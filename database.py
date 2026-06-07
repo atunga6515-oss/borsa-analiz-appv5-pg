@@ -208,6 +208,7 @@ def init_db():
             ("ai_quota",    "INTEGER      DEFAULT 5"),
             ("subscription_expires_at", "TIMESTAMP"),
             ("phone_number", "VARCHAR(20)"),
+            ("telegram_chat_id", "VARCHAR(100)"),
         ]:
             col_name, col_type = col_def
             try:
