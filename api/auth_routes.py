@@ -62,14 +62,30 @@ def get_current_user(request: Request, token: str = Depends(oauth2_scheme)) -> s
         # Check active status from DB
         from database import engine
         from sqlalchemy import text
+        from datetime import datetime
         with engine.connect() as conn:
             user = conn.execute(
-                text("SELECT is_active FROM users WHERE username=:u"), {"u": username}
+                text("SELECT is_active, subscription_expires_at FROM users WHERE username=:u"), {"u": username}
             ).fetchone()
             
         if not user or not user[0]:
             raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı veya hesap pasif durumda")
             
+        # Abonelik kontrolü (Sadece eğer tarih belirlenmişse)
+        if user[1]:
+            # SQLite string dönebilir, Postgres datetime dönebilir
+            exp_date = user[1]
+            if isinstance(exp_date, str):
+                try:
+                    exp_date = datetime.fromisoformat(exp_date.replace('Z', '+00:00'))
+                    # timezone naive/aware karmaşasını önlemek için basitleştirme:
+                    exp_date = exp_date.replace(tzinfo=None)
+                except Exception:
+                    pass
+            if isinstance(exp_date, datetime):
+                if datetime.utcnow() > exp_date:
+                    raise HTTPException(status_code=403, detail="Abonelik süreniz dolmuştur.")
+
         touch_last_active(username)
         return username
     except JWTError:

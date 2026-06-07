@@ -30,13 +30,14 @@ def list_users(admin: str = Depends(get_current_admin)):
                 u.created_at,
                 u.ai_quota,
                 u.phone,
+                u.subscription_expires_at,
                 COUNT(a.id) AS alarm_count
             FROM users u
             LEFT JOIN user_alarms a
                 ON a.username = u.username AND a.status = 'active'
-            GROUP BY u.username, u.email, u.phone, u.role, u.is_active, u.last_active, u.created_at, u.ai_quota
+            GROUP BY u.username, u.email, u.phone, u.role, u.is_active, u.last_active, u.created_at, u.ai_quota, u.subscription_expires_at
             ORDER BY u.created_at DESC
-        """)).fetchall()
+        "")).fetchall()
 
     return {
         "users": [
@@ -49,7 +50,8 @@ def list_users(admin: str = Depends(get_current_admin)):
                 "created_at":  str(r[5]) if r[5] else None,
                 "ai_quota":    r[6] or 0,
                 "phone":       r[7] or "",
-                "alarm_count": r[8] or 0,
+                "subscription_expires_at": str(r[8]) if r[8] else None,
+                "alarm_count": r[9] or 0,
             }
             for r in rows
         ]
@@ -135,6 +137,50 @@ def update_user_status(
     log_action(admin, "ADMIN_UPDATE_USER", f"{username} → {detail_str}", level="INFO")
 
     return {"ok": True, "message": f"{username} güncellendi."}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 2.5 PUT /api/admin/users/{username}/subscription  — Abonelik Süresi Uzatma
+# ─────────────────────────────────────────────────────────────────────────────
+class SubscriptionUpdate(BaseModel):
+    add_days: int
+
+@router.put("/users/{username}/subscription")
+def update_user_subscription(
+    username: str,
+    body: SubscriptionUpdate,
+    admin: str = Depends(get_current_admin),
+):
+    """Kullanıcının abonelik süresini uzatır (mevcut bitişin üzerine veya şu andan itibaren)."""
+    from datetime import datetime, timedelta
+    
+    with engine.begin() as conn:
+        existing = conn.execute(
+            text("SELECT subscription_expires_at FROM users WHERE username=:u"), {"u": username}
+        ).fetchone()
+        if not existing:
+            raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı.")
+            
+        current_exp = existing[0]
+        if isinstance(current_exp, str):
+            try:
+                current_exp = datetime.fromisoformat(current_exp.replace('Z', '+00:00')).replace(tzinfo=None)
+            except Exception:
+                current_exp = None
+                
+        now = datetime.utcnow()
+        if current_exp and current_exp > now:
+            new_exp = current_exp + timedelta(days=body.add_days)
+        else:
+            new_exp = now + timedelta(days=body.add_days)
+            
+        conn.execute(
+            text("UPDATE users SET subscription_expires_at=:exp, is_active=TRUE WHERE username=:u"),
+            {"exp": new_exp, "u": username}
+        )
+        
+    log_action(admin, "ADMIN_UPDATE_SUB", f"{username} aboneliğine {body.add_days} gün eklendi.", level="INFO")
+    return {"ok": True, "message": f"{username} aboneliği güncellendi."}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -265,3 +311,42 @@ def get_stats(admin: str = Depends(get_current_admin)):
         "online_now":   online_now,
         "errors_today": errors_today,
     }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 6. GET /api/admin/settings  — Sistem ayarlarını (SMTP vs) döner
+# ─────────────────────────────────────────────────────────────────────────────
+@router.get("/settings")
+def get_settings(admin: str = Depends(get_current_admin)):
+    """Tüm sistem ayarlarını getirir."""
+    with engine.connect() as conn:
+        try:
+            rows = conn.execute(text("SELECT key, value FROM system_settings")).fetchall()
+            return {"settings": {r[0]: r[1] for r in rows}}
+        except Exception:
+            return {"settings": {}}
+
+
+class SettingsUpdate(BaseModel):
+    settings: dict
+
+@router.post("/settings")
+def update_settings(body: SettingsUpdate, admin: str = Depends(get_current_admin)):
+    """Sistem ayarlarını kaydeder (upsert)."""
+    with engine.begin() as conn:
+        for k, v in body.settings.items():
+            if engine.name == "postgresql":
+                conn.execute(text("""
+                    INSERT INTO system_settings (key, value)
+                    VALUES (:k, :v)
+                    ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+                """), {"k": k, "v": str(v)})
+            else:
+                conn.execute(text("""
+                    INSERT INTO system_settings (key, value)
+                    VALUES (:k, :v)
+                    ON CONFLICT(key) DO UPDATE SET value=excluded.value
+                """), {"k": k, "v": str(v)})
+    
+    log_action(admin, "ADMIN_SETTINGS_UPDATE", f"Sistem ayarları güncellendi: {list(body.settings.keys())}", level="INFO")
+    return {"ok": True}

@@ -39,15 +39,30 @@ def init_auth_db():
                 role VARCHAR(20) DEFAULT 'user',
                 is_active BOOLEAN DEFAULT TRUE,
                 last_active TIMESTAMP,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                subscription_expires_at TIMESTAMP
             )
         """))
 
-        # Mevcut veritabanında phone kolonu yoksa ekle (Migration)
+        # Sistem ayarları tablosu
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS system_settings (
+                key VARCHAR(255) PRIMARY KEY,
+                value TEXT
+            )
+        """))
+
+        # Mevcut veritabanında phone ve subscription kolonu yoksa ekle (Migration)
         try:
             conn.execute(text("ALTER TABLE users ADD COLUMN phone VARCHAR(50)"))
         except Exception:
             pass  # Zaten varsa hata verecek ve geçecek
+            
+        try:
+            conn.execute(text("ALTER TABLE users ADD COLUMN subscription_expires_at TIMESTAMP"))
+        except Exception:
+            pass
+
 
         # Varsayılan admin kullanıcıları üretimi üretim ortamında kapatıldı
         # İlk admin kullanıcısının doğrudan veritabanı komutu veya güvenli bir CLI scripti ile oluşturulması önerilir.
@@ -129,6 +144,8 @@ def verify_login(username: str, password: str) -> bool:
     return False
 
 
+from datetime import datetime, timedelta
+
 def register_user(username: str, password: str, email: str = "") -> dict:
     """Yeni kullanıcı kaydı."""
     if len(username) < 3:
@@ -137,19 +154,22 @@ def register_user(username: str, password: str, email: str = "") -> dict:
         return {"ok": False, "error": "Şifre en az 6 karakter olmalıdır."}
     try:
         p_hash = hash_password(password)
+        expires_at = datetime.utcnow() + timedelta(days=30)
         with engine.begin() as conn:
             existing = conn.execute(
                 text("SELECT username FROM users WHERE username=:u"), {"u": username}
             ).fetchone()
             if existing:
                 return {"ok": False, "error": "Bu kullanıcı adı zaten alınmış."}
+            
+            # SQLite ve Postgres uyumluluğu için datetime objesini string'e çevirmiyoruz, DB api halleder
             conn.execute(
                 text(
-                    "INSERT INTO users (username, password_hash, email, role) VALUES (:u, :p, :e, 'user')"
+                    "INSERT INTO users (username, password_hash, email, role, subscription_expires_at) VALUES (:u, :p, :e, 'user', :exp)"
                 ),
-                {"u": username, "p": p_hash, "e": email},
+                {"u": username, "p": p_hash, "e": email, "exp": expires_at},
             )
-        log_action(username, "REGISTER", "Yeni kullanıcı kaydı")
+        log_action(username, "REGISTER", "Yeni kullanıcı kaydı (30 Gün Abonelik)")
         return {"ok": True}
     except Exception as e:
         return {"ok": False, "error": "Kayıt sırasında beklenmeyen bir hata oluştu."}

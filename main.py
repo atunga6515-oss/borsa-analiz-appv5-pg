@@ -53,7 +53,9 @@ app.add_middleware(
 def startup_event():
     init_db()
     init_auth_db()
-    print("Database initialized successfully.")
+    from scheduler import start_scheduler
+    start_scheduler()
+    print("Database and scheduler initialized successfully.")
 
 app.include_router(auth_router)
 app.include_router(screener_router)

@@ -9,6 +9,7 @@ interface UserRow {
     is_active: boolean; last_active: string | null;
     created_at: string | null; alarm_count: number;
     ai_quota: number;
+    subscription_expires_at: string | null;
 }
 interface Session { username: string; role: string; last_active: string; }
 interface LogRow {
@@ -51,11 +52,18 @@ function LevelBadge({ level }: { level: string }) {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function AdminPage() {
     const router = useRouter();
-    const [tab, setTab] = useState<"users" | "sessions" | "logs">("users");
+    const [tab, setTab] = useState<"users" | "sessions" | "logs" | "settings">("users");
     const [stats, setStats] = useState<Stats | null>(null);
     const [users, setUsers] = useState<UserRow[]>([]);
     const [sessions, setSessions] = useState<Session[]>([]);
     const [logs, setLogs] = useState<LogRow[]>([]);
+    const [settings, setSettings] = useState<Record<string, string>>({
+        smtp_server: "smtp.gmail.com",
+        smtp_port: "587",
+        smtp_user: "",
+        smtp_password: "",
+        contact_email: "bilgi@borsaterminali.com"
+    });
     const [logTotal, setLogTotal] = useState(0);
     const [logPage, setLogPage] = useState(1);
     const [logLevel, setLogLevel] = useState("");
@@ -119,12 +127,38 @@ export default function AdminPage() {
         finally { setLoading(false); }
     }, [logPage, logLevel]);
 
+    const fetchSettings = useCallback(async () => {
+        setLoading(true); setError("");
+        try {
+            const res = await api.get("/admin/settings");
+            if (res.data?.settings) {
+                setSettings(prev => ({ ...prev, ...res.data.settings }));
+            }
+        }
+        catch (e: any) { setError("Ayarlar yüklenemedi."); }
+        finally { setLoading(false); }
+    }, []);
+
+    const saveSettings = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setUpdating("settings");
+        try {
+            await api.post("/admin/settings", { settings });
+            alert("Ayarlar kaydedildi.");
+        } catch (e: any) {
+            alert("Ayarlar kaydedilemedi.");
+        } finally {
+            setUpdating(null);
+        }
+    };
+
     useEffect(() => { fetchStats(); }, [fetchStats]);
     useEffect(() => {
         if (tab === "users") fetchUsers();
         else if (tab === "sessions") fetchSessions();
         else if (tab === "logs") fetchLogs();
-    }, [tab, fetchUsers, fetchSessions, fetchLogs]);
+        else if (tab === "settings") fetchSettings();
+    }, [tab, fetchUsers, fetchSessions, fetchLogs, fetchSettings]);
 
     // ── User actions ──────────────────────────────────────────────────────────
     const toggleActive = async (username: string, current: boolean) => {
@@ -200,6 +234,20 @@ export default function AdminPage() {
         }
     };
 
+    const changeSubscription = async (username: string) => {
+        const val = prompt(`${username} için kaç GÜN eklenecek? (Örn: 30, 90, 365)`);
+        if (val !== null && !isNaN(parseInt(val, 10))) {
+            setUpdating(username);
+            try {
+                await api.put(`/admin/users/${username}/subscription`, { add_days: parseInt(val, 10) });
+                alert("Abonelik güncellendi. Yeni verileri görmek için tablo yenileniyor.");
+                fetchUsers();
+            } catch (e: any) {
+                alert(e?.response?.data?.detail || "Abonelik güncellenemedi.");
+            } finally { setUpdating(null); }
+        }
+    };
+
     const handleAddUser = async (e: React.FormEvent) => {
         e.preventDefault();
         setUpdating("new");
@@ -247,9 +295,9 @@ export default function AdminPage() {
             )}
 
             {/* Tabs */}
-            <div className="flex gap-2 mb-4 border-b border-[var(--color-b-border)]">
-                {(["users", "sessions", "logs"] as const).map((t) => {
-                    const labels = { users: "👥 Kullanıcı Yönetimi", sessions: "🟢 Canlı Takip", logs: "📋 Sistem Logları" };
+            <div className="flex gap-2 mb-4 border-b border-[var(--color-b-border)] overflow-x-auto whitespace-nowrap pb-2">
+                {(["users", "sessions", "logs", "settings"] as const).map((t) => {
+                    const labels = { users: "👥 Kullanıcı Yönetimi", sessions: "🟢 Canlı Takip", logs: "📋 Sistem Logları", settings: "⚙️ Ayarlar" };
                     return (
                         <button
                             key={t}
@@ -316,7 +364,7 @@ export default function AdminPage() {
                     <table className="w-full text-left border-collapse text-sm">
                         <thead className="bg-[#1e2329] text-[var(--color-b-muted)] sticky top-0">
                             <tr>
-                                {["Kullanıcı", "E-posta", "Telefon", "Rol", "Alarmlar", "AI Kota", "Son Aktif", "Durum", "İşlemler"].map(h => (
+                                {["Kullanıcı", "E-posta", "Telefon", "Rol", "Alarmlar", "AI Kota", "Abonelik", "Son Aktif", "Durum", "İşlemler"].map(h => (
                                     <th key={h} className="p-4 border-b border-[var(--color-b-border)] font-semibold">{h}</th>
                                 ))}
                             </tr>
@@ -356,6 +404,22 @@ export default function AdminPage() {
                                                 </button>
                                             </div>
                                         </div>
+                                    </td>
+                                    <td className="p-4 text-xs font-semibold">
+                                        {u.subscription_expires_at ? (() => {
+                                            const expDate = new Date(u.subscription_expires_at);
+                                            const today = new Date();
+                                            const diffTime = expDate.getTime() - today.getTime();
+                                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                            
+                                            if (diffDays < 0) {
+                                                return <span className="text-red-500">Süresi Doldu</span>;
+                                            } else if (diffDays <= 3) {
+                                                return <span className="text-yellow-500">{diffDays} Gün Kaldı</span>;
+                                            } else {
+                                                return <span className="text-green-500">{diffDays} Gün Kaldı</span>;
+                                            }
+                                        })() : <span className="text-[var(--color-b-muted)]">—</span>}
                                     </td>
                                     <td className="p-4 text-[var(--color-b-muted)] text-xs">
                                         {u.last_active ? new Date(u.last_active).toLocaleString("tr-TR") : "—"}
@@ -410,6 +474,13 @@ export default function AdminPage() {
                                                     className="text-xs px-3 py-1.5 rounded border border-orange-700 text-orange-400 hover:bg-orange-900/30 transition-colors disabled:opacity-50"
                                                 >
                                                     Şifre
+                                                </button>
+                                                <button
+                                                    onClick={() => changeSubscription(u.username)}
+                                                    disabled={updating === u.username}
+                                                    className="text-xs px-3 py-1.5 rounded border border-pink-700 text-pink-400 hover:bg-pink-900/30 transition-colors disabled:opacity-50"
+                                                >
+                                                    Süre Uzat
                                                 </button>
                                             </div>
                                         ) : (
@@ -543,6 +614,97 @@ export default function AdminPage() {
                             </button>
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* ── TAB: Sistem Ayarları ── */}
+            {tab === "settings" && (
+                <div className="flex flex-col gap-4 max-w-2xl mx-auto w-full">
+                    <form onSubmit={saveSettings} className="glass-panel p-6 rounded-xl border border-[var(--color-b-border)]">
+                        <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                            <span>⚙️</span> Sistem Ayarları
+                        </h2>
+                        
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-[var(--color-b-muted)] mb-1">
+                                    SMTP Sunucu
+                                </label>
+                                <input 
+                                    type="text" 
+                                    value={settings.smtp_server || ""}
+                                    onChange={(e) => setSettings({...settings, smtp_server: e.target.value})}
+                                    className="w-full bg-[#1e2329] border border-[var(--color-b-border)] rounded px-3 py-2 text-white"
+                                    placeholder="smtp.gmail.com"
+                                />
+                            </div>
+                            
+                            <div>
+                                <label className="block text-sm font-medium text-[var(--color-b-muted)] mb-1">
+                                    SMTP Port
+                                </label>
+                                <input 
+                                    type="text" 
+                                    value={settings.smtp_port || ""}
+                                    onChange={(e) => setSettings({...settings, smtp_port: e.target.value})}
+                                    className="w-full bg-[#1e2329] border border-[var(--color-b-border)] rounded px-3 py-2 text-white"
+                                    placeholder="587"
+                                />
+                            </div>
+                            
+                            <div>
+                                <label className="block text-sm font-medium text-[var(--color-b-muted)] mb-1">
+                                    SMTP Kullanıcı Adı (Mail)
+                                </label>
+                                <input 
+                                    type="text" 
+                                    value={settings.smtp_user || ""}
+                                    onChange={(e) => setSettings({...settings, smtp_user: e.target.value})}
+                                    className="w-full bg-[#1e2329] border border-[var(--color-b-border)] rounded px-3 py-2 text-white"
+                                    placeholder="ornek@gmail.com"
+                                />
+                            </div>
+                            
+                            <div>
+                                <label className="block text-sm font-medium text-[var(--color-b-muted)] mb-1">
+                                    SMTP Uygulama Şifresi
+                                </label>
+                                <input 
+                                    type="password" 
+                                    value={settings.smtp_password || ""}
+                                    onChange={(e) => setSettings({...settings, smtp_password: e.target.value})}
+                                    className="w-full bg-[#1e2329] border border-[var(--color-b-border)] rounded px-3 py-2 text-white"
+                                    placeholder="••••••••••••"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">Gmail kullanıyorsanız, hesabınızdan "Uygulama Şifreleri" oluşturup buraya girmelisiniz.</p>
+                            </div>
+                            
+                            <hr className="border-[var(--color-b-border)] my-4" />
+                            
+                            <div>
+                                <label className="block text-sm font-medium text-[var(--color-b-muted)] mb-1">
+                                    İletişim E-Postası (Kayıt Ekranı)
+                                </label>
+                                <input 
+                                    type="text" 
+                                    value={settings.contact_email || ""}
+                                    onChange={(e) => setSettings({...settings, contact_email: e.target.value})}
+                                    className="w-full bg-[#1e2329] border border-[var(--color-b-border)] rounded px-3 py-2 text-white"
+                                    placeholder="bilgi@borsaterminali.com"
+                                />
+                            </div>
+                        </div>
+                        
+                        <div className="mt-6 flex justify-end">
+                            <button 
+                                type="submit" 
+                                disabled={updating === "settings"}
+                                className="bg-[var(--color-b-yellow)] text-[#181a20] px-6 py-2 rounded-lg font-bold hover:bg-[#f0c929] transition-colors disabled:opacity-50"
+                            >
+                                {updating === "settings" ? "Kaydediliyor..." : "Ayarları Kaydet"}
+                            </button>
+                        </div>
+                    </form>
                 </div>
             )}
         </div>
