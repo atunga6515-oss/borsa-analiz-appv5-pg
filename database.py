@@ -225,6 +225,14 @@ def init_db():
             ON system_logs (created_at DESC)
         """))
 
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS system_settings (
+                key VARCHAR(100) PRIMARY KEY,
+                value TEXT,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """))
+
         # ai_analyses_history UNIQUE constraint (sadece PostgreSQL için)
         if engine.name == "postgresql":
             conn.execute(text("""
