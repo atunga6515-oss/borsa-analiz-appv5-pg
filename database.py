@@ -151,6 +151,15 @@ def init_db():
         """))
         
         conn.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS alpharank_history (
+                id {serial_type} PRIMARY KEY,
+                username VARCHAR(255),
+                run_date VARCHAR(50),
+                results_json TEXT
+            )
+        """))
+        
+        conn.execute(text(f"""
             CREATE TABLE IF NOT EXISTS portfolio (
                 id {serial_type} PRIMARY KEY,
                 username VARCHAR(255),

@@ -5,6 +5,10 @@ from api.auth_routes import get_current_user
 from alpharank_engine import AlphaRank15D
 import requests
 import os
+import json
+from datetime import datetime
+from database import engine
+from sqlalchemy import text
 
 router = APIRouter()
 engine_obj = AlphaRank15D()
@@ -39,17 +43,65 @@ def clear_pool(current_user: str = Depends(get_current_user)):
     return engine_obj.clear_pool(current_user)
 
 @router.get("/analyze")
-def run_analysis(current_user: str = Depends(get_current_user)):
-    """Havuzdaki tüm hisseleri analiz edip skor sıralaması döner."""
+def run_analysis_endpoint(current_user: str = Depends(get_current_user)):
+    """Havuzdaki tüm hisseleri analiz edip skor sıralaması döner ve veritabanına kaydeder."""
     results = engine_obj.run_analysis(current_user)
+    
+    if results:
+        # Geçmişe kaydet
+        run_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        try:
+            with engine.begin() as conn:
+                conn.execute(text("""
+                    INSERT INTO alpharank_history (username, run_date, results_json)
+                    VALUES (:u, :d, :r)
+                """), {
+                    "u": current_user,
+                    "d": run_date,
+                    "r": json.dumps(results, ensure_ascii=False)
+                })
+        except Exception as e:
+            print(f"History save error: {e}")
+            
     return {"status": "success", "data": results}
+
+@router.get("/history-dates")
+def get_history_dates(current_user: str = Depends(get_current_user)):
+    """Geçmiş son 15 AlphaRank taramasının tarihlerini getirir."""
+    with engine.connect() as conn:
+        rows = conn.execute(text("""
+            SELECT id, run_date 
+            FROM alpharank_history 
+            WHERE username = :u 
+            ORDER BY id DESC LIMIT 15
+        """), {"u": current_user}).fetchall()
+        
+    dates = [{"id": r[0], "run_date": r[1]} for r in rows]
+    return {"status": "success", "dates": dates}
+
+@router.get("/history/{history_id}")
+def get_history_detail(history_id: int, current_user: str = Depends(get_current_user)):
+    """Belirli bir geçmiş taramanın detaylarını getirir."""
+    with engine.connect() as conn:
+        row = conn.execute(text("""
+            SELECT results_json 
+            FROM alpharank_history 
+            WHERE id = :h_id AND username = :u
+        """), {"h_id": history_id, "u": current_user}).fetchone()
+        
+    if not row:
+        raise HTTPException(status_code=404, detail="Geçmiş analiz bulunamadı veya size ait değil.")
+        
+    try:
+        data = json.loads(row[0])
+        return {"status": "success", "data": data}
+    except:
+        return {"status": "error", "message": "JSON parse error"}
 
 @router.post("/telegram")
 def send_to_telegram(current_user: str = Depends(get_current_user)):
     """Son analizi kullanıcının telegramına atar."""
     # Veritabanından kullanıcının telegram chat_id'sini al
-    from database import engine
-    from sqlalchemy import text
     with engine.connect() as conn:
         row = conn.execute(text("SELECT telegram_chat_id FROM users WHERE username=:u"), {"u": current_user}).fetchone()
         

@@ -10,10 +10,53 @@ export default function AlphaRankPage() {
     const [analyzing, setAnalyzing] = useState(false);
     const [error, setError] = useState('');
     const [successMsg, setSuccessMsg] = useState('');
+    
+    // History states
+    const [historyDates, setHistoryDates] = useState<any[]>([]);
+    const [selectedHistoryId, setSelectedHistoryId] = useState("");
 
     useEffect(() => {
         fetchPool();
+        fetchHistoryDates();
     }, []);
+
+    const fetchHistoryDates = async () => {
+        try {
+            const res = await api.get('/alpharank/history-dates');
+            if (res.data && res.data.dates) {
+                setHistoryDates(res.data.dates);
+            }
+        } catch (error) {
+            console.error("Geçmiş tarihler çekilemedi", error);
+        }
+    };
+
+    const fetchHistoryById = async (id: string) => {
+        if (!id) return;
+        setAnalyzing(true);
+        setError('');
+        try {
+            const res = await api.get(`/alpharank/history/${id}`);
+            if (res.data && res.data.data) {
+                setResults(res.data.data);
+                setSuccessMsg('Geçmiş analiz başarıyla yüklendi.');
+            }
+        } catch (error: any) {
+            setError(error.response?.data?.detail || 'Geçmiş analiz yüklenemedi.');
+        } finally {
+            setAnalyzing(false);
+        }
+    };
+
+    const handleHistoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const id = e.target.value;
+        setSelectedHistoryId(id);
+        if (id) {
+            fetchHistoryById(id);
+        } else {
+            setResults([]);
+        }
+    };
 
     const fetchPool = async () => {
         setLoading(true);
@@ -73,6 +116,8 @@ export default function AlphaRankPage() {
             const res = await api.get('/alpharank/analyze');
             setResults(res.data.data);
             setSuccessMsg('Analiz tamamlandı.');
+            fetchHistoryDates(); // Yeni analizden sonra geçmiş listesini yenile
+            setSelectedHistoryId(""); // Dropdown'ı sıfırla
         } catch (err: any) {
             setError(err.response?.data?.detail || 'Analiz başarısız.');
         }
@@ -156,14 +201,27 @@ export default function AlphaRankPage() {
                     </div>
 
                     <div className="flex flex-col gap-2">
+                        <div className="mb-4">
+                            <label className="block text-xs text-gray-400 mb-1">Geçmiş Analizler</label>
+                            <select 
+                                value={selectedHistoryId} 
+                                onChange={handleHistoryChange}
+                                className="w-full bg-gray-700 border border-gray-600 text-white px-3 py-2 rounded focus:outline-none focus:border-blue-500"
+                            >
+                                <option value="">-- Yeni Analiz --</option>
+                                {historyDates.map(d => (
+                                    <option key={d.id} value={d.id}>{d.run_date}</option>
+                                ))}
+                            </select>
+                        </div>
+                        
                         <button
                             onClick={handleAnalyze}
                             disabled={pool.length === 0 || analyzing}
                             className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded shadow-lg disabled:opacity-50 transition-colors"
                         >
-                            {analyzing ? 'Analiz Ediliyor...' : '🔬 Analizi Başlat'}
+                            {analyzing ? 'Yükleniyor...' : '🔬 Yeni Analizi Başlat'}
                         </button>
-                        
                         {pool.length > 0 && (
                             <button
                                 onClick={handleClear}
