@@ -197,7 +197,7 @@ export default function Home() {
     const changePrefix = currentPriceInfo && currentPriceInfo.change > 0 ? "+" : "";
 
     return (
-        <div className="flex w-full h-full p-4 gap-4 bg-[var(--color-b-bg)] text-[var(--color-b-text)] overflow-hidden">
+        <div className="flex w-full h-[calc(100vh-64px)] p-4 gap-4 bg-[var(--color-b-bg)] text-[var(--color-b-text)] overflow-hidden">
             {/* Sidebar / Watchlist */}
             <aside className="w-80 glass-panel flex flex-col p-4 min-h-0">
                 <div className="flex justify-between items-center mb-4">
