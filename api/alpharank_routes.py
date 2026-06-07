@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import List, Dict, Any
-from auth import get_current_user
+from api.auth_routes import get_current_user
 from alpharank_engine import AlphaRank15D
 import requests
 import os
