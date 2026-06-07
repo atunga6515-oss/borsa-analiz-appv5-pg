@@ -10,6 +10,7 @@ const NAV_LINKS = [
     { href: "/portfolio", label: "Portföy", icon: "💼" },
     { href: "/top-picks", label: "Seçki", icon: "🎯" },
     { href: "/analysis", label: "Analiz", icon: "🔬" },
+    { href: "/alpharank", label: "AlphaRank 15D", icon: "🚀" },
     { href: "/kap", label: "KAP", icon: "📰" },
     { href: "/backtest", label: "Backtest", icon: "⚙️" },
     { href: "/strategy-compare", label: "Kıyasla", icon: "🧪" },

@@ -141,6 +141,16 @@ def init_db():
         """))
         
         conn.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS alpharank_pool (
+                id {serial_type} PRIMARY KEY,
+                username VARCHAR(255),
+                ticker VARCHAR(20),
+                added_at VARCHAR(50),
+                UNIQUE (username, ticker)
+            )
+        """))
+        
+        conn.execute(text(f"""
             CREATE TABLE IF NOT EXISTS portfolio (
                 id {serial_type} PRIMARY KEY,
                 username VARCHAR(255),
