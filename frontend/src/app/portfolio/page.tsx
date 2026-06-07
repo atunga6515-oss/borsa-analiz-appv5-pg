@@ -8,6 +8,7 @@ export default function PortfolioPage() {
     const { requireAuth, AuthModal } = useRequireAuth();
     const [positions, setPositions] = useState([]);
     const [livePrices, setLivePrices] = useState<any>({});
+    const [analysis, setAnalysis] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     
     // Modal state
@@ -60,6 +61,12 @@ export default function PortfolioPage() {
                         setLivePrices(priceRes.data.data);
                     }
                 }
+            }
+            
+            // Fetch portfolio analysis (fundamental)
+            const anaRes = await api.get('/portfolio/analysis');
+            if (anaRes.data && anaRes.data.data) {
+                setAnalysis(anaRes.data.data);
             }
         } catch (error) {
             console.error("Portföy yüklenemedi:", error);
@@ -183,6 +190,35 @@ export default function PortfolioPage() {
                     </button>
                 </div>
             </div>
+            
+            {/* Portfolio Analysis Widgets */}
+            {analysis && positions.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div className="glass-panel p-4 rounded-lg flex flex-col justify-center border-l-4 border-[var(--color-b-yellow)]">
+                        <span className="text-sm text-[var(--color-b-muted)]">Portföy Ort. F/K</span>
+                        <span className="text-2xl font-bold text-white">{analysis.weighted_pe > 0 ? analysis.weighted_pe.toFixed(2) : "-"}</span>
+                    </div>
+                    <div className="glass-panel p-4 rounded-lg flex flex-col justify-center border-l-4 border-[var(--color-b-green)]">
+                        <span className="text-sm text-[var(--color-b-muted)]">Portföy Ort. PD/DD</span>
+                        <span className="text-2xl font-bold text-white">{analysis.weighted_pb > 0 ? analysis.weighted_pb.toFixed(2) : "-"}</span>
+                    </div>
+                    <div className="glass-panel p-4 rounded-lg flex flex-col justify-center border-l-4 border-indigo-500">
+                        <span className="text-sm text-[var(--color-b-muted)] mb-2">En Yüksek Ağırlıklı 3 Sektör</span>
+                        <div className="flex flex-col gap-1">
+                            {analysis.sectors.length === 0 && <span className="text-xs text-white">Veri Bekleniyor...</span>}
+                            {analysis.sectors.slice(0, 3).map((sec: any) => (
+                                <div key={sec.name} className="flex items-center gap-2">
+                                    <div className="h-2 flex-1 bg-[#181a20] rounded-full overflow-hidden">
+                                        <div className="h-full bg-indigo-500" style={{width: `${sec.percentage}%`}}></div>
+                                    </div>
+                                    <span className="text-xs text-white font-bold w-12 text-right">%{sec.percentage.toFixed(1)}</span>
+                                    <span className="text-[10px] text-[var(--color-b-muted)] w-24 truncate">{sec.name}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
             
             <div className="glass-panel flex-1 overflow-auto rounded-lg">
                 <table className="w-full text-left border-collapse">

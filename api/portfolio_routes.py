@@ -9,6 +9,7 @@ from portfolio_optimizer import optimize_portfolio
 import pandas as pd
 from portfolio import alis_yap, satis_yap, acik_pozisyonlar, kapali_pozisyonlar
 from api.auth_routes import get_current_user
+from screener import get_sector
 
 router = APIRouter(prefix="/api/portfolio", tags=["portfolio"])
 
@@ -145,4 +146,60 @@ def optimize_portfolio_endpoint(req: OptimizeRequest, current_user: str = Depend
         "optimization": opt_res,
         "ai_commentary": ai_commentary,
         "has_quota": has_quota
+    }
+
+@router.get("/analysis")
+def fetch_portfolio_analysis(current_user: str = Depends(get_current_user)):
+    df = acik_pozisyonlar(current_user)
+    if not isinstance(df, pd.DataFrame) or df.empty:
+        return {"data": { "sectors": [], "weighted_pe": 0, "weighted_pb": 0 }}
+        
+    try:
+        from fundamental_analyzer import get_fundamental_data
+    except ImportError:
+        return {"data": { "sectors": [], "weighted_pe": 0, "weighted_pb": 0 }}
+        
+    total_value = df['Mevcut_Deger'].sum()
+    if total_value == 0:
+        return {"data": { "sectors": [], "weighted_pe": 0, "weighted_pb": 0 }}
+        
+    weighted_pe = 0.0
+    weighted_pb = 0.0
+    sector_values = {}
+    
+    for _, row in df.iterrows():
+        ticker = row['Hisse']
+        val = row['Mevcut_Deger']
+        weight = val / total_value
+        
+        fund_data = get_fundamental_data(ticker)
+        pe = fund_data.get('pe', 0)
+        pb = fund_data.get('pb', 0)
+        
+        # Sadece pozitif F/K ve PD/DD değerlerini hesaba kat
+        if isinstance(pe, (int, float)) and pe > 0:
+            weighted_pe += pe * weight
+        if isinstance(pb, (int, float)) and pb > 0:
+            weighted_pb += pb * weight
+            
+        sector = get_sector(ticker)
+        sector_values[sector] = sector_values.get(sector, 0) + val
+        
+    sectors_list = []
+    for sec, val in sector_values.items():
+        sectors_list.append({
+            "name": sec,
+            "value": round(val, 2),
+            "percentage": round((val / total_value) * 100, 1)
+        })
+        
+    # Sektörleri büyükten küçüğe sırala
+    sectors_list.sort(key=lambda x: x['value'], reverse=True)
+        
+    return {
+        "data": {
+            "sectors": sectors_list,
+            "weighted_pe": round(weighted_pe, 2),
+            "weighted_pb": round(weighted_pb, 2)
+        }
     }
