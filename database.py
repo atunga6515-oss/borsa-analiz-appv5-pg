@@ -181,12 +181,14 @@ def init_db():
             )
         """))
 
-        # users tablosuna role, is_active, last_active, ai_quota alanları ekle (migration)
+        # users tablosuna role, is_active, last_active, ai_quota, abonelik ve telefon alanları ekle (migration)
         for col_def in [
             ("role",        "VARCHAR(20)  DEFAULT 'user'"),
             ("is_active",   "BOOLEAN      DEFAULT TRUE"),
             ("last_active", "TIMESTAMP"),
             ("ai_quota",    "INTEGER      DEFAULT 5"),
+            ("subscription_expires_at", "TIMESTAMP"),
+            ("phone_number", "VARCHAR(20)"),
         ]:
             col_name, col_type = col_def
             try:
