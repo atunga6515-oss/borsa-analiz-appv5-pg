@@ -31,6 +31,7 @@ class Token(BaseModel):
 
 class LoginResponse(BaseModel):
     """Cookie-only auth model."""
+    access_token: Optional[str] = None
     token_type: str
     username: str
     role: str
@@ -133,8 +134,9 @@ def login_for_access_token(request: Request, response: Response, form_data: OAut
         secure=IS_PROD  # Prod ortamında True (HTTPS zorunlu)
     )
     
-    # access_token body'de döndürme (cookie-only model)
+    # access_token body'de döndürme (geriye dönük uyumluluk)
     return {
+        "access_token": access_token,
         "token_type": "bearer",
         "username": form_data.username,
         "role": role,
