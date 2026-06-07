@@ -102,6 +102,6 @@ CONDITION_LABELS = {
 }
 
 @router.get("/conditions")
-def get_conditions():
+def get_conditions(current_user: str = Depends(get_current_user)):
     """Kullanılabilir alarm koşullarını döner."""
     return {"conditions": [{"value": k, "label": v} for k, v in CONDITION_LABELS.items()]}

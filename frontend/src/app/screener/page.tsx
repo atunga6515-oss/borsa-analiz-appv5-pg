@@ -41,12 +41,9 @@ export default function ScreenerPage() {
         }
     };
     
-    // İlk yüklemede history'yi çek (kullanıcı giriş yapmışsa api interceptor çalışır ama requireAuth ile de yapabiliriz)
+    // İlk yüklemede history'yi çek (cookie-based auth, interceptor 401 yönetir)
     useEffect(() => {
-        const token = localStorage.getItem("token");
-        if (token) {
-            fetchHistoryList();
-        }
+        fetchHistoryList();
     }, []);
     
     const loadHistoryDetails = async (id: string) => {

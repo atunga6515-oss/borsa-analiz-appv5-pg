@@ -27,10 +27,8 @@ export default function AnalysisPage() {
         }
     };
     useEffect(() => {
-        const token = localStorage.getItem("token");
-        if (token) {
-            fetchHistoryList();
-        }
+        // Cookie-based auth: token kontrolü yok, interceptor 401 yönetir
+        fetchHistoryList();
     }, []);
 
     const fetchHistoryById = async (id: string) => {

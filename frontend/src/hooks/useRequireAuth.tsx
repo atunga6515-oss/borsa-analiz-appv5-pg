@@ -1,6 +1,7 @@
 "use client";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
+import api from "@/lib/api";
 
 // ── Modal bileşeni ─────────────────────────────────────────────────────────
 function LoginRequiredModal({ onClose }: { onClose: () => void }) {
@@ -56,26 +57,34 @@ function LoginRequiredModal({ onClose }: { onClose: () => void }) {
  */
 export function useRequireAuth() {
     const [modalOpen, setModalOpen] = useState(false);
+    const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
+
+    useEffect(() => {
+        // Cookie-based auth: /auth/me'den kullanıcı bilgisini çek
+        api.get('/auth/me')
+            .then(() => setLoggedIn(true))
+            .catch(() => setLoggedIn(false));
+    }, []);
 
     const isLoggedIn = useCallback(() => {
-        if (typeof window === "undefined") return false;
-        return !!localStorage.getItem("token");
-    }, []);
+        return loggedIn === true;
+    }, [loggedIn]);
 
     const requireAuth = useCallback(
         (action: () => void) => {
-            if (isLoggedIn()) {
+            if (loggedIn === true) {
                 action();
-            } else {
+            } else if (loggedIn === false) {
                 setModalOpen(true);
             }
+            // loggedIn === null: henüz bilinmiyor, bekle
         },
-        [isLoggedIn]
+        [loggedIn]
     );
 
     const AuthModal = modalOpen
         ? () => <LoginRequiredModal onClose={() => setModalOpen(false)} />
         : () => null;
 
-    return { requireAuth, AuthModal, isLoggedIn };
+    return { requireAuth, AuthModal, isLoggedIn, loggedIn };
 }

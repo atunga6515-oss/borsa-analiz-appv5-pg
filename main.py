@@ -14,6 +14,11 @@ from api.telegram_routes import router as telegram_routes
 from api.alarm_routes import router as alarm_router
 from api.admin_routes import router as admin_router
 from api.ai_routes import router as ai_router
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from limiter import limiter
+import os
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -22,10 +27,22 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Rate Limiting (Brute force & Abuse protection)
+# Limiter is imported from limiter.py
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
 # Add CORS Middleware to allow requests from the Next.js frontend
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS")
+if allowed_origins_env:
+    allowed_origins = [orig.strip() for orig in allowed_origins_env.split(",") if orig.strip()]
+else:
+    allowed_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

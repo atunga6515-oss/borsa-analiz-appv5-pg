@@ -43,17 +43,20 @@ def alis_yap(username: str, ticker: str, adet: float, fiyat: float, not_text: st
                 "sl": sl, "tp": tp, "var": var_risk
             })
 
-def satis_yap(trade_id: int, satis_fiyati: float):
+def satis_yap(username: str, trade_id: int, satis_fiyati: float):
     """Açık pozisyonu kapatır (sanal satış)."""
     with engine.begin() as conn:
-        conn.execute(text("""
+        res = conn.execute(text("""
             UPDATE portfolio SET durum='KAPALI', satis_fiyati=:s, satis_tarihi=:d
-            WHERE id=:id
+            WHERE id=:id AND username=:u AND durum='ACIK'
         """), {
             "s": satis_fiyati, 
             "d": datetime.now().strftime("%Y-%m-%d %H:%M"), 
-            "id": trade_id
+            "id": trade_id,
+            "u": username
         })
+        if res.rowcount == 0:
+            raise ValueError("Kayıt bulunamadı, daha önce satılmış olabilir veya size ait değil.")
 
 def acik_pozisyonlar(username: str) -> pd.DataFrame:
     """Belirli kullanıcıya ait tüm açık (satılmamış) pozisyonları döndürür."""
@@ -76,36 +79,41 @@ def tum_islemler(username: str) -> pd.DataFrame:
         df = pd.read_sql_query(query, conn, params={"u": username})
     return df
 
-def islemi_sil(trade_id: int):
+def islemi_sil(username: str, trade_id: int):
     """Bir işlemi tamamen siler."""
     with engine.begin() as conn:
-        conn.execute(text("DELETE FROM portfolio WHERE id=:id"), {"id": trade_id})
+        res = conn.execute(text("DELETE FROM portfolio WHERE id=:id AND username=:u"), {"id": trade_id, "u": username})
+        if res.rowcount == 0:
+            raise ValueError("Silinecek işlem bulunamadı veya yetkiniz yok.")
 
 def portfoy_temizle(username: str):
     """Kullanıcının tüm portföy verilerini siler."""
     with engine.begin() as conn:
         conn.execute(text("DELETE FROM portfolio WHERE username=:u"), {"u": username})
 
-def pozisyon_guncelle(trade_id: int, yeni_adet: float, yeni_fiyat: float, yeni_tarih: str = None):
+def pozisyon_guncelle(username: str, trade_id: int, yeni_adet: float, yeni_fiyat: float, yeni_tarih: str = None):
     """Mevcut bir pozisyonun adet, maliyet ve tarih bilgilerini günceller."""
     with engine.begin() as conn:
-        trade = conn.execute(text("SELECT sl, alis_tarihi FROM portfolio WHERE id=:id"), {"id": trade_id}).fetchone()
+        trade = conn.execute(text("SELECT sl, alis_tarihi FROM portfolio WHERE id=:id AND username=:u"), {"id": trade_id, "u": username}).fetchone()
+        
+        if not trade:
+            raise ValueError("Güncellenecek pozisyon bulunamadı veya yetkiniz yok.")
         
         new_var = None
-        current_date = yeni_tarih
+        current_date = yeni_tarih if yeni_tarih else trade[1]
         
-        if trade:
-            if current_date is None:
-                current_date = trade[1]
-            if trade[0] is not None:
-                sl = trade[0]
-                new_var = round((yeni_fiyat - sl) * yeni_adet, 2)
-            
+        if trade[0] is not None:
+            sl = trade[0]
+            new_var = round((yeni_fiyat - sl) * yeni_adet, 2)
+        
         if new_var is not None:
-            conn.execute(text("""
-                UPDATE portfolio SET adet=:a, alis_fiyati=:f, alis_tarihi=:d, var=:v WHERE id=:id
-            """), {"a": yeni_adet, "f": yeni_fiyat, "d": current_date, "v": new_var, "id": trade_id})
+            res = conn.execute(text("""
+                UPDATE portfolio SET adet=:a, alis_fiyati=:f, alis_tarihi=:d, var=:v WHERE id=:id AND username=:u
+            """), {"a": yeni_adet, "f": yeni_fiyat, "d": current_date, "v": new_var, "id": trade_id, "u": username})
         else:
-            conn.execute(text("""
-                UPDATE portfolio SET adet=:a, alis_fiyati=:f, alis_tarihi=:d WHERE id=:id
-            """), {"a": yeni_adet, "f": yeni_fiyat, "d": current_date, "id": trade_id})
+            res = conn.execute(text("""
+                UPDATE portfolio SET adet=:a, alis_fiyati=:f, alis_tarihi=:d WHERE id=:id AND username=:u
+            """), {"a": yeni_adet, "f": yeni_fiyat, "d": current_date, "id": trade_id, "u": username})
+            
+        if res.rowcount == 0:
+            raise ValueError("Güncellenecek işlem bulunamadı veya yetkiniz yok.")

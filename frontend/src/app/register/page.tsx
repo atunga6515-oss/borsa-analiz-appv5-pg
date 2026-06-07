@@ -31,14 +31,18 @@ export default function RegisterPage() {
 
         setLoading(true);
         try {
-            const res = await api.post("/auth/register", { username, password });
-            localStorage.setItem("token", res.data.access_token);
-            localStorage.setItem("username", res.data.username);
-            router.push("/");
+            await api.post("/auth/register", { username, password });
+            // Kayıt başarılı - giriş sayfasına yönlendir
+            router.push("/login?registered=1");
         } catch (err: any) {
-            setError(
-                err?.response?.data?.detail || "Kayıt başarısız. Lütfen tekrar deneyin."
-            );
+            const status = err?.response?.status;
+            if (status === 403) {
+                setError("Bu sayfaya erişmek için admin yetkisine ihtiyacınız var. Giriş yapmanız gerekiyor.");
+            } else {
+                setError(
+                    err?.response?.data?.detail || "Kayıt başarısız. Lütfen tekrar deneyin."
+                );
+            }
         } finally {
             setLoading(false);
         }
@@ -69,10 +73,13 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="glass-panel p-8 rounded-2xl border border-[var(--color-b-border)] shadow-2xl">
-                    <h2 className="text-2xl font-bold text-white mb-1">Hesap Oluştur</h2>
-                    <p className="text-[var(--color-b-muted)] text-sm mb-6">
-                        Ücretsiz olarak hemen başlayın
+                    <h2 className="text-2xl font-bold text-white mb-1">Yeni Kullanıcı Ekle</h2>
+                    <p className="text-[var(--color-b-muted)] text-sm mb-2">
+                        Bu sayfa sadece admin yetkisiyle erişilebilir.
                     </p>
+                    <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-4 py-2 text-yellow-400 text-xs mb-5">
+                        ⚠️ Kayıt işlemi admin oturumu gerektirir. Kayıt sonrası kullanıcı giriş yapabilir.
+                    </div>
 
                     <form onSubmit={handleRegister} className="space-y-5">
                         <div>

@@ -4,12 +4,10 @@ services:
   db:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: borsa_app
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secure_db_password_123}
+      POSTGRES_DB: ${DB_NAME:-borsa_app}
       TZ: Europe/Istanbul
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -22,10 +20,10 @@ services:
     volumes:
       - ./:/app
     env_file:
-      - .env.example
+      - .env
     environment:
       - TZ=Europe/Istanbul
-      - DATABASE_URL=postgresql://postgres:password@db:5432/borsa_app
+      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-secure_db_password_123}@db:5432/${DB_NAME:-borsa_app}
     depends_on:
       - db
     command: python main.py

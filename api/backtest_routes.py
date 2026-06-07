@@ -1,10 +1,12 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 from advanced_backtest import run_advanced_backtest
 from data_loader import fetch_data
 import pandas as pd
 import math
 import numpy as np
+from api.auth_routes import get_current_user
+from limiter import limiter
 
 router = APIRouter(prefix="/api/backtest", tags=["backtest"])
 
@@ -19,7 +21,8 @@ class BacktestRequest(BaseModel):
     take_profit_pct: float = 15.0
 
 @router.post("/")
-def run_backtest(req: BacktestRequest):
+@limiter.limit("10/minute")
+def run_backtest(request: Request, req: BacktestRequest, current_user: str = Depends(get_current_user)):
     # Veri çekimi: "2y" periodu indikator ve backtest için yeterlidir.
     df = fetch_data(req.ticker.upper(), interval="1d", period="2y")
     if df.empty:
@@ -75,7 +78,7 @@ class CompareRequest(BaseModel):
     period: str = "1y"
 
 @router.post("/compare")
-def run_compare(req: CompareRequest):
+def run_compare(req: CompareRequest, current_user: str = Depends(get_current_user)):
     # Eğer kullanıcı virgülle ayırdıysa sadece ilkini alıyoruz, çünkü comparator 1 df bekliyor
     first_ticker = req.ticker.split(",")[0].strip().upper()
     df = fetch_data(first_ticker, interval="1d", period=req.period)

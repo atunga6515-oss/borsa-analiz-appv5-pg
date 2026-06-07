@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, BackgroundTasks
+from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException, Request
 import uuid
 from pydantic import BaseModel
 import pandas as pd
@@ -14,6 +14,7 @@ from sqlalchemy import text
 from datetime import datetime
 import pytz
 import json
+from limiter import limiter
 
 TR_TZ = pytz.timezone("Europe/Istanbul")
 
@@ -108,7 +109,8 @@ def fetch_history_detail(history_id: int, current_user: str = Depends(get_curren
         return {"data": []}
 
 @router.post("/scan")
-def start_scan(background_tasks: BackgroundTasks, req: ScanRequest = None, current_user: str = Depends(get_current_user)):
+@limiter.limit("5/minute")
+def start_scan(request: Request, background_tasks: BackgroundTasks, req: ScanRequest = None, current_user: str = Depends(get_current_user)):
     mode = req.scan_mode if req else "BIST30"
     
     symbols_to_scan = BIST30_SYMBOLS
@@ -119,10 +121,11 @@ def start_scan(background_tasks: BackgroundTasks, req: ScanRequest = None, curre
         
     task_id = str(uuid.uuid4())
     scan_tasks[task_id] = {
-        "status": "pending",
+        "status": "running",
         "progress": 0,
-        "text": "Sıraya alındı...",
-        "results": []
+        "text": "Başlatılıyor...",
+        "results": [],
+        "username": current_user
     }
     
     background_tasks.add_task(bg_run_screener, task_id, symbols_to_scan, current_user)
@@ -130,11 +133,14 @@ def start_scan(background_tasks: BackgroundTasks, req: ScanRequest = None, curre
     return {"task_id": task_id, "status": "started"}
 
 @router.get("/scan/progress/{task_id}")
-def check_scan_progress(task_id: str):
+def check_scan_progress(task_id: str, current_user: str = Depends(get_current_user)):
     if task_id not in scan_tasks:
         return {"status": "not_found"}
         
     task_data = scan_tasks[task_id]
+    if task_data.get("username") != current_user:
+        raise HTTPException(status_code=403, detail="Erişim reddedildi")
+        
     if task_data["status"] == "completed":
         # Görev tamamlandıysa sonuçları dön ve memory'den sil
         res = task_data["results"]

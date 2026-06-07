@@ -115,7 +115,7 @@ def fetch_comprehensive_analysis(ticker: str, current_user: str = Depends(get_cu
     except Exception as e:
         import traceback
         print(f"Analysis error: {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Analiz sırasında beklenmeyen bir hata oluştu.")
 
 @router.get("/history/list")
 def fetch_analysis_history(current_user: str = Depends(get_current_user)):

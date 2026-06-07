@@ -3,10 +3,20 @@ import os
 import logging
 from sqlalchemy import text
 from database import engine
+from passlib.context import CryptContext
 
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def hash_password(password: str) -> str:
-    """Şifreyi SHA-256 ile hashler."""
+    """Şifreyi bcrypt ile hashler."""
+    return pwd_context.hash(password)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Şifre doğrulaması yapar."""
+    return pwd_context.verify(plain_password, hashed_password)
+
+def hash_password_legacy(password: str) -> str:
+    """Eski sistem için SHA-256 hashler."""
     return hashlib.sha256(password.encode()).hexdigest()
 
 
@@ -25,19 +35,8 @@ def init_auth_db():
             )
         """))
 
-        # Varsayılan admin kullanıcıları
-        users = [("admin1", "admin"), ("admin2", "user"), ("admin3", "user")]
-        default_pass = hash_password("admin123")
-
-        for u, role in users:
-            result = conn.execute(
-                text("SELECT username FROM users WHERE username=:u"), {"u": u}
-            ).fetchone()
-            if not result:
-                conn.execute(
-                    text("INSERT INTO users (username, password_hash, role) VALUES (:u, :p, :r)"),
-                    {"u": u, "p": default_pass, "r": role},
-                )
+        # Varsayılan admin kullanıcıları üretimi üretim ortamında kapatıldı
+        # İlk admin kullanıcısının doğrudan veritabanı komutu veya güvenli bir CLI scripti ile oluşturulması önerilir.
 
 
 def get_user_role(username: str) -> str:
@@ -77,16 +76,43 @@ def touch_last_active(username: str):
 
 
 def verify_login(username: str, password: str) -> bool:
-    """Kullanıcı girişi kontrolü."""
-    p_hash = hash_password(password)
+    """Kullanıcı girişi kontrolü ve bcrypt geçiş mekanizması."""
     with engine.connect() as conn:
         result = conn.execute(
             text(
-                "SELECT username FROM users WHERE username=:u AND password_hash=:p AND is_active=TRUE"
+                "SELECT username, password_hash, is_active FROM users WHERE username=:u"
             ),
-            {"u": username, "p": p_hash},
+            {"u": username},
         ).fetchone()
-    return result is not None
+
+    if not result:
+        return False
+        
+    _, db_hash, is_active = result
+    
+    if not is_active:
+        return False
+        
+    # Check if hash is bcrypt (typically starts with $2b$, $2a$ or $2y$)
+    if db_hash.startswith("$2b$") or db_hash.startswith("$2a$") or db_hash.startswith("$2y$"):
+        return verify_password(password, db_hash)
+    else:
+        # Check legacy SHA-256
+        legacy_hash = hash_password_legacy(password)
+        if legacy_hash == db_hash:
+            # Upgrade to bcrypt immediately
+            new_hash = hash_password(password)
+            try:
+                with engine.begin() as conn_update:
+                    conn_update.execute(
+                        text("UPDATE users SET password_hash=:p WHERE username=:u"),
+                        {"p": new_hash, "u": username}
+                    )
+            except Exception as e:
+                logging.error(f"Failed to upgrade password hash for {username}: {e}")
+            return True
+            
+    return False
 
 
 def register_user(username: str, password: str, email: str = "") -> dict:
@@ -112,7 +138,7 @@ def register_user(username: str, password: str, email: str = "") -> dict:
         log_action(username, "REGISTER", "Yeni kullanıcı kaydı")
         return {"ok": True}
     except Exception as e:
-        return {"ok": False, "error": str(e)}
+        return {"ok": False, "error": "Kayıt sırasında beklenmeyen bir hata oluştu."}
 
 
 def update_password(username: str, new_password: str) -> bool:

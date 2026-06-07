@@ -46,7 +46,17 @@ if DATABASE_URL.startswith("postgres://"):
 
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
 
-engine = create_engine(DATABASE_URL, connect_args=connect_args)
+if DATABASE_URL.startswith("postgresql"):
+    engine = create_engine(
+        DATABASE_URL, 
+        connect_args=connect_args,
+        pool_size=10,
+        max_overflow=20,
+        pool_pre_ping=True,
+        pool_recycle=1800  # 30 dakikada bir bağlantıyı yenile (uzun idle bağlantı hatası önleme)
+    )
+else:
+    engine = create_engine(DATABASE_URL, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
@@ -202,7 +212,8 @@ def init_db():
                 ticker VARCHAR(20) NOT NULL,
                 run_date VARCHAR(50) NOT NULL,
                 result_text TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE (username, ticker, run_date)
             )
         """))
 
@@ -211,4 +222,21 @@ def init_db():
             CREATE INDEX IF NOT EXISTS idx_system_logs_created
             ON system_logs (created_at DESC)
         """))
+
+        # ai_analyses_history UNIQUE constraint (sadece PostgreSQL için)
+        if engine.name == "postgresql":
+            conn.execute(text("""
+                DO $$ BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM pg_constraint 
+                        WHERE conname = 'ai_analyses_history_username_ticker_run_date_key'
+                        AND conrelid = 'ai_analyses_history'::regclass
+                    ) THEN
+                        ALTER TABLE ai_analyses_history 
+                        ADD CONSTRAINT ai_analyses_history_username_ticker_run_date_key 
+                        UNIQUE (username, ticker, run_date);
+                    END IF;
+                EXCEPTION WHEN undefined_table THEN NULL;
+                END $$;
+            """))
 

@@ -1,15 +1,23 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import api from "@/lib/api";
 
 export default function LoginPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [info, setInfo] = useState("");
+
+    useEffect(() => {
+        if (searchParams.get("registered") === "1") {
+            setInfo("✅ Hesabınız oluşturuldu. Lütfen giriş yapın.");
+        }
+    }, [searchParams]);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -28,12 +36,8 @@ export default function LoginPage() {
                 headers: { "Content-Type": "application/x-www-form-urlencoded" },
             });
 
-            localStorage.setItem("token", res.data.access_token);
             localStorage.setItem("username", res.data.username || username);
             localStorage.setItem("role", res.data.role || "user");
-            
-            // Set cookie for Next.js middleware
-            document.cookie = `token=${res.data.access_token}; path=/; max-age=86400`;
 
             router.push("/");
         } catch (err: any) {
@@ -73,6 +77,12 @@ export default function LoginPage() {
                     <p className="text-[var(--color-b-muted)] text-sm mb-6">
                         Hesabınıza erişin
                     </p>
+
+                    {info && (
+                        <div className="bg-green-500/10 border border-green-500/30 rounded-lg px-4 py-3 text-green-400 text-sm flex items-center gap-2 mb-4">
+                            {info}
+                        </div>
+                    )}
 
                     <form onSubmit={handleLogin} className="space-y-5">
                         <div>

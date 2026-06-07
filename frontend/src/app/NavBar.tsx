@@ -25,29 +25,37 @@ export default function NavBar() {
     const [aiQuota, setAiQuota] = useState<number | null>(null);
 
     useEffect(() => {
-        if (typeof window !== "undefined") {
-            const u = localStorage.getItem("username");
-            setUsername(u);
-            setRole(localStorage.getItem("role"));
-            
-            if (u) {
-                // Her sayfa değişiminde güncel kotayı çek
-                api.get('/auth/me').then(res => {
-                    if (res.data && res.data.ai_quota !== undefined) {
-                        setAiQuota(res.data.ai_quota);
-                    }
-                }).catch(() => {});
-            }
-        }
+        // Cookie-based auth: /auth/me ile username, rol ve kota senkronize edilir
+        api.get('/auth/me')
+            .then(res => {
+                if (res.data) {
+                    setUsername(res.data.username || null);
+                    setRole(res.data.role || null);
+                    setAiQuota(res.data.ai_quota ?? null);
+                    // localStorage'ı UI ön belleği olarak güncelle
+                    if (res.data.username) localStorage.setItem("username", res.data.username);
+                    if (res.data.role) localStorage.setItem("role", res.data.role);
+                }
+            })
+            .catch(() => {
+                // Cookie geçersiz/süresi dolmuş — NavBar'da giriş yap göster
+                setUsername(null);
+                setRole(null);
+                setAiQuota(null);
+                localStorage.removeItem("username");
+                localStorage.removeItem("role");
+            });
     }, [pathname]);
 
-    const handleLogout = () => {
-        localStorage.removeItem("token");
+    const handleLogout = async () => {
+        try {
+            await api.post("/auth/logout");
+        } catch (e) {
+            console.error("Logout error", e);
+        }
+        
         localStorage.removeItem("username");
         localStorage.removeItem("role");
-        
-        // Clear cookie
-        document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
 
         setUsername(null);
         setRole(null);

@@ -3,7 +3,7 @@ import pandas as pd
 from cache_utils import ttl_cache
 import yfinance as yf
 import time
-
+import math
 @ttl_cache(ttl_seconds=3600*12)
 def get_fundamental_data(ticker_symbol: str) -> dict:
     """Verilen hissenin temel analiz rasyolarını getirir. (Geliştirilmiş Robust Versiyon)"""

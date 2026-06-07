@@ -6,8 +6,10 @@ import numpy as np
 
 router = APIRouter(prefix="/api/data", tags=["data"])
 
+from api.auth_routes import get_current_user
+
 @router.get("/ohlcv/{ticker}")
-def fetch_ohlcv(ticker: str, interval: str = "1d", period: str = "1y"):
+def fetch_ohlcv(ticker: str, interval: str = "1d", period: str = "1y", current_user: str = Depends(get_current_user)):
     df = fetch_data(ticker.upper(), interval, period)
     if df is not None and not df.empty:
         # Veriyi tarihe göre sırala ve tekrarları temizle (Lightweight charts fail verir)
@@ -41,7 +43,7 @@ def fetch_ohlcv(ticker: str, interval: str = "1d", period: str = "1y"):
         return {"data": records}
 
 @router.get("/v1/charts/{ticker}")
-def fetch_tradingview_charts(ticker: str, interval: str = "1d", period: str = "1y"):
+def fetch_tradingview_charts(ticker: str, interval: str = "1d", period: str = "1y", current_user: str = Depends(get_current_user)):
     """TradingView Lightweight Charts için Epoch saniye cinsinden grafik verisi."""
     df = fetch_data(ticker.upper(), interval, period)
     if df is None or df.empty:
@@ -73,7 +75,7 @@ def fetch_tradingview_charts(ticker: str, interval: str = "1d", period: str = "1
     return records
 
 @router.get("/price/{ticker}")
-def fetch_live_price(ticker: str):
+def fetch_live_price(ticker: str, current_user: str = Depends(get_current_user)):
     price = get_live_price(ticker.upper())
     return {"price": price}
 
@@ -82,7 +84,7 @@ class BatchPriceRequest(BaseModel):
     tickers: list[str]
 
 @router.post("/prices/batch")
-def fetch_batch_prices(req: BatchPriceRequest):
+def fetch_batch_prices(req: BatchPriceRequest, current_user: str = Depends(get_current_user)):
     import yfinance as yf
     
     results = {}

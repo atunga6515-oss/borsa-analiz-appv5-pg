@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 import pandas as pd
 from portfolio import alis_yap, satis_yap, acik_pozisyonlar, kapali_pozisyonlar
@@ -41,16 +41,26 @@ def fetch_portfolio_summary(current_user: str = Depends(get_current_user)):
 def create_transaction(req: TransactionRequest, current_user: str = Depends(get_current_user)):
     if req.type == "ALIS":
         alis_yap(current_user, req.ticker, req.quantity, req.price, alis_tarihi=req.date)
+    elif req.type == "SATIS":
+        # Note: SATIS is usually done via /close but if someone hits /transaction with SATIS, we should handle it
+        # satis_yap requires trade_id, so a pure transaction endpoint without trade_id might not work directly.
+        # But we can try to find an open position or raise an error.
+        raise HTTPException(status_code=400, detail="SATIS işlemi için /api/portfolio/close endpoint'ini kullanın veya trade_id belirtin.")
     return {"status": "success"}
 
 @router.post("/close")
 def close_position(req: CloseRequest, current_user: str = Depends(get_current_user)):
-    # Check if this position belongs to user? Assume yes for now or it's handled in a real app
-    satis_yap(req.trade_id, req.satis_fiyati)
+    try:
+        satis_yap(current_user, req.trade_id, req.satis_fiyati)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     return {"status": "success"}
 
 from portfolio import pozisyon_guncelle
 @router.put("/edit")
 def edit_position(req: EditRequest, current_user: str = Depends(get_current_user)):
-    pozisyon_guncelle(req.trade_id, req.adet, req.fiyat, req.tarih)
+    try:
+        pozisyon_guncelle(current_user, req.trade_id, req.adet, req.fiyat, req.tarih)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     return {"status": "success"}

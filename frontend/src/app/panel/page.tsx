@@ -69,14 +69,21 @@ export default function AdminPage() {
     const [newRole, setNewRole] = useState("user");
     const [currentUser, setCurrentUser] = useState("");
 
-    // ── Access guard ──────────────────────────────────────────────────────────
+    // ── Access guard ───────────────────────────────────────────────────────────────────
     useEffect(() => {
-        const role = localStorage.getItem("role");
-        const u = localStorage.getItem("username");
-        setCurrentUser(u || "");
-        if (role !== "admin") {
-            router.push("/");
-        }
+        // Cookie-based auth: /auth/me API üzerinden gerçek rol doğrulaması
+        api.get('/auth/me')
+            .then(res => {
+                const role = res.data?.role;
+                const u = res.data?.username;
+                setCurrentUser(u || "");
+                if (role !== "admin") {
+                    router.push("/");
+                }
+            })
+            .catch(() => {
+                router.push("/login");
+            });
     }, [router]);
 
     // ── Data fetching ─────────────────────────────────────────────────────────
@@ -141,12 +148,7 @@ export default function AdminPage() {
     };
 
     const changeQuota = async (username: string, newQuota: number) => {
-        if (!currentUser) return;
-        if (currentUser !== "admin1") {
-            alert("Bu işlemi sadece Ana Yönetici (admin1) yapabilir.");
-            return;
-        }
-        
+        // Backend zaten admin rolü kontrolu yapıyor; UI'dan admin1 hardcode kaldırıldı
         try {
             setUpdating(username);
             await api.put(`/admin/users/${username}/status`, { ai_quota: newQuota });
@@ -233,16 +235,15 @@ export default function AdminPage() {
             {/* ── TAB: Kullanıcı Yönetimi ── */}
             {tab === "users" && (
                 <div className="flex flex-col gap-4 flex-1">
-                    {currentUser === "admin1" && (
-                        <div className="flex justify-end">
-                            <button
-                                onClick={() => setShowAddUser(!showAddUser)}
-                                className="bg-[var(--color-b-yellow)] text-[#181a20] px-4 py-2 rounded-lg font-bold text-sm hover:bg-[#f0c929] transition-colors"
-                            >
-                                {showAddUser ? "✕ İptal" : "+ Yeni Kullanıcı Ekle"}
-                            </button>
-                        </div>
-                    )}
+                    {/* Her admin kullanıcı ekleyebilir (backend zaten rolü kontrol ediyor) */}
+                    <div className="flex justify-end">
+                        <button
+                            onClick={() => setShowAddUser(!showAddUser)}
+                            className="bg-[var(--color-b-yellow)] text-[#181a20] px-4 py-2 rounded-lg font-bold text-sm hover:bg-[#f0c929] transition-colors"
+                        >
+                            {showAddUser ? "✕ İptal" : "+ Yeni Kullanıcı Ekle"}
+                        </button>
+                    </div>
 
                     {showAddUser && (
                         <form onSubmit={handleAddUser} className="glass-panel p-5 rounded-xl border border-[var(--color-b-border)] grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
@@ -328,7 +329,7 @@ export default function AdminPage() {
                                         </span>
                                     </td>
                                     <td className="p-4">
-                                        {u.username !== "admin1" ? (
+                                        {u.username !== currentUser ? (
                                             <div className="flex gap-2 flex-wrap">
                                                 <button
                                                     onClick={() => toggleActive(u.username, u.is_active)}
@@ -350,7 +351,7 @@ export default function AdminPage() {
                                                 </button>
                                             </div>
                                         ) : (
-                                            <span className="text-[var(--color-b-muted)] text-xs italic">Sistem Yöneticisi</span>
+                                            <span className="text-[var(--color-b-muted)] text-xs italic">Kendi hesabınız</span>
                                         )}
                                     </td>
                                 </tr>

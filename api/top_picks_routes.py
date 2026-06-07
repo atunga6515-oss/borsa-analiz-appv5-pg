@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException, Request
 from top_picks import find_top_picks, get_top_picks_by_date, get_top_picks_history_dates, save_top_picks_history
 from api.auth_routes import get_current_user
+from limiter import limiter
 
 router = APIRouter(prefix="/api/top_picks", tags=["top_picks"])
 
@@ -34,9 +35,10 @@ class APIProgressBar:
             scan_tasks[self.task_id]["text"] = text
 
 @router.post("/scan")
-def start_top_picks(req: ScanRequest, background_tasks: BackgroundTasks, current_user: str = Depends(get_current_user)):
+@limiter.limit("5/minute")
+def start_top_picks(request: Request, req: ScanRequest, background_tasks: BackgroundTasks, current_user: str = Depends(get_current_user)):
     task_id = str(uuid.uuid4())
-    scan_tasks[task_id] = {"status": "running", "progress": 0, "text": "Tarama Başlatılıyor...", "results": []}
+    scan_tasks[task_id] = {"status": "running", "progress": 0, "text": "Tarama Başlatılıyor...", "results": [], "username": current_user}
     
     def run_scan():
         from screener import BIST30_SYMBOLS, BIST100_SYMBOLS, BIST_ALL_SYMBOLS
@@ -71,5 +73,10 @@ def start_top_picks(req: ScanRequest, background_tasks: BackgroundTasks, current
     return {"task_id": task_id}
 
 @router.get("/scan/progress/{task_id}")
-def check_scan_progress(task_id: str):
-    return scan_tasks.get(task_id, {"status": "not_found"})
+def check_scan_progress(task_id: str, current_user: str = Depends(get_current_user)):
+    task_data = scan_tasks.get(task_id)
+    if not task_data:
+        return {"status": "not_found"}
+    if task_data.get("username") != current_user:
+        raise HTTPException(status_code=403, detail="Erişim reddedildi")
+    return task_data
