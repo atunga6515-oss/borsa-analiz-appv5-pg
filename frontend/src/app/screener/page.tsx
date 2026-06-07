@@ -300,20 +300,23 @@ export default function ScreenerPage() {
                             <th className="p-4 border-b border-[var(--color-b-border)] font-semibold cursor-pointer hover:text-white select-none transition-colors" onClick={() => requestSort('Fiyat')}>
                                 Fiyat {getSortIndicator('Fiyat')}
                             </th>
+                            <th className="p-4 border-b border-[var(--color-b-border)] font-semibold cursor-pointer hover:text-white select-none transition-colors" onClick={() => requestSort('Takas Değişimi (%)')}>
+                                Y. Takas Eğilimi {getSortIndicator('Takas Değişimi (%)')}
+                            </th>
                             <th className="p-4 border-b border-[var(--color-b-border)] font-semibold">İşlemler</th>
                         </tr>
                     </thead>
                     <tbody>
                         {!scanning && scanResults.length === 0 ? (
                             <tr>
-                                <td colSpan={5} className="p-12 text-center text-[var(--color-b-muted)]">
+                                <td colSpan={6} className="p-12 text-center text-[var(--color-b-muted)]">
                                     <div className="text-5xl mb-4">🔍</div>
                                     Seçili endeks üzerinde 100 farklı teknik indikatörle yapay zeka destekli analiz yapmak için Taramayı Başlatın.
                                 </td>
                             </tr>
                         ) : scanning && scanResults.length === 0 ? (
                             <tr>
-                                <td colSpan={5} className="p-12 text-center text-[var(--color-b-yellow)]">
+                                <td colSpan={6} className="p-12 text-center text-[var(--color-b-yellow)]">
                                     <div className="text-5xl mb-4 animate-spin">⏳</div>
                                     Borsadan anlık veriler çekiliyor ve yüzlerce indikatör hesaplanıyor... Lütfen bekleyin.
                                 </td>
@@ -345,6 +348,14 @@ export default function ScreenerPage() {
                                         </div>
                                     </td>
                                     <td className="p-4 font-medium text-white">{price}</td>
+                                    <td className="p-4">
+                                        <div className="flex flex-col">
+                                            <span className="text-sm text-white">Yabancı: %{row["Yabancı Oranı (%)"] !== undefined ? row["Yabancı Oranı (%)"] : "-"}</span>
+                                            <span className={`text-sm font-bold ${row["Takas Değişimi (%)"] > 0 ? "text-[var(--color-b-green)]" : row["Takas Değişimi (%)"] < 0 ? "text-[var(--color-b-red)]" : "text-[var(--color-b-muted)]"}`}>
+                                                Δ: {row["Takas Değişimi (%)"] !== undefined ? (row["Takas Değişimi (%)"] > 0 ? "+" : "") + row["Takas Değişimi (%)"] + "%" : "-"}
+                                            </span>
+                                        </div>
+                                    </td>
                                     <td className="p-4">
                                         <div className="flex gap-2">
                                             <button 

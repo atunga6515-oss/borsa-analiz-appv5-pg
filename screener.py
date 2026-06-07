@@ -386,6 +386,7 @@ def _analyze_single_stock(sym: str, market_regime: dict = None) -> dict:
             "Ensemble Güven Skoru": ensemble_score,
             "V6 Hibrit Skor": v6_hybrid_score,
             "Yabancı Oranı (%)": round(foreign_ratio, 1),
+            "Takas Değişimi (%)": round(takas.get('daily_change', 0.0), 2),
             "Risk/Ödül (R/R)": round(sig.get('rr_ratio', 0), 2),
             "SMC / Stop Avı": smc_text,
             "Sıkışma Durumu": sq_text,
