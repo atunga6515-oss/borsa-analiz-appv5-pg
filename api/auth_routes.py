@@ -161,6 +161,19 @@ def read_users_me(current_user: str = Depends(get_current_user)):
     return {"username": current_user, "role": role, "ai_quota": quota}
 
 
+class UpdateTelegramRequest(BaseModel):
+    chat_id: str
+
+@router.post("/telegram-id")
+def update_telegram_id(req: UpdateTelegramRequest, current_user: str = Depends(get_current_user)):
+    from database import engine
+    from sqlalchemy import text
+    with engine.begin() as conn:
+        conn.execute(text(
+            "UPDATE users SET telegram_chat_id = :chat_id WHERE username = :u"
+        ), {"chat_id": req.chat_id, "u": current_user})
+    return {"status": "success", "message": "Telegram Chat ID kaydedildi!"}
+
 class RegisterRequest(BaseModel):
     username: str
     password: str
