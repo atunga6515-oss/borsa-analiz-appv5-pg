@@ -109,8 +109,23 @@ def send_to_telegram(current_user: str = Depends(get_current_user)):
     if not chat_id:
         raise HTTPException(status_code=400, detail="Telegram entegrasyonunuz bulunamadı. Ayarlar menüsünden Chat ID ekleyin.")
         
-    # Analizi çalıştır
-    results = engine_obj.run_analysis(current_user)
+    # Son analizi veritabanından al (yeniden çalıştırıp vakit kaybetmemek için)
+    with engine.connect() as conn:
+        row = conn.execute(text("""
+            SELECT results_json 
+            FROM alpharank_history 
+            WHERE username = :u 
+            ORDER BY id DESC LIMIT 1
+        """), {"u": current_user}).fetchone()
+        
+    if not row:
+        raise HTTPException(status_code=400, detail="Önce bir analiz yapmanız gerekmektedir.")
+        
+    try:
+        results = json.loads(row[0])
+    except:
+        raise HTTPException(status_code=400, detail="Analiz sonuçları okunamadı.")
+        
     if not results:
         raise HTTPException(status_code=400, detail="Havuzunuz boş. Lütfen hisse ekleyin.")
         
