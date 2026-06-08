@@ -26,8 +26,10 @@ api.interceptors.response.use(
     if (error.response && error.response.status === 401) {
       if (typeof window !== 'undefined') {
         // Oturum süresi dolmuş veya geçersiz token
-        if (window.location.pathname !== '/login') {
-          window.location.href = '/login';
+        // Eğer kullanıcı ana sayfadaysa (dashboard) yönlendirme yapma.
+        // Başka bir özelliğe (sayfaya) tıklayıp geldiyse login'e yönlendir ve mesaj ekle.
+        if (window.location.pathname !== '/login' && window.location.pathname !== '/') {
+          window.location.href = '/login?msg=test_features';
         }
       }
     }

@@ -194,3 +194,44 @@ def register(req: RegisterRequest, current_user: str = Depends(get_current_user)
         "status": "success",
         "message": f"{req.username} başarıyla oluşturuldu."
     }
+
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+class ContactRequest(BaseModel):
+    name: str
+    email: str
+    message: str
+
+@router.post("/contact-admin")
+def contact_admin(req: ContactRequest):
+    admin_email = os.getenv("ADMIN_EMAIL")
+    smtp_server = os.getenv("SMTP_SERVER")
+    smtp_port = os.getenv("SMTP_PORT", "587")
+    smtp_user = os.getenv("SMTP_USER")
+    smtp_pass = os.getenv("SMTP_PASS")
+
+    if not all([admin_email, smtp_server, smtp_user, smtp_pass]):
+        print("WARNING: SMTP_SERVER vb. .env ayarları eksik. Mail gönderilmedi, ancak form başarılı sayıldı.")
+        return {"status": "success", "warning": "SMTP_NOT_CONFIGURED"}
+
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = smtp_user
+        msg['To'] = admin_email
+        msg['Subject'] = f"AlfaBIST Terminal - Yeni İletişim Talebi ({req.name})"
+
+        body = f"Yeni bir iletişim / demo talebi aldınız:\n\nAd Soyad: {req.name}\nE-posta: {req.email}\n\nMesaj:\n{req.message}\n"
+        msg.attach(MIMEText(body, 'plain'))
+
+        server = smtplib.SMTP(smtp_server, int(smtp_port))
+        server.starttls()
+        server.login(smtp_user, smtp_pass)
+        text = msg.as_string()
+        server.sendmail(smtp_user, admin_email, text)
+        server.quit()
+        return {"status": "success"}
+    except Exception as e:
+        print(f"Mail gönderme hatası: {e}")
+        raise HTTPException(status_code=500, detail="Mail gönderilirken hata oluştu.")

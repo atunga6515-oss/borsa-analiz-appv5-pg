@@ -12,10 +12,21 @@ function LoginContent() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [info, setInfo] = useState("");
+    
+    // İletişim Formu State'leri
+    const [showContactModal, setShowContactModal] = useState(false);
+    const [contactName, setContactName] = useState("");
+    const [contactEmail, setContactEmail] = useState("");
+    const [contactMessage, setContactMessage] = useState("");
+    const [contactLoading, setContactLoading] = useState(false);
+    const [contactResult, setContactResult] = useState<{type: 'success' | 'error', text: string} | null>(null);
 
     useEffect(() => {
         if (searchParams.get("registered") === "1") {
             setInfo("✅ Hesabınız oluşturuldu. Lütfen giriş yapın.");
+        }
+        if (searchParams.get("msg") === "test_features") {
+            setInfo("🚀 Özellikleri test etmek için lütfen sisteme giriş yapın.");
         }
     }, [searchParams]);
 
@@ -49,6 +60,31 @@ function LoginContent() {
             );
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleContactSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!contactName || !contactEmail || !contactMessage) {
+            setContactResult({ type: 'error', text: 'Lütfen tüm alanları doldurun.' });
+            return;
+        }
+        setContactLoading(true);
+        setContactResult(null);
+        try {
+            await api.post("/auth/contact-admin", {
+                name: contactName,
+                email: contactEmail,
+                message: contactMessage
+            });
+            setContactResult({ type: 'success', text: 'Mesajınız yöneticiye başarıyla iletildi! Size en kısa sürede dönüş yapılacaktır.' });
+            setContactName("");
+            setContactEmail("");
+            setContactMessage("");
+        } catch (err: any) {
+            setContactResult({ type: 'error', text: 'Mesaj gönderilirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.' });
+        } finally {
+            setContactLoading(false);
         }
     };
 
@@ -131,16 +167,97 @@ function LoginContent() {
                     </form>
 
                     <div className="mt-6 pt-6 border-t border-[var(--color-b-border)] text-center">
-                        <p className="text-[var(--color-b-muted)] text-sm">
+                        <button 
+                            onClick={() => setShowContactModal(true)}
+                            className="text-[var(--color-b-muted)] hover:text-white text-sm underline underline-offset-4 transition-colors"
+                        >
                             Sisteme kayıt olmak için yöneticinizle iletişime geçin.
-                        </p>
+                        </button>
                     </div>
                 </div>
 
                 <p className="text-center text-xs text-gray-700 mt-6">
-                    Borsa Terminali V5 · Tüm hakları saklıdır.
+                    AlfaBIST · Tüm hakları saklıdır.
                 </p>
             </div>
+
+            {/* İletişim Modal'ı */}
+            {showContactModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                    <div className="bg-[#1e2329] border border-[var(--color-b-border)] rounded-2xl p-6 w-full max-w-lg shadow-2xl relative">
+                        <button 
+                            onClick={() => setShowContactModal(false)}
+                            className="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl leading-none"
+                        >
+                            &times;
+                        </button>
+                        
+                        <h2 className="text-2xl font-bold text-white mb-2">Yöneticiyle İletişime Geçin</h2>
+                        <p className="text-sm text-[var(--color-b-muted)] mb-6">
+                            Sisteme kayıt olmak veya demo talebinde bulunmak için aşağıdaki formu doldurabilirsiniz.
+                        </p>
+
+                        {contactResult && (
+                            <div className={`mb-4 px-4 py-3 rounded-lg text-sm flex items-center gap-2 ${contactResult.type === 'success' ? 'bg-green-500/10 border border-green-500/30 text-green-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
+                                <span>{contactResult.type === 'success' ? '✅' : '⚠️'}</span>
+                                {contactResult.text}
+                            </div>
+                        )}
+
+                        {!contactResult || contactResult.type === 'error' ? (
+                            <form onSubmit={handleContactSubmit} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-[var(--color-b-muted)] mb-1">Adınız Soyadınız</label>
+                                    <input 
+                                        type="text" 
+                                        value={contactName}
+                                        onChange={e => setContactName(e.target.value)}
+                                        className="w-full px-4 py-2.5 bg-[#181a20] border border-[var(--color-b-border)] rounded-lg text-white focus:outline-none focus:border-[var(--color-b-yellow)]"
+                                        placeholder="Örn: Ahmet Yılmaz"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-[var(--color-b-muted)] mb-1">E-posta Adresiniz</label>
+                                    <input 
+                                        type="email" 
+                                        value={contactEmail}
+                                        onChange={e => setContactEmail(e.target.value)}
+                                        className="w-full px-4 py-2.5 bg-[#181a20] border border-[var(--color-b-border)] rounded-lg text-white focus:outline-none focus:border-[var(--color-b-yellow)]"
+                                        placeholder="Örn: ahmet@sirket.com"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-[var(--color-b-muted)] mb-1">Mesajınız</label>
+                                    <textarea 
+                                        value={contactMessage}
+                                        onChange={e => setContactMessage(e.target.value)}
+                                        className="w-full px-4 py-2.5 bg-[#181a20] border border-[var(--color-b-border)] rounded-lg text-white focus:outline-none focus:border-[var(--color-b-yellow)] min-h-[100px]"
+                                        placeholder="Kayıt olmak istiyorum..."
+                                    />
+                                </div>
+                                <div className="pt-2">
+                                    <button 
+                                        type="submit"
+                                        disabled={contactLoading}
+                                        className="w-full py-3 bg-[var(--color-b-yellow)] text-[#181a20] font-bold rounded-lg hover:bg-[#f0c929] transition-colors disabled:opacity-60"
+                                    >
+                                        {contactLoading ? "Gönderiliyor..." : "Mesajı Gönder"}
+                                    </button>
+                                </div>
+                            </form>
+                        ) : (
+                            <div className="pt-2">
+                                <button 
+                                    onClick={() => setShowContactModal(false)}
+                                    className="w-full py-3 bg-[#2b3139] text-white font-bold rounded-lg hover:bg-gray-700 transition-colors"
+                                >
+                                    Kapat
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
