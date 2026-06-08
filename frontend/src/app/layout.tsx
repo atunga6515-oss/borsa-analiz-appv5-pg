@@ -3,7 +3,7 @@ import "./globals.css";
 import NavBar from "./NavBar";
 
 export const metadata: Metadata = {
-    title: "Borsa Terminali V5",
+    title: "AlfaBIST | Akıllı Borsa Analizi",
     description: "Profesyonel Hisse Senedi Analiz Terminali",
 };
 

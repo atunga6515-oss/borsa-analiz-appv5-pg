@@ -43,7 +43,7 @@ export default function Dashboard() {
             <div className="mb-10 text-center md:text-left flex flex-col md:flex-row justify-between items-end gap-4">
                 <div>
                     <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[var(--color-b-yellow)] to-yellow-200 mb-4 tracking-tight">
-                        V5 Terminal'e Hoş Geldiniz
+                        AlfaBIST'e Hoş Geldiniz
                     </h1>
                     <p className="text-[var(--color-b-muted)] text-lg max-w-2xl leading-relaxed">
                         Yapay zeka destekli profesyonel borsa analiz platformunuz. 

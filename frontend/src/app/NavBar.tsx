@@ -93,11 +93,13 @@ export default function NavBar() {
     return (
         <header className="glass-header h-16 flex items-center px-6 sticky top-0 z-50 justify-between">
             <div className="flex items-center gap-8">
-                <Link href="/" className="flex items-center gap-3 cursor-pointer group">
-                    <div className="w-8 h-8 rounded bg-[var(--color-b-yellow)] flex items-center justify-center font-bold text-[#181a20] group-hover:scale-105 transition-transform">
-                        V5
+                <Link href="/" className="flex items-center gap-2 cursor-pointer group">
+                    <div className="w-8 h-8 rounded bg-gradient-to-br from-[var(--color-b-yellow)] to-yellow-600 flex items-center justify-center font-bold text-[#181a20] group-hover:scale-105 transition-transform text-lg shadow-[0_0_15px_rgba(240,201,41,0.3)]">
+                        α
                     </div>
-                    <span className="text-xl font-bold text-white tracking-tight group-hover:text-[var(--color-b-yellow)] transition-colors">Terminal</span>
+                    <span className="text-xl font-extrabold text-white tracking-tight group-hover:text-[var(--color-b-yellow)] transition-colors">
+                        Alfa<span className="text-[var(--color-b-yellow)] font-normal">BIST</span>
+                    </span>
                 </Link>
                 <nav className="hidden md:flex gap-4 items-center">
                     {NAV_GROUPS.map((group, gIdx) => {
