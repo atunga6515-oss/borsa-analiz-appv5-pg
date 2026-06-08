@@ -32,20 +32,8 @@ def analyze_stock(request: Request, req: AIAnalysisRequest, current_user: str = 
 
     today = datetime.date.today().isoformat()
 
-    # 1. Cache kontrolü (kota tüketmeden)
-    with engine.connect() as conn:
-        history_row = conn.execute(
-            text("SELECT result_text, (SELECT ai_quota FROM users WHERE username=:u) as quota FROM ai_analyses_history WHERE username=:u AND ticker=:t AND run_date=:d"),
-            {"u": current_user, "t": req.ticker, "d": today}
-        ).fetchone()
-
-        if history_row:
-            return {
-                "status": "success",
-                "cached": True,
-                "analysis": history_row[0],
-                "remaining_quota": history_row[1] or 0
-            }
+    # AI analizlerinde Cache (Önbellek) özelliği kaldırıldı. 
+    # Kullanıcının kotası varsa her zaman canlı, güncel piyasa verisine göre yepyeni analiz istenir.
 
     # 2. Kota rezervasyonu — ATOMIK (Race Condition koruması)
     # UPDATE ... WHERE ai_quota > 0 sadece başarılı olursa 1 satır döner
@@ -111,13 +99,14 @@ def analyze_stock(request: Request, req: AIAnalysisRequest, current_user: str = 
         log_action(current_user, "AI_ERROR", str(e), level="ERROR")
         raise HTTPException(status_code=500, detail="Yapay Zeka sunucularına bağlanılamadı. Lütfen daha sonra tekrar deneyin.")
 
-    # 4. Geçmişe kaydet
+    # 4. Geçmişe kaydet (Eğer o gün ilk defa yapılıyorsa insert eder, varsa en güncel analizle değiştirir)
     with engine.begin() as conn:
         conn.execute(
             text("""
                 INSERT INTO ai_analyses_history (username, ticker, run_date, result_text)
                 VALUES (:u, :t, :d, :r)
-                ON CONFLICT DO NOTHING
+                ON CONFLICT (username, ticker, run_date) 
+                DO UPDATE SET result_text = EXCLUDED.result_text
             """),
             {"u": current_user, "t": req.ticker, "d": today, "r": result_text}
         )
