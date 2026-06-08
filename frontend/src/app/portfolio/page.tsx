@@ -215,6 +215,14 @@ export default function PortfolioPage() {
                 </div>
                 <div className="flex gap-3">
                     <button 
+                        onClick={handleRefreshPrices} 
+                        disabled={refreshingPrices}
+                        className="px-6 py-3 bg-[#1e2329] border border-[var(--color-b-border)] text-white font-bold rounded hover:bg-gray-700 transition-colors flex items-center gap-2"
+                        title="Fiyatları Yenile"
+                    >
+                        {refreshingPrices ? "⏳ Yenileniyor..." : "🔄 Fiyatları Yenile"}
+                    </button>
+                    <button 
                         onClick={() => requireAuth(() => {
                             if(positions.length < 2) {
                                 alert("Optimizasyon için en az 2 hisse eklemelisiniz.");
@@ -222,13 +230,13 @@ export default function PortfolioPage() {
                             }
                             setOptimizeModalOpen(true);
                         })}
-                        className="px-6 py-3 bg-indigo-600 text-white font-bold rounded hover:bg-indigo-500 transition-colors"
+                        className="px-6 py-3 bg-indigo-600 text-white font-bold rounded hover:bg-indigo-500 transition-colors flex items-center gap-2"
                     >
                         🪄 AI ile Optimize Et
                     </button>
                     <button 
                         onClick={() => requireAuth(() => setShowModal(true))}
-                        className="px-6 py-3 bg-[var(--color-b-green)] text-black font-bold rounded hover:bg-green-500 transition-colors"
+                        className="px-6 py-3 bg-[var(--color-b-green)] text-black font-bold rounded hover:bg-green-500 transition-colors flex items-center gap-2"
                     >
                         + Yeni İşlem Ekle
                     </button>
@@ -237,17 +245,9 @@ export default function PortfolioPage() {
             
             {/* Financial Summary Widgets */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-4">
-                <div className="glass-panel p-4 rounded-lg flex flex-col justify-center border-l-4 border-blue-500 relative">
+                <div className="glass-panel p-4 rounded-lg flex flex-col justify-center border-l-4 border-blue-500">
                     <span className="text-xs text-[var(--color-b-muted)]">Toplam Yatırım</span>
                     <span className="text-xl font-bold text-white">{totalInvestment.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺</span>
-                    <button 
-                        onClick={handleRefreshPrices} 
-                        disabled={refreshingPrices}
-                        className="absolute right-4 top-4 text-xs bg-[#1e2329] border border-[var(--color-b-border)] hover:bg-gray-700 text-[var(--color-b-muted)] hover:text-white px-2 py-1 rounded transition-colors"
-                        title="Fiyatları Yenile"
-                    >
-                        {refreshingPrices ? "⏳" : "🔄 Yenile"}
-                    </button>
                 </div>
                 
                 <div className="glass-panel p-4 rounded-lg flex flex-col justify-center border-l-4 border-purple-500">
