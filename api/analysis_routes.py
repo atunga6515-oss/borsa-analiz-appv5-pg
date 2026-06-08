@@ -68,8 +68,12 @@ def fetch_comprehensive_analysis(ticker: str, current_user: str = Depends(get_cu
         sma_50 = float(last_row.get('SMA_50', np.nan))
         sma_52 = float(last_row.get('SMA_52', np.nan))
         
-        live_px = float(last_row['Close'])
-        
+        # Live price using SSOT
+        from data_loader import get_batch_live_prices
+        ssot = get_batch_live_prices([ticker])
+        live_px = ssot.get(ticker, {}).get("price", 0.0)
+        if live_px == 0.0:
+            live_px = float(last_row['Close'])        
         payload = {
             "status": "success",
             "data": {

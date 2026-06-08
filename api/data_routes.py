@@ -85,51 +85,19 @@ class BatchPriceRequest(BaseModel):
 
 @router.post("/prices/batch")
 def fetch_batch_prices(req: BatchPriceRequest, current_user: str = Depends(get_current_user)):
-    import yfinance as yf
+    from data_loader import get_batch_live_prices
     
     results = {}
     if not req.tickers:
         return {"data": results}
         
-    tickers_str = " ".join([f"{t.upper()}.IS" for t in req.tickers])
     try:
-        # Do not use group_by="ticker" as it causes multi-index hell in newer yf versions
-        data = yf.download(tickers_str, period="5d", progress=False)
-        
-        if data.empty:
-            return {"data": results}
-            
-        # Try to get the Close prices. If 'Close' is not in columns, it might be a Series (single ticker)
-        if 'Close' in data.columns.levels[0] if isinstance(data.columns, pd.MultiIndex) else 'Close' in data.columns:
-            close_data = data['Close']
-        else:
-            close_data = data # Fallback
-            
+        ssot_results = get_batch_live_prices(req.tickers)
         for ticker in req.tickers:
-            results[ticker] = {"price": 0, "change": 0}
-            t_is = f"{ticker.upper()}.IS"
-            
-            try:
-                series = None
-                if isinstance(close_data, pd.DataFrame):
-                    if t_is in close_data.columns:
-                        series = close_data[t_is].dropna()
-                elif isinstance(close_data, pd.Series):
-                    series = close_data.dropna()
-                    
-                if series is not None and len(series) >= 2:
-                    current_price = float(series.iloc[-1])
-                    prev_price = float(series.iloc[-2])
-                    
-                    if prev_price > 0:
-                        pct_change = ((current_price - prev_price) / prev_price) * 100
-                        results[ticker] = {
-                            "price": round(current_price, 2),
-                            "change": round(pct_change, 2)
-                        }
-            except Exception as inner_e:
-                print(f"Error parsing {ticker}: {inner_e}")
-                
+            results[ticker] = {
+                "price": ssot_results.get(ticker, {}).get("price", 0.0),
+                "change": ssot_results.get(ticker, {}).get("change", 0.0)
+            }
     except Exception as e:
         print("Batch price error:", e)
         

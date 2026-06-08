@@ -95,7 +95,9 @@ class AlphaRank15D:
         bb_upper = bbands[[c for c in bbands.columns if c.startswith('BBU')][0]]
         
         # Son veriler
-        current_price = close.iloc[-1]
+        from data_loader import get_batch_live_prices
+        ssot = get_batch_live_prices([ticker]).get(ticker, {})
+        current_price = ssot.get("price", close.iloc[-1])
         prev_price = close.iloc[-2]
         c_ema9 = ema9.iloc[-1]
         c_ema21 = ema21.iloc[-1]

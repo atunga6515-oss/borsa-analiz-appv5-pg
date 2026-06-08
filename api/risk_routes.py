@@ -49,6 +49,10 @@ def get_portfolio_risk(current_user: str = Depends(get_current_user)):
     stop_loss_suggestions = []
     betas = {}
     
+    from data_loader import get_batch_live_prices
+    portfolio_tickers = [p['ticker'] for p in positions]
+    ssot_prices = get_batch_live_prices(portfolio_tickers)
+    
     for pos in positions:
         ticker = pos['ticker']
         adet = float(pos['adet'])
@@ -69,7 +73,12 @@ def get_portfolio_risk(current_user: str = Depends(get_current_user)):
         except Exception:
             atr = df['Close'].iloc[-1] * 0.03
             
-        current_price = df['Close'].iloc[-1]
+            
+        # Use SSOT for current price
+        current_price = ssot_prices.get(ticker, {}).get("price", df['Close'].iloc[-1])
+        if current_price == 0.0:
+            current_price = df['Close'].iloc[-1]
+            
         current_prices[ticker] = current_price
         
         position_value = adet * current_price

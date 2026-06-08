@@ -414,5 +414,76 @@ def get_live_price_with_change(symbol: str) -> tuple:
     except Exception:
         return 0.0, 0.0
 
-
-
+def get_batch_live_prices(symbols: list) -> dict:
+    """Tüm modüller için Tek Bir Doğruluk Kaynağı (SSOT) anlık fiyatlar ve günlük değişimler."""
+    results = {}
+    if not symbols: return results
+    
+    tickers_str = " ".join([_make_ticker(s) for s in symbols])
+    session = _get_yf_session()
+    
+    # 1. Anlık Fiyatlar (1 dakikalık periyot, bugün)
+    try:
+        live_data = yf.download(tickers_str, period="1d", interval="1m", progress=False, repair=True, session=session)
+        if isinstance(live_data.columns, pd.MultiIndex):
+            close_live = live_data["Close"] if "Close" in live_data.columns.levels[0] else live_data
+        else:
+            close_live = live_data["Close"] if "Close" in live_data.columns else live_data
+    except Exception:
+        close_live = pd.DataFrame()
+        
+    # 2. Geçmiş Fiyatlar (Dünkü kapanışı bulmak için 5 günlük veri)
+    try:
+        hist_data = yf.download(tickers_str, period="5d", interval="1d", progress=False, repair=True, session=session)
+        if isinstance(hist_data.columns, pd.MultiIndex):
+            close_hist = hist_data["Close"] if "Close" in hist_data.columns.levels[0] else hist_data
+        else:
+            close_hist = hist_data["Close"] if "Close" in hist_data.columns else hist_data
+    except Exception:
+        close_hist = pd.DataFrame()
+        
+    for sym in symbols:
+        t_is = _make_ticker(sym)
+        results[sym] = {"price": 0.0, "change": 0.0, "volume": 0.0}
+        
+        # Anlık fiyatı parse et
+        live_px = None
+        if not close_live.empty:
+            if isinstance(close_live, pd.DataFrame) and t_is in close_live.columns:
+                s = close_live[t_is].dropna()
+                if not s.empty: live_px = float(s.iloc[-1])
+            elif isinstance(close_live, pd.Series) and not close_live.empty:
+                s = close_live.dropna()
+                if not s.empty: live_px = float(s.iloc[-1])
+                
+        # Dünkü kapanışı parse et
+        prev_px = None
+        if not close_hist.empty:
+            if isinstance(close_hist, pd.DataFrame) and t_is in close_hist.columns:
+                s = close_hist[t_is].dropna()
+                if len(s) >= 2: prev_px = float(s.iloc[-2])
+                elif len(s) >= 1: prev_px = float(s.iloc[-1])
+            elif isinstance(close_hist, pd.Series) and not close_hist.empty:
+                s = close_hist.dropna()
+                if len(s) >= 2: prev_px = float(s.iloc[-2])
+                elif len(s) >= 1: prev_px = float(s.iloc[-1])
+                
+        # Hacim parse et (Sadece ısı haritası için)
+        vol = 0.0
+        try:
+            if isinstance(hist_data.columns, pd.MultiIndex):
+                if "Volume" in hist_data.columns.levels[0] and t_is in hist_data["Volume"]:
+                    vol_s = hist_data["Volume"][t_is].dropna()
+                    if not vol_s.empty: vol = float(vol_s.iloc[-1])
+        except Exception: pass
+                
+        if live_px is None and prev_px is not None:
+            live_px = prev_px # fallback
+            
+        if live_px is not None and prev_px is not None and prev_px > 0:
+            change = ((live_px - prev_px) / prev_px) * 100
+            results[sym] = {"price": round(live_px, 2), "change": round(change, 2), "volume": vol}
+        elif live_px is not None:
+            results[sym] = {"price": round(live_px, 2), "change": 0.0, "volume": vol}
+            
+    return results

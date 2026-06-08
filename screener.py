@@ -243,9 +243,11 @@ def _analyze_single_stock(sym: str, market_regime: dict = None) -> dict:
         if sig.get('decision') == 'Hata':
              return None
         
-        # Fiyat & Değişim (Performans için geçmiş veriden alıyoruz)
-        display_price = df['Close'].iloc[-1]
-        pct_change = ((df['Close'].iloc[-1] - df['Close'].iloc[-2]) / df['Close'].iloc[-2]) * 100 if len(df) >= 2 else 0
+        # Fiyat & Değişim (SSOT kullanarak)
+        from data_loader import get_batch_live_prices
+        ssot = get_batch_live_prices([sym]).get(sym, {})
+        display_price = ssot.get("price", df['Close'].iloc[-1])
+        pct_change = ssot.get("change", ((df['Close'].iloc[-1] - df['Close'].iloc[-2]) / df['Close'].iloc[-2]) * 100 if len(df) >= 2 else 0)
 
         # Hacim Analizi (Yeni - Detaylı)
         vol_conf = calculate_volume_confirmation(df, is_bear=market_regime['is_bear'] if market_regime else False)

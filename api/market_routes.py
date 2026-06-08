@@ -23,6 +23,8 @@ def fetch_heatmap(current_user: str = Depends(get_current_user)):
     """
     Treemap (Heatmap) için BIST ana hisselerinin anlık performansını ve sektörünü döner.
     """
+    from data_loader import get_batch_live_prices
+    
     tickers = []
     ticker_to_sector = {}
     for sector, t_list in BIST_SECTORS.items():
@@ -30,40 +32,20 @@ def fetch_heatmap(current_user: str = Depends(get_current_user)):
             tickers.append(t)
             ticker_to_sector[t] = sector
             
-    tickers_str = " ".join([f"{t}.IS" for t in tickers])
-    
     heatmap_data = []
     
     try:
-        # Fetch 5 days of data to guarantee at least 2 valid days even on weekends/holidays
-        data = yf.download(tickers_str, period="5d", progress=False)
-        
-        if data.empty:
-            return {"data": heatmap_data}
-            
-        close_df = data['Close'] if 'Close' in data.columns else data
-        volume_df = data['Volume'] if 'Volume' in data.columns else None
-        
+        ssot_results = get_batch_live_prices(tickers)
         for t in tickers:
-            t_is = f"{t}.IS"
-            if t_is in close_df.columns:
-                series = close_df[t_is].dropna()
-                vol_series = volume_df[t_is].dropna() if volume_df is not None and t_is in volume_df.columns else None
-                
-                if len(series) >= 2:
-                    curr_price = float(series.iloc[-1])
-                    prev_price = float(series.iloc[-2])
-                    vol = float(vol_series.iloc[-1]) if vol_series is not None and len(vol_series) > 0 else 0
-                    
-                    if prev_price > 0:
-                        change = ((curr_price - prev_price) / prev_price) * 100
-                        heatmap_data.append({
-                            "ticker": t,
-                            "sector": ticker_to_sector[t],
-                            "price": round(curr_price, 2),
-                            "change": round(change, 2),
-                            "volume": vol
-                        })
+            info = ssot_results.get(t, {})
+            if info.get("price", 0) > 0:
+                heatmap_data.append({
+                    "ticker": t,
+                    "sector": ticker_to_sector[t],
+                    "price": info.get("price", 0),
+                    "change": info.get("change", 0),
+                    "volume": info.get("volume", 0)
+                })
     except Exception as e:
         print("Heatmap fetch error:", e)
         
