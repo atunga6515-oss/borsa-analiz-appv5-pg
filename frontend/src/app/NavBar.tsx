@@ -8,7 +8,7 @@ const NAV_GROUPS = [
     {
         title: "Piyasa & Haberler",
         links: [
-            { href: "/", label: "Piyasalar", icon: "📊", tooltip: "Genel piyasa durumu, endeksler ve anlık takipler. Günlük özetleri inceleyin." },
+            { href: "/markets", label: "Piyasalar", icon: "📊", tooltip: "Genel piyasa durumu, endeksler ve anlık takipler. Günlük özetleri inceleyin." },
             { href: "/heatmap", label: "Heatmap", icon: "🗺️", tooltip: "Borsanın genel durumunu sektörlere göre ısı haritası üzerinden görselleştirin." },
             { href: "/kap", label: "KAP", icon: "📰", tooltip: "Şirketlerin Kamuyu Aydınlatma Platformu (KAP) bildirimlerini anlık takip edin." },
         ]
@@ -93,12 +93,12 @@ export default function NavBar() {
     return (
         <header className="glass-header h-16 flex items-center px-6 sticky top-0 z-50 justify-between">
             <div className="flex items-center gap-8">
-                <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded bg-[var(--color-b-yellow)] flex items-center justify-center font-bold text-[#181a20]">
+                <Link href="/" className="flex items-center gap-3 cursor-pointer group">
+                    <div className="w-8 h-8 rounded bg-[var(--color-b-yellow)] flex items-center justify-center font-bold text-[#181a20] group-hover:scale-105 transition-transform">
                         V5
                     </div>
-                    <span className="text-xl font-bold text-white tracking-tight">Terminal</span>
-                </div>
+                    <span className="text-xl font-bold text-white tracking-tight group-hover:text-[var(--color-b-yellow)] transition-colors">Terminal</span>
+                </Link>
                 <nav className="hidden md:flex gap-4 items-center">
                     {NAV_GROUPS.map((group, gIdx) => {
                         const isGroupActive = group.links.some(link => pathname === link.href);

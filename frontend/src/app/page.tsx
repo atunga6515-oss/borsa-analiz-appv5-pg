@@ -1,378 +1,105 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
-import TradingChart from "@/components/TradingChart";
-import api from "@/lib/api";
+import Link from "next/link";
 
-export default function Home() {
-    const [chartData, setChartData] = useState([]);
-    
-    // Read initial ticker from URL if present (e.g. from Screener Incele button)
-    const initialTicker = typeof window !== "undefined" 
-        ? new URLSearchParams(window.location.search).get("ticker") || "XU100" 
-        : "XU100";
-        
-    const [selectedTicker, setSelectedTicker] = useState(initialTicker);
-    const [interval, setInterval] = useState("1d");
-    const [loading, setLoading] = useState(true);
-    
-    // Watchlist state and prices
-    const [watchlist, setWatchlist] = useState<string[]>([]);
-    const [prices, setPrices] = useState<any>({});
-    const [newTicker, setNewTicker] = useState("");
-    const [showAddInput, setShowAddInput] = useState(false);
+const DASHBOARD_MODULES = [
+    {
+        category: "Piyasa & Haberler",
+        items: [
+            { href: "/markets", label: "Piyasalar", icon: "📊", desc: "Genel piyasa durumu, BIST100 grafiği, endeksler ve makro takvim.", color: "from-blue-500 to-cyan-500" },
+            { href: "/heatmap", label: "Heatmap", icon: "🗺️", desc: "Borsanın genel durumunu ve para giriş/çıkışını sektörlere göre ısı haritası üzerinden görselleştirin.", color: "from-emerald-500 to-teal-400" },
+            { href: "/kap", label: "KAP Bildirimleri", icon: "📰", desc: "Şirketlerin Kamuyu Aydınlatma Platformu bildirimlerini yapay zeka ile özetlenmiş şekilde anlık takip edin.", color: "from-gray-500 to-gray-300" },
+        ]
+    },
+    {
+        category: "Tarama & Fırsatlar",
+        items: [
+            { href: "/screener", label: "Screener", icon: "⚡", desc: "Tüm BIST hisselerini 100'den fazla temel ve teknik kritere göre saniyeler içinde filtreleyip tarayın.", color: "from-yellow-500 to-orange-500" },
+            { href: "/top-picks", label: "Stratejik Seçki", icon: "🎯", desc: "Teknik indikatörlerin ürettiği AL sinyallerine göre analiz edilen en yüksek potansiyelli hisseleri görün.", color: "from-red-500 to-pink-500" },
+            { href: "/alpharank", label: "AlphaRank 15D", icon: "🚀", desc: "Gelişmiş yapay zeka ve makine öğrenimi modeliyle hisseleri 15 günlük yükseliş potansiyellerine göre sıralayın.", color: "from-purple-600 to-indigo-500" },
+        ]
+    },
+    {
+        category: "Derin Analiz & Test",
+        items: [
+            { href: "/analysis", label: "Derin Analiz", icon: "🔬", desc: "Bir hissenin son 100 günlük teknik, takas ve temel detaylarını derinlemesine inceleyin.", color: "from-indigo-500 to-blue-500" },
+            { href: "/backtest", label: "Backtest Modülü", icon: "⚙️", desc: "Geçmiş piyasa verilerine dayanarak teknik indikatörlerin al-sat stratejilerini test edin ve kârlılığını ölçün.", color: "from-orange-500 to-red-500" },
+            { href: "/strategy-compare", label: "Strateji Kıyasla", icon: "🧪", desc: "Farklı al-sat stratejilerinin geçmiş getiri performanslarını birbiriyle kıyaslayıp en uygununu bulun.", color: "from-pink-500 to-rose-400" },
+            { href: "/risk", label: "Risk Analizi", icon: "⚠️", desc: "Portföyünüzün ve piyasanın genel risk durumunu, volatilite oranlarını matematiksel modellerle analiz edin.", color: "from-red-600 to-orange-600" },
+        ]
+    },
+    {
+        category: "Hesap Yönetimi",
+        items: [
+            { href: "/portfolio", label: "Sanal Portföy", icon: "💼", desc: "Kendi sanal portföyünüzü oluşturun, alış/satış işlemlerinizi kaydedip anlık kâr/zarar durumunuzu takip edin.", color: "from-green-500 to-emerald-500" },
+            { href: "/alarms", label: "Akıllı Alarmlar", icon: "🔔", desc: "Fiyat veya özel teknik indikatör hedefleri belirleyin. Şartlar gerçekleştiğinde anında bildirim alın.", color: "from-amber-400 to-yellow-500" },
+        ]
+    }
+];
 
-    // Calendar state
-    const [calendar, setCalendar] = useState<any[]>([]);
-    
-    // Initial Load of Watchlist and Calendar
-    useEffect(() => {
-        const fetchWatchlist = async () => {
-            try {
-                const res = await api.get('/screener/watchlist');
-                let wlFromDb = res.data.watchlist || [];
-                
-                // Gelen data obje listesiyse Ticker olarak dönüştür
-                if (wlFromDb.length > 0 && typeof wlFromDb[0] === 'object') {
-                    wlFromDb = wlFromDb.map((item: any) => item.Ticker || item.ticker);
-                }
-
-                // PORTFÖYDEKİ HİSSELERİ ÇEK VE İZLEME LİSTESİNE EKLE
-                try {
-                    const portRes = await api.get('/portfolio/');
-                    if (portRes.data && portRes.data.data) {
-                        const portTickers = portRes.data.data.map((p: any) => p.Hisse || p.ticker || p.Ticker);
-                        portTickers.forEach((t: string) => {
-                            if (t && !wlFromDb.includes(t)) {
-                                wlFromDb.push(t);
-                                // Ayrıca veritabanına da izleme listesi öğesi olarak ekle
-                                api.post('/screener/watchlist', { ticker: t }).catch(() => {});
-                            }
-                        });
-                    }
-                } catch (portErr) {
-                    console.error("Portföy çekerken hata:", portErr);
-                }
-                
-                // SADECE DB'DEN GELENLERİ KULLAN, localstorage sadece db listesindeki elemanları sıralamak için kullanılsın
-                // Başka bir userın localstorage'ı ile karışmasını engelliyoruz
-                const savedOrder = localStorage.getItem('watchlistOrder');
-                if (savedOrder && savedOrder !== "undefined") {
-                    try {
-                        const parsedOrder = JSON.parse(savedOrder);
-                        // Db'den gelen listeyi, local storage'daki sıraya göre diz
-                        wlFromDb.sort((a: string, b: string) => {
-                            const idxA = parsedOrder.indexOf(a);
-                            const idxB = parsedOrder.indexOf(b);
-                            if (idxA === -1 && idxB === -1) return 0;
-                            if (idxA === -1) return 1;
-                            if (idxB === -1) return -1;
-                            return idxA - idxB;
-                        });
-                    } catch(e) {
-                        console.error("Localstorage parsing error", e);
-                    }
-                }
-
-                
-                // Eğer hala boşsa
-                if (wlFromDb.length === 0) {
-                    const defaultList = ["XU100", "XU030", "THYAO", "TUPRS", "KCHOL", "EREGL", "GARAN", "AKBNK", "ISCTR", "SAHOL", "ASELS"];
-                    wlFromDb = defaultList;
-                    Promise.all(defaultList.map(ticker => 
-                        api.post('/screener/watchlist', { ticker }).catch(() => {})
-                    ));
-                }
-                
-                setWatchlist(wlFromDb);
-            } catch (error) {
-                console.error("Watchlist fetch error:", error);
-                const savedOrder = localStorage.getItem('watchlistOrder');
-                if (savedOrder && savedOrder !== "undefined") {
-                    try {
-                        setWatchlist(JSON.parse(savedOrder));
-                    } catch(e) {
-                        setWatchlist(["XU100", "XU030", "THYAO", "TUPRS", "KCHOL", "EREGL", "GARAN", "AKBNK", "ISCTR", "SAHOL", "ASELS"]); // Fallback
-                    }
-                } else {
-                    setWatchlist(["XU100", "XU030", "THYAO", "TUPRS", "KCHOL", "EREGL", "GARAN", "AKBNK", "ISCTR", "SAHOL", "ASELS"]); // Fallback
-                }
-            }
-        };
-        fetchWatchlist();
-
-        // Fetch Calendar
-        api.get('/market/calendar').then(res => {
-            if(res.data && res.data.data) {
-                setCalendar(res.data.data);
-            }
-        }).catch(err => console.error("Calendar fetch error:", err));
-
-    }, []);
-
-    // Drag and Drop refs
-    const dragItem = useRef<number | null>(null);
-    const dragOverItem = useRef<number | null>(null);
-
-    const handleSort = () => {
-        if (dragItem.current !== null && dragOverItem.current !== null) {
-            let _watchlist = [...watchlist];
-            const draggedItemContent = _watchlist.splice(dragItem.current, 1)[0];
-            _watchlist.splice(dragOverItem.current, 0, draggedItemContent);
-            dragItem.current = null;
-            dragOverItem.current = null;
-            setWatchlist(_watchlist);
-            localStorage.setItem('watchlistOrder', JSON.stringify(_watchlist));
-        }
-    };
-
-    // Fetch Chart Data
-    useEffect(() => {
-        const fetchChartData = async () => {
-            setLoading(true);
-            let period = "1y";
-            if (interval === "1h") period = "1mo";
-            if (interval === "4h") period = "3mo";
-            
-            try {
-                const res = await api.get(`/data/ohlcv/${selectedTicker}?interval=${interval}&period=${period}`);
-                if (res.data && res.data.data) {
-                    setChartData(res.data.data);
-                }
-            } catch (error) {
-                console.error("Failed to fetch chart data:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchChartData();
-    }, [selectedTicker, interval]);
-
-    // Fetch Batch Prices for Watchlist
-    useEffect(() => {
-        if (watchlist.length === 0) return;
-        
-        const fetchPrices = async () => {
-            try {
-                const res = await api.post('/data/prices/batch', { tickers: watchlist });
-                if (res.data && res.data.data) {
-                    setPrices(res.data.data);
-                }
-            } catch (error) {
-                console.error("Batch price fetch error:", error);
-            }
-        };
-        fetchPrices();
-        const intervalId = window.setInterval(fetchPrices, 60000); // 1 dakikada bir güncelle
-        return () => window.clearInterval(intervalId);
-    }, [watchlist]);
-
-    const handleAddTicker = async (e: React.FormEvent) => {
-        e.preventDefault();
-        const upper = newTicker.trim().toUpperCase();
-        if (upper && !watchlist.includes(upper)) {
-            // Optimistic update
-            const newList = [upper, ...watchlist];
-            setWatchlist(newList);
-            localStorage.setItem('watchlistOrder', JSON.stringify(newList));
-            
-            try {
-                const res = await api.post('/screener/watchlist', { ticker: upper });
-                if (res.status !== 200) {
-                    throw new Error("Backend error");
-                }
-            } catch(e) { 
-                console.error("Ekleme hatası, geri alınıyor", e);
-                // Revert
-                setWatchlist(watchlist);
-                localStorage.setItem('watchlistOrder', JSON.stringify(watchlist));
-                alert("Hisse izleme listesine eklenemedi (Veritabanı hatası).");
-            }
-        }
-        setNewTicker("");
-        setShowAddInput(false);
-    };
-
-    const removeTicker = async (ticker: string, e: any) => {
-        e.stopPropagation();
-        const newList = watchlist.filter(t => t !== ticker);
-        setWatchlist(newList);
-        localStorage.setItem('watchlistOrder', JSON.stringify(newList));
-        try {
-            await api.delete(`/screener/watchlist/${ticker}`);
-        } catch(e) { console.error("Silme hatası", e); }
-    };
-
-    // Current ticker info
-    const currentPriceInfo = prices[selectedTicker];
-    const priceColor = currentPriceInfo && currentPriceInfo.change >= 0 ? "text-[var(--color-b-green)]" : "text-[var(--color-b-red)]";
-    const changePrefix = currentPriceInfo && currentPriceInfo.change > 0 ? "+" : "";
-
+export default function Dashboard() {
     return (
-        <div className="flex w-full h-[calc(100vh-64px)] p-4 gap-4 bg-[var(--color-b-bg)] text-[var(--color-b-text)] overflow-hidden">
-            {/* Sidebar / Watchlist */}
-            <aside className="w-80 glass-panel flex flex-col p-4 min-h-0">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="font-bold text-lg">Piyasa İzleme</h2>
-                    <button 
-                        onClick={() => setShowAddInput(!showAddInput)}
-                        className="text-[var(--color-b-muted)] hover:text-[var(--color-b-yellow)] text-xl font-bold px-2"
-                    >
-                        +
-                    </button>
+        <div className="p-6 md:p-8 max-w-[1400px] mx-auto min-h-[calc(100vh-64px)]">
+            {/* Header Section */}
+            <div className="mb-10 text-center md:text-left flex flex-col md:flex-row justify-between items-end gap-4">
+                <div>
+                    <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[var(--color-b-yellow)] to-yellow-200 mb-4 tracking-tight">
+                        V5 Terminal'e Hoş Geldiniz
+                    </h1>
+                    <p className="text-[var(--color-b-muted)] text-lg max-w-2xl leading-relaxed">
+                        Yapay zeka destekli profesyonel borsa analiz platformunuz. 
+                        Aşağıdaki modüllerden birini seçerek piyasanın bir adım önüne geçin.
+                    </p>
                 </div>
-                
-                {showAddInput && (
-                    <form onSubmit={handleAddTicker} className="mb-4 flex gap-2">
-                        <input 
-                            type="text" 
-                            value={newTicker}
-                            onChange={(e) => setNewTicker(e.target.value)}
-                            placeholder="Hisse Kodu (Örn: THYAO)"
-                            className="p-2 bg-[#1e2329] border border-[var(--color-b-border)] rounded text-white flex-1 text-sm focus:outline-none focus:border-[var(--color-b-yellow)] uppercase"
-                            autoFocus
-                        />
-                        <button type="submit" className="bg-[var(--color-b-yellow)] text-black px-3 rounded font-bold text-sm">Ekle</button>
-                    </form>
-                )}
-                
-                <div className="flex flex-col gap-2 overflow-y-auto">
-                    {watchlist.map((sym, index) => {
-                        const info = prices[sym];
-                        const isUp = info && info.change >= 0;
-                        return (
-                            <div 
-                                key={sym} 
-                                onClick={() => setSelectedTicker(sym)}
-                                draggable
-                                onDragStart={(e) => (dragItem.current = index)}
-                                onDragEnter={(e) => (dragOverItem.current = index)}
-                                onDragEnd={handleSort}
-                                onDragOver={(e) => e.preventDefault()}
-                                className={`flex justify-between items-center p-3 rounded bg-[var(--color-b-panel)] border cursor-move transition-colors group ${selectedTicker === sym ? "border-[var(--color-b-yellow)]" : "border-[var(--color-b-border)] hover:border-[var(--color-b-muted)]"}`}
-                            >
-                                <div className="flex flex-col">
-                                    <div className="flex items-center gap-2">
-                                        <span className={`font-bold transition-colors ${selectedTicker === sym ? "text-[var(--color-b-yellow)]" : "group-hover:text-white"}`}>{sym}</span>
-                                        {sym !== "XU100" && sym !== "XU030" && (
-                                            <button onClick={(e) => removeTicker(sym, e)} className="text-[var(--color-b-red)] opacity-0 group-hover:opacity-100 transition-opacity text-xs">x</button>
-                                        )}
+                <Link 
+                    href="/markets" 
+                    className="px-6 py-3 bg-[var(--color-b-yellow)] text-[#181a20] font-bold rounded-lg hover:bg-yellow-400 transition-colors flex items-center gap-2 shadow-[0_0_20px_rgba(240,201,41,0.2)]"
+                >
+                    <span>📊</span>
+                    Piyasalara Git
+                </Link>
+            </div>
+
+            {/* Modules Grid */}
+            <div className="flex flex-col gap-10 pb-12">
+                {DASHBOARD_MODULES.map((group, gIdx) => (
+                    <div key={gIdx} className="space-y-5">
+                        <div className="flex items-center gap-4">
+                            <h2 className="text-xl font-bold text-white tracking-wide whitespace-nowrap">{group.category}</h2>
+                            <div className="flex-1 h-px bg-gradient-to-r from-[#2b3139] to-transparent"></div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                            {group.items.map((item, iIdx) => (
+                                <Link 
+                                    href={item.href} 
+                                    key={iIdx}
+                                    className="group relative overflow-hidden rounded-2xl bg-[#1e2329] border border-[#2b3139] hover:border-[var(--color-b-yellow)] transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.5)] hover:-translate-y-1 flex flex-col h-full min-h-[160px]"
+                                >
+                                    {/* Gradient Accent Top Bar */}
+                                    <div className={`h-1.5 w-full bg-gradient-to-r ${item.color} opacity-80 group-hover:opacity-100 transition-opacity`}></div>
+                                    
+                                    <div className="p-6 flex flex-col flex-1 z-10 bg-gradient-to-b from-transparent to-[#181a20]/30">
+                                        <div className="flex items-center gap-4 mb-3">
+                                            <div className="w-12 h-12 rounded-xl bg-[#181a20] border border-[#2b3139] flex items-center justify-center text-2xl group-hover:scale-110 transition-transform duration-300 shadow-inner">
+                                                {item.icon}
+                                            </div>
+                                            <h3 className="font-bold text-lg text-white group-hover:text-[var(--color-b-yellow)] transition-colors leading-tight">
+                                                {item.label}
+                                            </h3>
+                                        </div>
+                                        <p className="text-sm text-[var(--color-b-muted)] leading-relaxed flex-1 mt-1">
+                                            {item.desc}
+                                        </p>
                                     </div>
-                                    <span className="text-xs text-[var(--color-b-muted)]">BIST</span>
-                                </div>
-                                <div className="flex flex-col items-end pointer-events-none">
-                                    <span className="font-medium text-white text-sm">
-                                        {info ? (info.price !== 0 ? info.price.toFixed(2) : "Bulunamadı") : "--"}
-                                    </span>
-                                    <span className={`text-xs font-bold ${isUp ? "text-[var(--color-b-green)]" : "text-[var(--color-b-red)]"}`}>
-                                        {info ? (info.change !== 0 ? `${info.change > 0 ? "+" : ""}${info.change.toFixed(2)}%` : "0.00%") : "--"}
-                                    </span>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            </aside>
-
-            {/* Main Content (Chart & Signals) */}
-            <section className="flex-1 flex flex-col gap-4 min-h-0">
-                {/* Upper Info Bar */}
-                <div className="glass-panel p-4 flex items-center gap-8">
-                    <div>
-                        <h2 className="text-2xl font-bold text-white">{selectedTicker} <span className="text-sm font-normal text-[var(--color-b-muted)]">BIST Hissesi</span></h2>
+                                    
+                                    {/* Subtly animated background glow on hover */}
+                                    <div className={`absolute -bottom-12 -right-12 w-40 h-40 bg-gradient-to-br ${item.color} rounded-full blur-[60px] opacity-0 group-hover:opacity-15 transition-opacity duration-500 pointer-events-none`}></div>
+                                </Link>
+                            ))}
+                        </div>
                     </div>
-                    <div className="flex flex-col">
-                        <span className="text-xs text-[var(--color-b-muted)] uppercase tracking-wider font-semibold mb-1">Anlık Fiyat</span>
-                        <span className={`text-xl font-bold ${priceColor}`}>
-                            {currentPriceInfo ? (currentPriceInfo.price !== 0 ? currentPriceInfo.price.toFixed(2) : "Veri Yok") : "Yükleniyor..."}
-                        </span>
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-xs text-[var(--color-b-muted)] uppercase tracking-wider font-semibold mb-1">Değişim (%)</span>
-                        <span className={`text-md font-medium ${priceColor}`}>
-                            {currentPriceInfo ? (currentPriceInfo.change !== 0 ? `${changePrefix}${currentPriceInfo.change.toFixed(2)}%` : "0.00%") : "--"}
-                        </span>
-                    </div>
-                </div>
-
-                {/* Chart Area */}
-                <div className="glass-panel flex-1 p-1 relative overflow-hidden flex flex-col">
-                    {/* Toolbar inside chart */}
-                    <div className="flex items-center gap-4 px-4 py-2 border-b border-[var(--color-b-border)] bg-[rgba(11,14,17,0.5)]">
-                        <span 
-                            onClick={() => setInterval("1d")}
-                            className={`text-sm cursor-pointer font-medium ${interval === "1d" ? "text-[var(--color-b-yellow)] border-b border-[var(--color-b-yellow)]" : "text-[var(--color-b-muted)] hover:text-white"}`}
-                        >
-                            1G
-                        </span>
-                        <span 
-                            onClick={() => setInterval("4h")}
-                            className={`text-sm cursor-pointer font-medium ${interval === "4h" ? "text-[var(--color-b-yellow)] border-b border-[var(--color-b-yellow)]" : "text-[var(--color-b-muted)] hover:text-white"}`}
-                        >
-                            4S
-                        </span>
-                        <span 
-                            onClick={() => setInterval("1h")}
-                            className={`text-sm cursor-pointer font-medium ${interval === "1h" ? "text-[var(--color-b-yellow)] border-b border-[var(--color-b-yellow)]" : "text-[var(--color-b-muted)] hover:text-white"}`}
-                        >
-                            1S
-                        </span>
-                        <div className="w-[1px] h-4 bg-[var(--color-b-border)] mx-2"></div>
-                        <span className="text-sm text-[var(--color-b-green)] font-medium">İndikatörler Aktif (SMA20, EMA50) 📈</span>
-                    </div>
-                    <div className="flex-1 w-full relative">
-                        {loading ? (
-                            <div className="absolute inset-0 flex items-center justify-center text-[var(--color-b-muted)]">
-                                Grafik Verileri Yükleniyor...
-                            </div>
-                        ) : chartData.length > 0 ? (
-                            <TradingChart data={chartData} />
-                        ) : (
-                            <div className="absolute inset-0 flex items-center justify-center text-[var(--color-b-muted)]">
-                                {selectedTicker} için veri bulunamadı.
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Macro Calendar Widget */}
-                <div className="glass-panel h-48 flex flex-col overflow-hidden">
-                    <div className="p-3 border-b border-[var(--color-b-border)] flex items-center justify-between bg-[#1e2329]">
-                        <h3 className="font-bold text-white text-sm">📅 Makroekonomik Takvim</h3>
-                        <span className="text-xs text-[var(--color-b-muted)]">TCMB & FED & Enflasyon</span>
-                    </div>
-                    <div className="flex-1 overflow-auto p-0">
-                        <table className="w-full text-left text-sm border-collapse">
-                            <thead className="bg-[#181a20] text-[var(--color-b-muted)] text-xs sticky top-0">
-                                <tr>
-                                    <th className="p-2 border-b border-[var(--color-b-border)] font-semibold">Tarih</th>
-                                    <th className="p-2 border-b border-[var(--color-b-border)] font-semibold">Saat</th>
-                                    <th className="p-2 border-b border-[var(--color-b-border)] font-semibold">Ülke</th>
-                                    <th className="p-2 border-b border-[var(--color-b-border)] font-semibold">Olay</th>
-                                    <th className="p-2 border-b border-[var(--color-b-border)] font-semibold">Beklenti</th>
-                                    <th className="p-2 border-b border-[var(--color-b-border)] font-semibold">Önceki</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {calendar.length === 0 ? (
-                                    <tr><td colSpan={6} className="p-4 text-center text-[var(--color-b-muted)]">Veri Bekleniyor...</td></tr>
-                                ) : (
-                                    calendar.map((ev, i) => (
-                                        <tr key={i} className="hover:bg-[#1e2329] border-b border-[var(--color-b-border)] transition-colors">
-                                            <td className="p-2 text-white">{ev.date}</td>
-                                            <td className="p-2 text-[var(--color-b-muted)]">{ev.time}</td>
-                                            <td className="p-2 text-white font-bold">{ev.country === 'TR' ? '🇹🇷' : '🇺🇸'}</td>
-                                            <td className="p-2 text-[var(--color-b-yellow)] font-medium">{ev.event}</td>
-                                            <td className="p-2 text-white">{ev.forecast}</td>
-                                            <td className="p-2 text-[var(--color-b-muted)]">{ev.previous}</td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-            </section>
+                ))}
+            </div>
         </div>
     );
 }
