@@ -205,11 +205,11 @@ class ContactRequest(BaseModel):
 
 @router.post("/contact-admin")
 def contact_admin(req: ContactRequest):
-    admin_email = os.getenv("ADMIN_EMAIL")
-    smtp_server = os.getenv("SMTP_SERVER")
-    smtp_port = os.getenv("SMTP_PORT", "587")
-    smtp_user = os.getenv("SMTP_USER")
-    smtp_pass = os.getenv("SMTP_PASS")
+    admin_email = os.getenv("ADMIN_EMAIL", "").strip()
+    smtp_server = os.getenv("SMTP_SERVER", "").strip()
+    smtp_port = os.getenv("SMTP_PORT", "587").strip()
+    smtp_user = os.getenv("SMTP_USER", "").strip()
+    smtp_pass = os.getenv("SMTP_PASS", "").strip()
 
     if not all([admin_email, smtp_server, smtp_user, smtp_pass]):
         print("WARNING: SMTP_SERVER vb. .env ayarları eksik. Mail gönderilmedi, ancak form başarılı sayıldı.")
