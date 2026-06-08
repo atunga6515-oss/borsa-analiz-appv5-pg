@@ -35,6 +35,7 @@ def get_portfolio_risk(current_user: str = Depends(get_current_user)):
         bench_var = 0.0
     else:
         bench_returns = bench_df['Close'].pct_change().dropna()
+        bench_returns = bench_returns[~bench_returns.index.duplicated(keep='last')]
         bench_var = bench_returns.var()
     
     positions = df_pos.to_dict(orient="records")
@@ -76,6 +77,7 @@ def get_portfolio_risk(current_user: str = Depends(get_current_user)):
         
         # Returns for Beta & VaR
         ticker_returns = df['Close'].pct_change().dropna()
+        ticker_returns = ticker_returns[~ticker_returns.index.duplicated(keep='last')]
         returns_dict[ticker] = ticker_returns
         
         # Calculate individual Beta
