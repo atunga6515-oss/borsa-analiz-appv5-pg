@@ -217,11 +217,17 @@ def contact_admin(req: ContactRequest):
 
     try:
         msg = EmailMessage()
-        msg['Subject'] = f"AlfaBIST Terminal - Yeni İletişim Talebi ({req.name})"
+        
+        # Sadece ASCII karakterler kullan (Subject için)
+        safe_name = req.name.encode('ascii', 'ignore').decode('ascii')
+        msg['Subject'] = f"AlfaBIST Terminal - Yeni Iletisim Talebi ({safe_name})"
         msg['From'] = smtp_user
         msg['To'] = admin_email
         
-        body = f"Yeni bir iletişim / demo talebi aldınız:\n\nAd Soyad: {req.name}\nE-posta: {req.email}\n\nMesaj:\n{req.message}\n"
+        body = f"Yeni bir iletisim / demo talebi aldiniz:\n\nAd Soyad: {req.name}\nE-posta: {req.email}\n\nMesaj:\n{req.message}\n"
+        
+        # Body içindeki görünmez boşlukları normal boşluğa çevir
+        body = body.replace('\xa0', ' ')
         msg.set_content(body)
 
         server = smtplib.SMTP(smtp_server, int(smtp_port))
@@ -231,5 +237,7 @@ def contact_admin(req: ContactRequest):
         server.quit()
         return {"status": "success"}
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         print(f"Mail gönderme hatası: {e}")
         raise HTTPException(status_code=500, detail="Mail gönderilirken hata oluştu.")
