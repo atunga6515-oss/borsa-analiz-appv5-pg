@@ -25,10 +25,10 @@ def get_portfolio_risk(current_user: str = Depends(get_current_user)):
             }
         }
     
-    bench_df = fetch_data("XU100.IS", "1y")
+    bench_df = fetch_data("XU100.IS", period="1y")
     if bench_df is None or bench_df.empty:
         # Fallback if XU100.IS is not available
-        bench_df = fetch_data("TURKCELL.IS", "1y") # dummy fallback
+        bench_df = fetch_data("TCELL.IS", period="1y") # dummy fallback
 
     if bench_df is None or bench_df.empty:
         bench_returns = pd.Series([0.0])
@@ -54,7 +54,7 @@ def get_portfolio_risk(current_user: str = Depends(get_current_user)):
         alis_fiyati = float(pos['alis_fiyati'])
         
         # Fetch 1y data
-        df = fetch_data(ticker, "1y")
+        df = fetch_data(ticker, period="1y")
         if df is None or df.empty:
             continue
             
