@@ -198,6 +198,7 @@ def register(req: RegisterRequest, current_user: str = Depends(get_current_user)
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.header import Header
 
 class ContactRequest(BaseModel):
     name: str
@@ -220,10 +221,10 @@ def contact_admin(req: ContactRequest):
         msg = MIMEMultipart()
         msg['From'] = smtp_user
         msg['To'] = admin_email
-        msg['Subject'] = f"AlfaBIST Terminal - Yeni İletişim Talebi ({req.name})"
+        msg['Subject'] = Header(f"AlfaBIST Terminal - Yeni İletişim Talebi ({req.name})", 'utf-8')
 
         body = f"Yeni bir iletişim / demo talebi aldınız:\n\nAd Soyad: {req.name}\nE-posta: {req.email}\n\nMesaj:\n{req.message}\n"
-        msg.attach(MIMEText(body, 'plain'))
+        msg.attach(MIMEText(body, 'plain', 'utf-8'))
 
         server = smtplib.SMTP(smtp_server, int(smtp_port))
         server.starttls()
