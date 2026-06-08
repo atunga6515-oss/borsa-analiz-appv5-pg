@@ -52,7 +52,7 @@ function LevelBadge({ level }: { level: string }) {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function AdminPage() {
     const router = useRouter();
-    const [tab, setTab] = useState<"users" | "sessions" | "logs" | "settings">("users");
+    const [tab, setTab] = useState<"users" | "sessions" | "logs">("users");
     const [stats, setStats] = useState<Stats | null>(null);
     const [users, setUsers] = useState<UserRow[]>([]);
     const [sessions, setSessions] = useState<Session[]>([]);
@@ -296,8 +296,8 @@ export default function AdminPage() {
 
             {/* Tabs */}
             <div className="flex gap-2 mb-4 border-b border-[var(--color-b-border)] overflow-x-auto whitespace-nowrap pb-2">
-                {(["users", "sessions", "logs", "settings"] as const).map((t) => {
-                    const labels = { users: "👥 Kullanıcı Yönetimi", sessions: "🟢 Canlı Takip", logs: "📋 Sistem Logları", settings: "⚙️ Ayarlar" };
+                {(["users", "sessions", "logs"] as const).map((t) => {
+                    const labels = { users: "👥 Kullanıcı Yönetimi", sessions: "🟢 Canlı Takip", logs: "📋 Sistem Logları" };
                     return (
                         <button
                             key={t}
@@ -617,96 +617,7 @@ export default function AdminPage() {
                 </div>
             )}
 
-            {/* ── TAB: Sistem Ayarları ── */}
-            {tab === "settings" && (
-                <div className="flex flex-col gap-4 max-w-2xl mx-auto w-full">
-                    <form onSubmit={saveSettings} className="glass-panel p-6 rounded-xl border border-[var(--color-b-border)]">
-                        <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                            <span>⚙️</span> Sistem Ayarları
-                        </h2>
-                        
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-[var(--color-b-muted)] mb-1">
-                                    SMTP Sunucu
-                                </label>
-                                <input 
-                                    type="text" 
-                                    value={settings.smtp_server || ""}
-                                    onChange={(e) => setSettings({...settings, smtp_server: e.target.value})}
-                                    className="w-full bg-[#1e2329] border border-[var(--color-b-border)] rounded px-3 py-2 text-white"
-                                    placeholder="smtp.gmail.com"
-                                />
-                            </div>
-                            
-                            <div>
-                                <label className="block text-sm font-medium text-[var(--color-b-muted)] mb-1">
-                                    SMTP Port
-                                </label>
-                                <input 
-                                    type="text" 
-                                    value={settings.smtp_port || ""}
-                                    onChange={(e) => setSettings({...settings, smtp_port: e.target.value})}
-                                    className="w-full bg-[#1e2329] border border-[var(--color-b-border)] rounded px-3 py-2 text-white"
-                                    placeholder="587"
-                                />
-                            </div>
-                            
-                            <div>
-                                <label className="block text-sm font-medium text-[var(--color-b-muted)] mb-1">
-                                    SMTP Kullanıcı Adı (Mail)
-                                </label>
-                                <input 
-                                    type="text" 
-                                    value={settings.smtp_user || ""}
-                                    onChange={(e) => setSettings({...settings, smtp_user: e.target.value})}
-                                    className="w-full bg-[#1e2329] border border-[var(--color-b-border)] rounded px-3 py-2 text-white"
-                                    placeholder="ornek@gmail.com"
-                                />
-                            </div>
-                            
-                            <div>
-                                <label className="block text-sm font-medium text-[var(--color-b-muted)] mb-1">
-                                    SMTP Uygulama Şifresi
-                                </label>
-                                <input 
-                                    type="password" 
-                                    value={settings.smtp_password || ""}
-                                    onChange={(e) => setSettings({...settings, smtp_password: e.target.value})}
-                                    className="w-full bg-[#1e2329] border border-[var(--color-b-border)] rounded px-3 py-2 text-white"
-                                    placeholder="••••••••••••"
-                                />
-                                <p className="text-xs text-gray-500 mt-1">Gmail kullanıyorsanız, hesabınızdan "Uygulama Şifreleri" oluşturup buraya girmelisiniz.</p>
-                            </div>
-                            
-                            <hr className="border-[var(--color-b-border)] my-4" />
-                            
-                            <div>
-                                <label className="block text-sm font-medium text-[var(--color-b-muted)] mb-1">
-                                    İletişim E-Postası (Kayıt Ekranı)
-                                </label>
-                                <input 
-                                    type="text" 
-                                    value={settings.contact_email || ""}
-                                    onChange={(e) => setSettings({...settings, contact_email: e.target.value})}
-                                    className="w-full bg-[#1e2329] border border-[var(--color-b-border)] rounded px-3 py-2 text-white"
-                                    placeholder="bilgi@borsaterminali.com"
-                                />
-                            </div>
-                        </div>
-                        
-                        <div className="mt-6 flex justify-end">
-                            <button 
-                                type="submit" 
-                                disabled={updating === "settings"}
-                                className="bg-[var(--color-b-yellow)] text-[#181a20] px-6 py-2 rounded-lg font-bold hover:bg-[#f0c929] transition-colors disabled:opacity-50"
-                            >
-                                {updating === "settings" ? "Kaydediliyor..." : "Ayarları Kaydet"}
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            )}
+
         </div>
     );
 }
