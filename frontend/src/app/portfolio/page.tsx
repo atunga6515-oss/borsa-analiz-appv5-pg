@@ -169,6 +169,42 @@ export default function PortfolioPage() {
         }
     };
 
+    const [refreshingPrices, setRefreshingPrices] = useState(false);
+    const handleRefreshPrices = async () => {
+        setRefreshingPrices(true);
+        try {
+            const tickers = positions.map((p: any) => p.ticker);
+            if (tickers.length > 0) {
+                const priceRes = await api.post('/data/prices/batch', { tickers });
+                if (priceRes.data && priceRes.data.data) {
+                    setLivePrices(priceRes.data.data);
+                }
+            }
+        } catch (error) {
+            console.error("Fiyatlar güncellenemedi:", error);
+        } finally {
+            setRefreshingPrices(false);
+        }
+    };
+
+    // Calculate Portfolio Totals
+    let totalInvestment = 0;
+    let totalCurrentValue = 0;
+
+    positions.forEach((row: any) => {
+        const liveData = livePrices[row.ticker];
+        totalInvestment += (row.alis_fiyati * row.adet);
+        if (liveData) {
+            totalCurrentValue += (liveData.price * row.adet);
+        } else {
+            // Fallback to purchase price if live data not loaded yet
+            totalCurrentValue += (row.alis_fiyati * row.adet);
+        }
+    });
+
+    const netProfitAmount = totalCurrentValue - totalInvestment;
+    const netProfitPercentage = totalInvestment > 0 ? (netProfitAmount / totalInvestment) * 100 : 0;
+
     return (
         <>
         <div className="flex w-full h-full p-6 flex-col bg-[var(--color-b-bg)] text-[var(--color-b-text)]">
@@ -199,34 +235,62 @@ export default function PortfolioPage() {
                 </div>
             </div>
             
-            {/* Portfolio Analysis Widgets */}
-            {analysis && positions.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                    <div className="glass-panel p-4 rounded-lg flex flex-col justify-center border-l-4 border-[var(--color-b-yellow)]">
-                        <span className="text-sm text-[var(--color-b-muted)]">Portföy Ort. F/K</span>
-                        <span className="text-2xl font-bold text-white">{analysis.weighted_pe > 0 ? analysis.weighted_pe.toFixed(2) : "-"}</span>
-                    </div>
-                    <div className="glass-panel p-4 rounded-lg flex flex-col justify-center border-l-4 border-[var(--color-b-green)]">
-                        <span className="text-sm text-[var(--color-b-muted)]">Portföy Ort. PD/DD</span>
-                        <span className="text-2xl font-bold text-white">{analysis.weighted_pb > 0 ? analysis.weighted_pb.toFixed(2) : "-"}</span>
-                    </div>
-                    <div className="glass-panel p-4 rounded-lg flex flex-col justify-center border-l-4 border-indigo-500">
-                        <span className="text-sm text-[var(--color-b-muted)] mb-2">En Yüksek Ağırlıklı 3 Sektör</span>
-                        <div className="flex flex-col gap-1">
-                            {analysis.sectors.length === 0 && <span className="text-xs text-white">Veri Bekleniyor...</span>}
-                            {analysis.sectors.slice(0, 3).map((sec: any) => (
-                                <div key={sec.name} className="flex items-center gap-2">
-                                    <div className="h-2 flex-1 bg-[#181a20] rounded-full overflow-hidden">
-                                        <div className="h-full bg-indigo-500" style={{width: `${sec.percentage}%`}}></div>
-                                    </div>
-                                    <span className="text-xs text-white font-bold w-12 text-right">%{sec.percentage.toFixed(1)}</span>
-                                    <span className="text-[10px] text-[var(--color-b-muted)] w-24 truncate">{sec.name}</span>
-                                </div>
-                            ))}
-                        </div>
+            {/* Financial Summary Widgets */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-4">
+                <div className="glass-panel p-4 rounded-lg flex flex-col justify-center border-l-4 border-blue-500 relative">
+                    <span className="text-xs text-[var(--color-b-muted)]">Toplam Yatırım</span>
+                    <span className="text-xl font-bold text-white">{totalInvestment.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺</span>
+                    <button 
+                        onClick={handleRefreshPrices} 
+                        disabled={refreshingPrices}
+                        className="absolute right-4 top-4 text-xs bg-[#1e2329] border border-[var(--color-b-border)] hover:bg-gray-700 text-[var(--color-b-muted)] hover:text-white px-2 py-1 rounded transition-colors"
+                        title="Fiyatları Yenile"
+                    >
+                        {refreshingPrices ? "⏳" : "🔄 Yenile"}
+                    </button>
+                </div>
+                
+                <div className="glass-panel p-4 rounded-lg flex flex-col justify-center border-l-4 border-purple-500">
+                    <span className="text-xs text-[var(--color-b-muted)]">Portföy Değeri</span>
+                    <span className="text-xl font-bold text-white">{totalCurrentValue.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺</span>
+                </div>
+                
+                <div className={`glass-panel p-4 rounded-lg flex flex-col justify-center border-l-4 ${netProfitAmount >= 0 ? 'border-[var(--color-b-green)]' : 'border-[var(--color-b-red)]'}`}>
+                    <span className="text-xs text-[var(--color-b-muted)]">Net Kâr / Zarar</span>
+                    <div className="flex items-center gap-3">
+                        <span className={`text-xl font-bold ${netProfitAmount >= 0 ? 'text-[var(--color-b-green)]' : 'text-[var(--color-b-red)]'}`}>
+                            {netProfitAmount > 0 ? "+" : ""}{netProfitAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺
+                        </span>
+                        <span className={`text-sm font-bold px-2 py-0.5 rounded ${netProfitAmount >= 0 ? 'bg-green-900/30 text-[var(--color-b-green)]' : 'bg-red-900/30 text-[var(--color-b-red)]'}`}>
+                            {netProfitPercentage > 0 ? "+" : ""}{netProfitPercentage.toFixed(2)}%
+                        </span>
                     </div>
                 </div>
-            )}
+                
+                {/* Fundamental Analysis Mini-Widgets (Shrunk) */}
+                {analysis && positions.length > 0 ? (
+                    <div className="glass-panel p-3 rounded-lg flex flex-col justify-between border-l-4 border-gray-600">
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="text-[10px] text-[var(--color-b-muted)]">Ort. F/K</span>
+                            <span className="text-sm font-bold text-white">{analysis.weighted_pe > 0 ? analysis.weighted_pe.toFixed(2) : "-"}</span>
+                        </div>
+                        <div className="flex justify-between items-center mb-2">
+                            <span className="text-[10px] text-[var(--color-b-muted)]">Ort. PD/DD</span>
+                            <span className="text-sm font-bold text-white">{analysis.weighted_pb > 0 ? analysis.weighted_pb.toFixed(2) : "-"}</span>
+                        </div>
+                        <div className="flex gap-1 overflow-hidden h-1.5 rounded bg-[#181a20]">
+                            {analysis.sectors.slice(0, 3).map((sec: any) => (
+                                <div key={sec.name} className="h-full bg-indigo-500 border-r border-[#181a20]" style={{width: `${sec.percentage}%`}} title={`${sec.name} (%${sec.percentage.toFixed(1)})`}></div>
+                            ))}
+                        </div>
+                        <span className="text-[8px] text-[var(--color-b-muted)] mt-1 truncate" title="En Yüksek Sektörler">Sektör Dağılımı</span>
+                    </div>
+                ) : (
+                    <div className="glass-panel p-3 rounded-lg flex items-center justify-center border-l-4 border-gray-600">
+                        <span className="text-xs text-[var(--color-b-muted)]">Temel Veri Bekleniyor...</span>
+                    </div>
+                )}
+            </div>
             
             <div className="glass-panel flex-1 overflow-auto rounded-lg">
                 <table className="w-full text-left border-collapse">
