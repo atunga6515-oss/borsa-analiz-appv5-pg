@@ -34,7 +34,7 @@ else:
                 "DB_PASSWORD=sifreniz\n"
                 "DB_HOST=localhost\n"
                 "DB_PORT=5432\n"
-                "DB_NAME=borsa_v5\n\n"
+                "DB_NAME=alfabist_db\n\n"
             )
 
 if not DATABASE_URL:

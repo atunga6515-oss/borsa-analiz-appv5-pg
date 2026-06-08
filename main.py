@@ -25,9 +25,9 @@ import os
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="Borsa Analiz API",
-    description="Backend API for Borsa Analiz Terminal V5",
-    version="1.0.0"
+    title="AlfaBIST API",
+    description="Backend API for AlfaBIST Terminal",
+    version="1.0.0",
 )
 
 # Rate Limiting (Brute force & Abuse protection)
@@ -76,5 +76,5 @@ app.include_router(market_router)
 app.include_router(alpharank_router, prefix="/api/alpharank", tags=["AlphaRank"])
 
 @app.get("/")
-def read_root():
-    return {"status": "ok", "message": "Borsa Analiz API is running on FastAPI"}
+def root():
+    return {"status": "ok", "message": "AlfaBIST API is running on FastAPI"}

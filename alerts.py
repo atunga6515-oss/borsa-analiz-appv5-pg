@@ -24,7 +24,7 @@ def check_hybrid_alerts(ticker: str, score: float, current_price: float, kap_sen
             msg += f"🗞️ **Haber Duygusu (AI):** {kap_sentiment:.2f} (Pozitif İvme)\n"
             msg += f"💰 **Mevcut Fiyat:** {current_price:.2f} ₺\n"
             msg += f"🤖 **ML Hedef Fiyat:** {ml_target:.2f} ₺\n\n"
-            msg += "⚠️ *Bu hisse algoritmanın Otonom Trading (V5) ideal kriterlerini karşılıyor!*"
+            msg += "⚠️ *Bu hisse algoritmanın Otonom Trading (AlfaBIST) ideal kriterlerini karşılıyor!*"
             
             send_telegram_report(msg)
             # Rapor gönderildiğini kaydet
