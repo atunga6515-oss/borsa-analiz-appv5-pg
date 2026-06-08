@@ -299,6 +299,7 @@ export default function PortfolioPage() {
                             <th className="p-4 border-b border-[var(--color-b-border)] font-semibold">Hisse</th>
                             <th className="p-4 border-b border-[var(--color-b-border)] font-semibold">Adet</th>
                             <th className="p-4 border-b border-[var(--color-b-border)] font-semibold">Maliyet</th>
+                            <th className="p-4 border-b border-[var(--color-b-border)] font-semibold">Alış Tutarı</th>
                             <th className="p-4 border-b border-[var(--color-b-border)] font-semibold">Güncel Fiyat</th>
                             <th className="p-4 border-b border-[var(--color-b-border)] font-semibold">Kâr/Zarar</th>
                             <th className="p-4 border-b border-[var(--color-b-border)] font-semibold text-right">İşlem</th>
@@ -307,13 +308,13 @@ export default function PortfolioPage() {
                     <tbody>
                         {loading ? (
                             <tr>
-                                <td colSpan={5} className="p-12 text-center text-[var(--color-b-muted)]">
+                                <td colSpan={7} className="p-12 text-center text-[var(--color-b-muted)]">
                                     Yükleniyor...
                                 </td>
                             </tr>
                         ) : positions.length === 0 ? (
                             <tr>
-                                <td colSpan={5} className="p-12 text-center text-[var(--color-b-muted)]">
+                                <td colSpan={7} className="p-12 text-center text-[var(--color-b-muted)]">
                                     <div className="text-5xl mb-4">💼</div>
                                     Henüz açık pozisyonunuz bulunmuyor.
                                 </td>
@@ -332,6 +333,9 @@ export default function PortfolioPage() {
                                     </td>
                                     <td className="p-4 text-white font-medium">{row.adet} Lot</td>
                                     <td className="p-4 text-white font-medium">{row.alis_fiyati} ₺</td>
+                                    <td className="p-4 text-[var(--color-b-muted)] font-medium">
+                                        {(row.adet * row.alis_fiyati).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺
+                                    </td>
                                     <td className="p-4 text-white font-medium">
                                         {liveData ? `${liveData.price} ₺` : "Yükleniyor..."}
                                     </td>
