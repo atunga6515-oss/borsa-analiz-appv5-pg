@@ -1,10 +1,11 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import api from "@/lib/api";
 import TradingChart from "@/components/TradingChart";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { useSearchParams } from "next/navigation";
 
-export default function AnalysisPage() {
+function AnalysisPageContent() {
     const { requireAuth, AuthModal } = useRequireAuth();
     const [ticker, setTicker] = useState("THYAO");
     const [data, setData] = useState<any>(null);
@@ -16,6 +17,8 @@ export default function AnalysisPage() {
     const [historyList, setHistoryList] = useState<any[]>([]);
     const [selectedHistoryId, setSelectedHistoryId] = useState("");
 
+    const searchParams = useSearchParams();
+
     const fetchHistoryList = async () => {
         try {
             const res = await api.get('/analysis/history/list');
@@ -26,10 +29,17 @@ export default function AnalysisPage() {
             console.error("Geçmiş çekilemedi", e);
         }
     };
+
     useEffect(() => {
         // Cookie-based auth: token kontrolü yok, interceptor 401 yönetir
         fetchHistoryList();
-    }, []);
+        
+        const tickerParam = searchParams.get("ticker");
+        if (tickerParam) {
+            setTicker(tickerParam.toUpperCase());
+            requireAuth(() => fetchAnalysis(tickerParam.toUpperCase()));
+        }
+    }, [searchParams]);
 
     const fetchHistoryById = async (id: string) => {
         if (!id) return;
@@ -348,5 +358,13 @@ ${ssot.summary || "-"}`;
         </div>
         <AuthModal />
         </>
+    );
+}
+
+export default function AnalysisPage() {
+    return (
+        <Suspense fallback={<div className="p-8 text-white">Yükleniyor...</div>}>
+            <AnalysisPageContent />
+        </Suspense>
     );
 }

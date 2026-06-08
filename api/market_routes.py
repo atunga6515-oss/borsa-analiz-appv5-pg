@@ -35,8 +35,8 @@ def fetch_heatmap(current_user: str = Depends(get_current_user)):
     heatmap_data = []
     
     try:
-        # Fetch 2 days of data to calculate percentage change
-        data = yf.download(tickers_str, period="2d", progress=False)
+        # Fetch 5 days of data to guarantee at least 2 valid days even on weekends/holidays
+        data = yf.download(tickers_str, period="5d", progress=False)
         
         if data.empty:
             return {"data": heatmap_data}

@@ -370,7 +370,7 @@ export default function ScreenerPage() {
                                     <td className="p-4">
                                         <div className="flex gap-2">
                                             <button 
-                                                onClick={() => router.push(`/?ticker=${row["Hisse"]}`)}
+                                                onClick={() => router.push(`/analysis?ticker=${row["Hisse"]}`)}
                                                 className="text-xs text-[var(--color-b-muted)] hover:text-[var(--color-b-yellow)] border border-[var(--color-b-muted)] hover:border-[var(--color-b-yellow)] px-3 py-1 rounded transition-colors"
                                             >
                                                 İncele
