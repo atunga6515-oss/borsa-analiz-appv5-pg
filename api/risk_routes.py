@@ -25,16 +25,20 @@ def get_portfolio_risk(current_user: str = Depends(get_current_user)):
             }
         }
     
-    # 1. Fetch Benchmark (XU100) Data
     bench_df = fetch_data("XU100.IS", "1y")
     if bench_df is None or bench_df.empty:
         # Fallback if XU100.IS is not available
         bench_df = fetch_data("TURKCELL.IS", "1y") # dummy fallback
 
-    bench_returns = bench_df['Close'].pct_change().dropna()
-    bench_var = bench_returns.var()
+    if bench_df is None or bench_df.empty:
+        bench_returns = pd.Series([0.0])
+        bench_var = 0.0
+    else:
+        bench_returns = bench_df['Close'].pct_change().dropna()
+        bench_var = bench_returns.var()
     
     positions = df_pos.to_dict(orient="records")
+    adets = {p['ticker']: float(p['adet']) for p in positions}
     
     # We will build a common dataframe for returns to calculate VaR
     returns_dict = {}
@@ -116,7 +120,7 @@ def get_portfolio_risk(current_user: str = Depends(get_current_user)):
     # Calculate Portfolio Beta
     portfolio_beta = 0
     for ticker, beta in betas.items():
-        weight = (current_prices[ticker] * df_pos[df_pos['ticker'] == ticker]['adet'].values[0]) / total_portfolio_value
+        weight = (current_prices[ticker] * adets[ticker]) / total_portfolio_value
         portfolio_beta += beta * weight
         
     # Calculate VaR (Historical Simulation)
@@ -124,7 +128,7 @@ def get_portfolio_risk(current_user: str = Depends(get_current_user)):
     # Weights series
     weights = []
     for col in returns_df.columns:
-        w = (current_prices[col] * df_pos[df_pos['ticker'] == col]['adet'].values[0]) / total_portfolio_value
+        w = (current_prices[col] * adets[col]) / total_portfolio_value
         weights.append(w)
         
     weights_series = pd.Series(weights, index=returns_df.columns)
