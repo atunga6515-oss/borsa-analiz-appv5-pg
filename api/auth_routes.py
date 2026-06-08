@@ -210,6 +210,10 @@ def contact_admin(req: ContactRequest):
     smtp_port = os.getenv("SMTP_PORT", "587").strip()
     smtp_user = os.getenv("SMTP_USER", "").strip()
     smtp_pass = os.getenv("SMTP_PASS", "").strip()
+    
+    # Şifre içindeki olası görünmez/normal boşlukları temizle (Google App Password için kritik)
+    smtp_pass = smtp_pass.replace('\xa0', '').replace(' ', '')
+    smtp_user = smtp_user.replace('\xa0', '').replace(' ', '')
 
     if not all([admin_email, smtp_server, smtp_user, smtp_pass]):
         print("WARNING: SMTP_SERVER vb. .env ayarları eksik. Mail gönderilmedi, ancak form başarılı sayıldı.")
