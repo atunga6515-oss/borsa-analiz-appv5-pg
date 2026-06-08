@@ -196,9 +196,7 @@ def register(req: RegisterRequest, current_user: str = Depends(get_current_user)
     }
 
 import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from email.header import Header
+from email.message import EmailMessage
 
 class ContactRequest(BaseModel):
     name: str
@@ -218,19 +216,18 @@ def contact_admin(req: ContactRequest):
         return {"status": "success", "warning": "SMTP_NOT_CONFIGURED"}
 
     try:
-        msg = MIMEMultipart()
+        msg = EmailMessage()
+        msg['Subject'] = f"AlfaBIST Terminal - Yeni İletişim Talebi ({req.name})"
         msg['From'] = smtp_user
         msg['To'] = admin_email
-        msg['Subject'] = Header(f"AlfaBIST Terminal - Yeni İletişim Talebi ({req.name})", 'utf-8')
-
+        
         body = f"Yeni bir iletişim / demo talebi aldınız:\n\nAd Soyad: {req.name}\nE-posta: {req.email}\n\nMesaj:\n{req.message}\n"
-        msg.attach(MIMEText(body, 'plain', 'utf-8'))
+        msg.set_content(body)
 
         server = smtplib.SMTP(smtp_server, int(smtp_port))
         server.starttls()
         server.login(smtp_user, smtp_pass)
-        text = msg.as_string()
-        server.sendmail(smtp_user, admin_email, text)
+        server.send_message(msg)
         server.quit()
         return {"status": "success"}
     except Exception as e:
