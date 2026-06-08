@@ -100,10 +100,10 @@ function LoginContent() {
                 {/* Logo */}
                 <div className="text-center mb-10">
                     <div className="inline-flex items-center gap-3 mb-4">
-                        <div className="w-12 h-12 rounded-xl bg-[var(--color-b-yellow)] flex items-center justify-center font-black text-[#181a20] text-xl shadow-lg shadow-[rgba(252,213,53,0.3)]">
-                            V5
+                        <div className="w-12 h-12 rounded-xl bg-[var(--color-b-yellow)] flex items-center justify-center font-black text-[#181a20] text-3xl shadow-lg shadow-[rgba(252,213,53,0.3)]">
+                            α
                         </div>
-                        <span className="text-3xl font-black text-white tracking-tight">Borsa Terminal</span>
+                        <span className="text-3xl font-black text-white tracking-tight">AlfaBIST</span>
                     </div>
                     <p className="text-[var(--color-b-muted)] text-sm">
                         Profesyonel Hisse Senedi Analiz Platformu
