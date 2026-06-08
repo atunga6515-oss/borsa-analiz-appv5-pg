@@ -76,18 +76,71 @@ def fetch_macro_calendar(current_user: str = Depends(get_current_user)):
     Not: Gerçek bir API bağlamadan önce statik bir veri seti ile simüle edilmektedir.
     """
     import datetime
-    
+    from dateutil.relativedelta import relativedelta
+
     now = datetime.datetime.now()
     
-    # Örnek kritik takvim verisi (yaklaşan olaylar için tarihler dinamik kaydırılabilir veya API bağlanabilir)
-    events = [
-        {"id": 1, "date": "2024-06-27", "time": "14:00", "country": "TR", "event": "TCMB Faiz Kararı", "importance": "High", "forecast": "50.00%", "previous": "50.00%"},
-        {"id": 2, "date": "2024-07-03", "time": "10:00", "country": "TR", "event": "TÜFE (Yıllık)", "importance": "High", "forecast": "72.50%", "previous": "75.45%"},
-        {"id": 3, "date": "2024-07-31", "time": "21:00", "country": "US", "event": "FED Faiz Kararı", "importance": "High", "forecast": "5.50%", "previous": "5.50%"},
-        {"id": 4, "date": "2024-08-05", "time": "10:00", "country": "TR", "event": "TÜFE (Yıllık)", "importance": "High", "forecast": "60.00%", "previous": "71.60%"},
-        {"id": 5, "date": "2024-08-20", "time": "14:00", "country": "TR", "event": "TCMB Faiz Kararı", "importance": "High", "forecast": "50.00%", "previous": "50.00%"},
-        {"id": 6, "date": "2024-09-18", "time": "21:00", "country": "US", "event": "FED Faiz Kararı", "importance": "High", "forecast": "5.25%", "previous": "5.50%"},
-        {"id": 7, "date": "2024-11-05", "time": "00:00", "country": "US", "event": "ABD Başkanlık Seçimleri", "importance": "High", "forecast": "-", "previous": "-"},
-    ]
+    # Her ayın son perşembesi TCMB, ayın 3'ü civarı TÜFE, ortası FED mantığıyla dinamik veri üretimi
+    events = []
+    
+    for i in range(3):
+        target_month = now + relativedelta(months=i)
+        
+        # O ayın 3'ü TÜFE
+        tufe_date = target_month.replace(day=3)
+        if tufe_date.weekday() >= 5: # Hafta sonuna geliyorsa pazartesiye al
+            tufe_date += datetime.timedelta(days=(7 - tufe_date.weekday()))
+            
+        events.append({
+            "id": i*10 + 1, 
+            "date": tufe_date.strftime("%Y-%m-%d"), 
+            "time": "10:00", 
+            "country": "TR", 
+            "event": "TÜFE (Yıllık)", 
+            "importance": "High", 
+            "forecast": "-", 
+            "previous": "-"
+        })
+        
+        # O ayın tahmini TCMB toplantısı (genelde ayın 20'leri)
+        tcmb_date = target_month.replace(day=23)
+        if tcmb_date.weekday() >= 5:
+            tcmb_date -= datetime.timedelta(days=(tcmb_date.weekday() - 4))
+        
+        events.append({
+            "id": i*10 + 2, 
+            "date": tcmb_date.strftime("%Y-%m-%d"), 
+            "time": "14:00", 
+            "country": "TR", 
+            "event": "TCMB Faiz Kararı", 
+            "importance": "High", 
+            "forecast": "50.00%", 
+            "previous": "50.00%"
+        })
+        
+        # 1. ve 3. aylara tahmini FED toplantısı koy
+        if i % 2 == 0:
+            fed_date = target_month.replace(day=18)
+            if fed_date.weekday() >= 5:
+                fed_date -= datetime.timedelta(days=(fed_date.weekday() - 3))
+            
+            events.append({
+                "id": i*10 + 3, 
+                "date": fed_date.strftime("%Y-%m-%d"), 
+                "time": "21:00", 
+                "country": "US", 
+                "event": "FED Faiz Kararı", 
+                "importance": "High", 
+                "forecast": "5.50%", 
+                "previous": "5.50%"
+            })
+            
+    # Geçmiş tarihli olanları filtrele (sadece bugün ve sonrasını göster) ve tarihe göre sırala
+    today_str = now.strftime("%Y-%m-%d")
+    events = [e for e in events if e["date"] >= today_str]
+    events = sorted(events, key=lambda x: x["date"])
+    
+    # En fazla 7 etkinlik göster
+    events = events[:7]
     
     return {"data": events}
