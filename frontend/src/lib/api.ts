@@ -29,7 +29,7 @@ api.interceptors.response.use(
         // Eğer kullanıcı ana sayfadaysa (dashboard) yönlendirme yapma.
         // Başka bir özelliğe (sayfaya) tıklayıp geldiyse login'e yönlendir ve mesaj ekle.
         if (window.location.pathname !== '/login' && window.location.pathname !== '/') {
-          window.location.href = '/login?msg=test_features';
+          window.location.replace('/login?msg=session_expired');
         }
       }
     }
