@@ -83,7 +83,9 @@ def process_robot_sales():
                             live_price = float(df.iloc[-1]['Close']) if 'df' in locals() and df is not None else alis_fiyati
 
                         sell_value = live_price * adet
-                        total_sold_value += sell_value
+                        commission = sell_value * 0.002
+                        net_sell_value = sell_value - commission
+                        total_sold_value += net_sell_value
                         
                         # Trade geçmişine ekle
                         conn.execute(
@@ -182,11 +184,14 @@ def process_robot_buys():
                     if investment_amount < 1000:
                         continue # Bakiye bitmiş
                         
-                    adet = investment_amount // live_price
+                    # Komisyon dahil alınabilecek miktar: adet * fiyat * 1.002 <= investment_amount
+                    adet = int(investment_amount // (live_price * 1.002))
                     if adet <= 0:
                         continue
 
                     total_cost = adet * live_price
+                    commission = total_cost * 0.002
+                    net_cost = total_cost + commission
                     
                     # Alım İşlemi
                     conn.execute(
@@ -208,13 +213,13 @@ def process_robot_buys():
                     )
                     
                     # Bakiyeyi güncelle
-                    current_balance -= total_cost
+                    current_balance -= net_cost
                     conn.execute(
                         text("UPDATE robot_sessions SET current_balance = :b WHERE id = :id"),
                         {"b": current_balance, "id": session_id}
                     )
                     
-                    logger.info(f"[ROBOT] {ticker} ALINDI. Adet: {adet}, Fiyat: {live_price}, Bakiye: {current_balance}")
+                    logger.info(f"[ROBOT] {ticker} ALINDI. Adet: {adet}, Fiyat: {live_price}, Komisyon: {commission:.2f}, Kalan Bakiye: {current_balance:.2f}")
                     held_tickers.append(ticker)
 
     except Exception as e:

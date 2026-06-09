@@ -66,7 +66,8 @@ def stop_robot(current_user: str = Depends(get_current_user)):
                 live_price = 1.0 # Fallback
             
             sell_val = live_price * adet
-            current_balance += sell_val
+            commission = sell_val * 0.002
+            current_balance += (sell_val - commission)
             
             conn.execute(
                 text("""
@@ -127,10 +128,15 @@ def get_robot_status(current_user: str = Depends(get_current_user)):
             "tarih": str(at)
         })
 
-    trade_list = [
-        {"ticker": t, "type": ty, "price": pr, "adet": ad, "date": str(d), "reason": r}
-        for t, ty, pr, ad, d, r in trades
-    ]
+    total_commission_paid = 0.0
+    total_trades_count = len(trades)
+    
+    trade_list = []
+    for t, ty, pr, ad, d, r in trades:
+        val = pr * ad
+        comm = val * 0.002
+        total_commission_paid += comm
+        trade_list.append({"ticker": t, "type": ty, "price": pr, "adet": ad, "date": str(d), "reason": r})
 
     total_assets = current_balance + total_portfolio_value
     pnl_pct = ((total_assets - initial_balance) / initial_balance) * 100
@@ -142,6 +148,8 @@ def get_robot_status(current_user: str = Depends(get_current_user)):
         "current_balance": current_balance,
         "total_assets": total_assets,
         "pnl_pct": pnl_pct,
+        "total_commission_paid": total_commission_paid,
+        "total_trades_count": total_trades_count,
         "start_date": str(start_date),
         "end_date": str(end_date),
         "portfolio": port_list,

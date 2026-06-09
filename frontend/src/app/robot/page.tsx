@@ -113,7 +113,7 @@ export default function RobotPage() {
             ) : (
                 <div className="space-y-8">
                     {/* Dashboard */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                         <div className="glass-panel p-6">
                             <div className="text-sm text-[var(--color-text-dim)] mb-1">Başlangıç Sermayesi</div>
                             <div className="text-2xl font-bold text-white">{statusData.initial_balance.toLocaleString("tr-TR", {maximumFractionDigits:2})} TL</div>
@@ -131,6 +131,11 @@ export default function RobotPage() {
                             <div className={`text-3xl font-bold ${statusData.pnl_pct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                                 {statusData.pnl_pct >= 0 ? '+' : ''}{statusData.pnl_pct.toFixed(2)}%
                             </div>
+                        </div>
+                        <div className="glass-panel p-6 border-l-2 border-red-500/30 bg-red-500/5">
+                            <div className="text-sm text-[var(--color-text-dim)] mb-1">İşlem & Komisyon</div>
+                            <div className="text-lg font-bold text-white mb-1">{statusData.total_trades_count || 0} İşlem</div>
+                            <div className="text-sm font-medium text-red-400">-{statusData.total_commission_paid?.toLocaleString("tr-TR", {maximumFractionDigits:2}) || 0} TL</div>
                         </div>
                     </div>
 
