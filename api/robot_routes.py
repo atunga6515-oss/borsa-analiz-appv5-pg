@@ -155,3 +155,41 @@ def get_robot_status(current_user: str = Depends(get_current_user)):
         "portfolio": port_list,
         "trades": trade_list
     }
+
+@router.get("/history")
+def get_robot_history(current_user: str = Depends(get_current_user)):
+    with engine.connect() as conn:
+        sessions = conn.execute(
+            text("SELECT id, start_date, end_date, initial_balance, current_balance, status FROM robot_sessions WHERE username = :u AND status != 'active' ORDER BY id DESC LIMIT 10"),
+            {"u": current_user}
+        ).fetchall()
+        
+        history_list = []
+        for s in sessions:
+            s_id, s_start, s_end, s_init, s_curr, s_stat = s
+            
+            # Fetch trades to calculate commission
+            trades = conn.execute(
+                text("SELECT price, adet FROM robot_trades WHERE session_id = :sid"),
+                {"sid": s_id}
+            ).fetchall()
+            
+            comm = sum([pr * ad * 0.002 for pr, ad in trades])
+            
+            # For finished sessions, total_assets is basically current_balance since everything is sold
+            total_assets = s_curr
+            pnl_pct = ((total_assets - s_init) / s_init) * 100
+            
+            history_list.append({
+                "id": s_id,
+                "start_date": str(s_start),
+                "end_date": str(s_end),
+                "initial_balance": s_init,
+                "current_balance": s_curr,
+                "total_assets": total_assets,
+                "pnl_pct": pnl_pct,
+                "total_commission_paid": comm,
+                "status": s_stat
+            })
+            
+    return history_list

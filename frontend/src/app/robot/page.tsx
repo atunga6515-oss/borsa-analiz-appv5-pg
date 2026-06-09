@@ -8,6 +8,7 @@ export default function RobotPage() {
     
     const [loading, setLoading] = useState(true);
     const [statusData, setStatusData] = useState<any>(null);
+    const [historyData, setHistoryData] = useState<any[]>([]);
     
     // Form state
     const [balance, setBalance] = useState(1000000);
@@ -16,10 +17,14 @@ export default function RobotPage() {
     const fetchStatus = async () => {
         setLoading(true);
         try {
-            const res = await api.get('/robot/status');
-            setStatusData(res.data);
+            const [statusRes, historyRes] = await Promise.all([
+                api.get('/robot/status'),
+                api.get('/robot/history')
+            ]);
+            setStatusData(statusRes.data);
+            setHistoryData(historyRes.data);
         } catch (e) {
-            console.error("Robot durumu alınamadı", e);
+            console.error("Robot verileri alınamadı", e);
         } finally {
             setLoading(false);
         }
@@ -237,6 +242,43 @@ export default function RobotPage() {
                         ) : (
                             <p className="text-[var(--color-text-dim)] text-center py-8">Henüz bir alım/satım işlemi gerçekleştirilmedi.</p>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* Geçmiş Seanslar Tablosu */}
+            {historyData.length > 0 && (
+                <div className="glass-panel p-6 mt-12">
+                    <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                        <span>🕰️</span> Önceki Robot Seansları
+                    </h2>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse text-sm">
+                            <thead className="bg-[#181a20]">
+                                <tr className="border-b border-[#2b3139] text-[var(--color-text-dim)]">
+                                    <th className="py-3 px-4 font-medium">Başlangıç</th>
+                                    <th className="py-3 px-4 font-medium">Bitiş (Süre Sonu)</th>
+                                    <th className="py-3 px-4 font-medium text-right">Başlangıç Sermayesi</th>
+                                    <th className="py-3 px-4 font-medium text-right">Bitiş Varlığı</th>
+                                    <th className="py-3 px-4 font-medium text-right">Ödenen Komisyon</th>
+                                    <th className="py-3 px-4 font-medium text-right">Net Getiri</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {historyData.map((h: any, i: number) => (
+                                    <tr key={i} className="border-b border-[#2b3139]/50 hover:bg-[#2b3139]/30 transition-colors">
+                                        <td className="py-3 px-4 text-white">{new Date(h.start_date).toLocaleString('tr-TR')}</td>
+                                        <td className="py-3 px-4 text-white">{new Date(h.end_date).toLocaleString('tr-TR')}</td>
+                                        <td className="py-3 px-4 text-right">{h.initial_balance.toLocaleString('tr-TR', {maximumFractionDigits:2})} TL</td>
+                                        <td className="py-3 px-4 text-right font-medium text-white">{h.total_assets.toLocaleString('tr-TR', {maximumFractionDigits:2})} TL</td>
+                                        <td className="py-3 px-4 text-right text-red-400">-{h.total_commission_paid.toLocaleString('tr-TR', {maximumFractionDigits:2})} TL</td>
+                                        <td className={`py-3 px-4 text-right font-bold ${h.pnl_pct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                            {h.pnl_pct >= 0 ? '+' : ''}{h.pnl_pct.toFixed(2)}%
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             )}
