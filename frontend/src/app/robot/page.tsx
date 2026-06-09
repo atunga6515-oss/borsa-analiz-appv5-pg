@@ -4,7 +4,7 @@ import api from "@/lib/api";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 export default function RobotPage() {
-    const { requireAuth, AuthModal } = useRequireAuth();
+    const { requireAuth, AuthModal, loggedIn } = useRequireAuth();
     
     const [loading, setLoading] = useState(true);
     const [statusData, setStatusData] = useState<any>(null);
@@ -26,10 +26,12 @@ export default function RobotPage() {
     };
 
     useEffect(() => {
-        requireAuth(() => {
+        if (loggedIn === true) {
             fetchStatus();
-        });
-    }, []);
+        } else if (loggedIn === false) {
+            setLoading(false);
+        }
+    }, [loggedIn]);
 
     const handleStart = async (e: React.FormEvent) => {
         e.preventDefault();
