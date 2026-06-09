@@ -63,13 +63,24 @@ export default function RobotPage() {
 
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-8 animate-fade-in pb-32">
-            <header className="mb-8">
-                <h1 className="text-3xl font-extrabold text-white mb-2 flex items-center gap-3">
-                    <span className="text-4xl">🤖</span> Otonom Robot (Paper Trading)
-                </h1>
-                <p className="text-[var(--color-text-dim)] text-lg">
-                    Sanal bakiye ile çalışan otonom al-sat robotu. Stratejileri risksiz test edin.
-                </p>
+            <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-extrabold text-white mb-2 flex items-center gap-3">
+                        <span className="text-4xl">🤖</span> Otonom Robot (Paper Trading)
+                    </h1>
+                    <p className="text-[var(--color-text-dim)] text-lg">
+                        Sanal bakiye ile çalışan otonom al-sat robotu. Stratejileri risksiz test edin.
+                    </p>
+                </div>
+                {isActive && (
+                    <button 
+                        onClick={fetchStatus} 
+                        disabled={loading}
+                        className="px-4 py-2 bg-[#2b3139] text-white rounded hover:bg-[#3b4149] transition-colors border border-[#3b4149] flex items-center gap-2 font-medium"
+                    >
+                        {loading ? 'Yenileniyor...' : '🔄 Verileri Yenile'}
+                    </button>
+                )}
             </header>
 
             {!isActive ? (
