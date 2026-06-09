@@ -19,6 +19,13 @@ def fetch_ohlcv(ticker: str, interval: str = "1d", period: str = "1y", current_u
         # Indikatörleri hesapla
         df = calculate_indicators(df)
         
+        # Sinyalleri hesapla
+        try:
+            from signals_engine import generate_historical_signals
+            df, _, _ = generate_historical_signals(df, "Dengeli")
+        except Exception:
+            pass
+        
         # JSON parsing error önlemi (Infinity to NaN)
         import numpy as np
         df.replace([np.inf, -np.inf], np.nan, inplace=True)
@@ -30,6 +37,12 @@ def fetch_ohlcv(ticker: str, interval: str = "1d", period: str = "1y", current_u
             if interval in ["1h", "4h"]:
                 date_str = int(idx.timestamp()) if hasattr(idx, 'timestamp') else date_str
             
+            signal = None
+            if 'Buy_Signal' in df.columns and not pd.isna(row.get('Buy_Signal')):
+                signal = "AL"
+            elif 'Sell_Signal' in df.columns and not pd.isna(row.get('Sell_Signal')):
+                signal = "SAT"
+
             records.append({
                 "time": date_str,
                 "open": float(row.get('Open', 0)),
@@ -39,6 +52,7 @@ def fetch_ohlcv(ticker: str, interval: str = "1d", period: str = "1y", current_u
                 "volume": float(row.get('Volume', 0)),
                 "sma20": float(row.get('SMA_20', 0)) if not pd.isna(row.get('SMA_20')) else None,
                 "ema50": float(row.get('EMA_50', 0)) if not pd.isna(row.get('EMA_50')) else None,
+                "signal": signal
             })
         return {"data": records}
 

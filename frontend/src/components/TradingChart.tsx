@@ -11,6 +11,7 @@ interface ChartData {
   close: number;
   sma20?: number;
   ema50?: number;
+  signal?: "AL" | "SAT" | null;
 }
 
 export default function TradingChart({ data }: { data: ChartData[] }) {
@@ -73,12 +74,39 @@ export default function TradingChart({ data }: { data: ChartData[] }) {
         if (data && data.length > 0) {
             candlestickSeries.setData(data as any);
             
-            // Format indicator data
             const smaData = data.filter((d: any) => d.sma20).map((d: any) => ({ time: d.time, value: d.sma20 }));
             if (smaData.length > 0) smaSeries.setData(smaData);
             
             const emaData = data.filter((d: any) => d.ema50).map((d: any) => ({ time: d.time, value: d.ema50 }));
             if (emaData.length > 0) emaSeries.setData(emaData);
+
+            // Add Markers (AL/SAT signals)
+            const markers: any[] = [];
+            data.forEach((d) => {
+                if (d.signal === "AL") {
+                    markers.push({
+                        time: d.time,
+                        position: 'belowBar',
+                        color: '#0ecb81',
+                        shape: 'arrowUp',
+                        text: 'AL',
+                        size: 2
+                    });
+                } else if (d.signal === "SAT") {
+                    markers.push({
+                        time: d.time,
+                        position: 'aboveBar',
+                        color: '#f6465d',
+                        shape: 'arrowDown',
+                        text: 'SAT',
+                        size: 2
+                    });
+                }
+            });
+            
+            if (markers.length > 0) {
+                candlestickSeries.setMarkers(markers);
+            }
         }
 
         window.addEventListener("resize", handleResize);
