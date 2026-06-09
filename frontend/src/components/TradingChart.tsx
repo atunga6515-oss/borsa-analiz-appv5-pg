@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { createChart, ColorType, CandlestickSeries, LineSeries } from "lightweight-charts";
+import { createChart, ColorType, CandlestickSeries, LineSeries, createSeriesMarkers } from "lightweight-charts";
 
 interface ChartData {
   time: string | number;
@@ -105,7 +105,7 @@ export default function TradingChart({ data }: { data: ChartData[] }) {
             });
             
             if (markers.length > 0) {
-                candlestickSeries.setMarkers(markers);
+                createSeriesMarkers(candlestickSeries, markers);
             }
         }
 
