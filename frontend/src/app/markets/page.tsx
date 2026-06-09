@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import TradingChart from "@/components/TradingChart";
 import api from "@/lib/api";
+import SymbolAutocomplete from "@/components/SymbolAutocomplete";
 
 export default function Home() {
     const [chartData, setChartData] = useState([]);
@@ -223,13 +224,11 @@ export default function Home() {
                 
                 {showAddInput && (
                     <form onSubmit={handleAddTicker} className="mb-4 flex gap-2">
-                        <input 
-                            type="text" 
+                        <SymbolAutocomplete
                             value={newTicker}
-                            onChange={(e) => setNewTicker(e.target.value)}
-                            placeholder="Hisse Kodu (Örn: THYAO)"
-                            className="p-2 bg-[#1e2329] border border-[var(--color-b-border)] rounded text-white flex-1 text-sm focus:outline-none focus:border-[var(--color-b-yellow)] uppercase"
-                            autoFocus
+                            onChange={(val) => setNewTicker(val)}
+                            placeholder="THYAO, FROTO, BIMAS..."
+                            className="flex-1"
                         />
                         <button type="submit" className="bg-[var(--color-b-yellow)] text-black px-3 rounded font-bold text-sm">Ekle</button>
                     </form>

@@ -58,7 +58,7 @@ export default function SymbolAutocomplete({
       const results = symbols.filter(
         (s) =>
           s.symbol.startsWith(val) ||
-          s.name.toUpperCase().includes(val)
+          s.name.toUpperCase().startsWith(val)
       );
       // Sadece 50 sonuç göster (performans için)
       setFiltered(results.slice(0, 50));
