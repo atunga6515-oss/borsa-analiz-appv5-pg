@@ -27,6 +27,7 @@ const NAV_GROUPS = [
             { href: "/analysis", label: "Analiz", icon: "🔬", tooltip: "Bir hissenin 100 günlük teknik ve temel detaylarını derinlemesine inceleyin." },
             { href: "/backtest", label: "Backtest", icon: "⚙️", tooltip: "Geçmiş verilere dayanarak indikatörlerin al-sat stratejilerini test edin." },
             { href: "/strategy-compare", label: "Kıyasla", icon: "🧪", tooltip: "Farklı al-sat stratejilerinin geçmiş getiri performanslarını birbiriyle kıyaslayın." },
+            { href: "/robot", label: "Robot", icon: "🤖", tooltip: "Otonom Al-Sat Robotu (Paper Trading) ile stratejinizi test edin." },
             { href: "/risk", label: "Risk", icon: "⚠️", tooltip: "Portföyünüzün ve piyasanın risk durumunu, volatilite oranlarını analiz edin." },
         ]
     },

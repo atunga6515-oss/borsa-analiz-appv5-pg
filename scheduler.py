@@ -5,6 +5,7 @@ from apscheduler.triggers.cron import CronTrigger
 from database import engine
 from sqlalchemy import text
 from api.email_service import send_subscription_warning_email
+from api.robot_engine import process_robot_sales, process_robot_buys
 
 logger = logging.getLogger(__name__)
 
@@ -67,5 +68,22 @@ def start_scheduler():
         id="daily_subscription_check",
         replace_existing=True
     )
+    
+    # Robot Satış Kontrolü (Her 10 dakikada bir)
+    scheduler.add_job(
+        process_robot_sales,
+        CronTrigger(minute="*/10"),
+        id="robot_sell_cycle",
+        replace_existing=True
+    )
+    
+    # Robot Alış Taraması (Her saat başı)
+    scheduler.add_job(
+        process_robot_buys,
+        CronTrigger(minute="0"),
+        id="robot_buy_cycle",
+        replace_existing=True
+    )
+    
     scheduler.start()
     logger.info("Background scheduler başlatıldı.")

@@ -239,6 +239,45 @@ def init_db():
             )
         """))
 
+        # --- ROBOT (PAPER TRADING) MODÜLÜ TABLOLARI ---
+        conn.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS robot_sessions (
+                id {serial_type} PRIMARY KEY,
+                username VARCHAR(255) NOT NULL,
+                start_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                end_date TIMESTAMP NOT NULL,
+                initial_balance FLOAT NOT NULL,
+                current_balance FLOAT NOT NULL,
+                status VARCHAR(20) DEFAULT 'active'
+            )
+        """))
+
+        conn.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS robot_portfolio (
+                id {serial_type} PRIMARY KEY,
+                session_id INTEGER NOT NULL,
+                ticker VARCHAR(20) NOT NULL,
+                adet FLOAT NOT NULL,
+                alis_fiyati FLOAT NOT NULL,
+                alis_tarihi TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE (session_id, ticker)
+            )
+        """))
+
+        conn.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS robot_trades (
+                id {serial_type} PRIMARY KEY,
+                session_id INTEGER NOT NULL,
+                ticker VARCHAR(20) NOT NULL,
+                type VARCHAR(10) NOT NULL,
+                price FLOAT NOT NULL,
+                adet FLOAT NOT NULL,
+                date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                reason TEXT
+            )
+        """))
+        # ----------------------------------------------
+
         # system_logs için index (sorgular hızlı olsun)
         conn.execute(text("""
             CREATE INDEX IF NOT EXISTS idx_system_logs_created
