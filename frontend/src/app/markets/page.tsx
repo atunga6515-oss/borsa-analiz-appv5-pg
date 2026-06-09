@@ -167,9 +167,8 @@ export default function Home() {
         return () => window.clearInterval(intervalId);
     }, [watchlist]);
 
-    const handleAddTicker = async (e: React.FormEvent) => {
-        e.preventDefault();
-        const upper = newTicker.trim().toUpperCase();
+    const handleAddTicker = async (tickerToAdd: string) => {
+        const upper = tickerToAdd.trim().toUpperCase();
         if (upper && !watchlist.includes(upper)) {
             // Optimistic update
             const newList = [upper, ...watchlist];
@@ -223,15 +222,15 @@ export default function Home() {
                 </div>
                 
                 {showAddInput && (
-                    <form onSubmit={handleAddTicker} className="mb-4 flex gap-2">
+                    <div className="mb-4 flex gap-2">
                         <SymbolAutocomplete
                             value={newTicker}
                             onChange={(val) => setNewTicker(val)}
-                            placeholder="THYAO, FROTO, BIMAS..."
+                            onSelect={(val) => handleAddTicker(val)}
+                            placeholder="THYAO, FROTO..."
                             className="flex-1"
                         />
-                        <button type="submit" className="bg-[var(--color-b-yellow)] text-black px-3 rounded font-bold text-sm">Ekle</button>
-                    </form>
+                    </div>
                 )}
                 
                 <div className="flex flex-col gap-2 overflow-y-auto">
