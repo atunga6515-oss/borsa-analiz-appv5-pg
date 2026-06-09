@@ -11,6 +11,7 @@ interface SymbolData {
 interface SymbolAutocompleteProps {
   value: string;
   onChange: (val: string) => void;
+  onSelect?: (val: string) => void;
   placeholder?: string;
   className?: string;
 }
@@ -18,6 +19,7 @@ interface SymbolAutocompleteProps {
 export default function SymbolAutocomplete({
   value,
   onChange,
+  onSelect,
   placeholder = "Hisse Kodu (Örn: THYAO)",
   className = "",
 }: SymbolAutocompleteProps) {
@@ -92,6 +94,9 @@ export default function SymbolAutocomplete({
   const selectSymbol = (sym: string) => {
     onChange(sym);
     setIsOpen(false);
+    if (onSelect) {
+      onSelect(sym);
+    }
   };
 
   return (
