@@ -69,18 +69,18 @@ def start_scheduler():
         replace_existing=True
     )
     
-    # Robot Satış Kontrolü (Her 10 dakikada bir)
+    # Robot Satış Kontrolü (Pazartesi-Cuma, 10:00 - 17:50 arası her 10 dakikada bir)
     scheduler.add_job(
         process_robot_sales,
-        CronTrigger(minute="*/10"),
+        CronTrigger(day_of_week="mon-fri", hour="10-17", minute="*/10"),
         id="robot_sell_cycle",
         replace_existing=True
     )
     
-    # Robot Alış Taraması (Her saat başı)
+    # Robot Alış Taraması (Pazartesi-Cuma, 10:00 - 17:00 arası her saat başı)
     scheduler.add_job(
         process_robot_buys,
-        CronTrigger(minute="0"),
+        CronTrigger(day_of_week="mon-fri", hour="10-17", minute="0"),
         id="robot_buy_cycle",
         replace_existing=True
     )
