@@ -414,6 +414,7 @@ def get_live_price_with_change(symbol: str) -> tuple:
     except Exception:
         return 0.0, 0.0
 
+@ttl_cache(ttl_seconds=60)
 def get_batch_live_prices(symbols: list) -> dict:
     """Tüm modüller için Tek Bir Doğruluk Kaynağı (SSOT) anlık fiyatlar ve günlük değişimler."""
     results = {}
