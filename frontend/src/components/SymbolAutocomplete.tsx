@@ -114,22 +114,27 @@ export default function SymbolAutocomplete({
       />
       
       {isOpen && filtered.length > 0 && (
-        <ul className="absolute z-50 w-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-          {filtered.map((item, index) => (
-            <li
-              key={item.symbol}
-              onClick={() => selectSymbol(item.symbol)}
-              onMouseEnter={() => setFocusedIndex(index)}
-              className={`px-4 py-2 cursor-pointer flex flex-col justify-center ${
-                index === focusedIndex ? "bg-blue-600/50" : "hover:bg-gray-700"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-white">{item.symbol}</span>
-              </div>
-              <span className="text-xs text-gray-400 truncate">{item.name}</span>
-            </li>
-          ))}
+        <ul className="absolute z-50 w-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-lg max-h-96 overflow-y-auto">
+          {filtered.map((item, index) => {
+            const isNameDifferent = item.name && item.name.toUpperCase() !== item.symbol.toUpperCase();
+            return (
+              <li
+                key={item.symbol}
+                onClick={() => selectSymbol(item.symbol)}
+                onMouseEnter={() => setFocusedIndex(index)}
+                className={`px-4 py-3 cursor-pointer flex flex-col justify-center ${
+                  index === focusedIndex ? "bg-blue-600/50" : "hover:bg-gray-700"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-white">{item.symbol}</span>
+                </div>
+                {isNameDifferent && (
+                  <span className="text-xs text-gray-400 truncate mt-1">{item.name}</span>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
