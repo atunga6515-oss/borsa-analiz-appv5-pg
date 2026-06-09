@@ -6,7 +6,7 @@ import SymbolAutocomplete from "@/components/SymbolAutocomplete";
 
 export default function BacktestPage() {
     const { requireAuth, AuthModal } = useRequireAuth();
-    const [ticker, setTicker] = useState("THYAO");
+    const [ticker, setTicker] = useState("");
     const [capital, setCapital] = useState(100000);
     const [days, setDays] = useState(180);
     const [buyThreshold, setBuyThreshold] = useState(65);

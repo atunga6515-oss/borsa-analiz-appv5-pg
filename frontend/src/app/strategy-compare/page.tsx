@@ -6,7 +6,7 @@ import SymbolAutocomplete from "@/components/SymbolAutocomplete";
 
 export default function StrategyComparePage() {
     const { requireAuth, AuthModal } = useRequireAuth();
-    const [ticker, setTicker] = useState("THYAO");
+    const [ticker, setTicker] = useState("");
     const [period, setPeriod] = useState("1y");
     const [loading, setLoading] = useState(false);
     const [results, setResults] = useState<any[]>([]);

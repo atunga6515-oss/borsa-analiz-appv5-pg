@@ -70,14 +70,13 @@ export default function AlphaRankPage() {
         setLoading(false);
     };
 
-    const handleAdd = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleAdd = async (tickerToAdd: string) => {
         setError('');
         setSuccessMsg('');
-        if (!tickerInput.trim()) return;
+        if (!tickerToAdd.trim()) return;
         
         try {
-            const res = await api.post('/alpharank/pool/add', { ticker: tickerInput.trim().toUpperCase() });
+            const res = await api.post('/alpharank/pool/add', { ticker: tickerToAdd.trim().toUpperCase() });
             setSuccessMsg(res.data.message);
             setTickerInput('');
             fetchPool();
@@ -165,21 +164,15 @@ export default function AlphaRankPage() {
                         </span>
                     </div>
 
-                    <form onSubmit={handleAdd} className="flex gap-2 mb-6">
+                    <div className="flex gap-2 mb-6">
                         <SymbolAutocomplete
                             placeholder="Hisse Kodu (Örn: THYAO)"
                             value={tickerInput}
                             onChange={(val) => setTickerInput(val)}
+                            onSelect={(val) => handleAdd(val)}
                             className="flex-1"
                         />
-                        <button
-                            type="submit"
-                            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded font-medium disabled:opacity-50"
-                            disabled={pool.length >= 10 || !tickerInput}
-                        >
-                            Ekle
-                        </button>
-                    </form>
+                    </div>
 
                     <div className="space-y-2 mb-6 max-h-[400px] overflow-y-auto pr-2">
                         {pool.length === 0 ? (

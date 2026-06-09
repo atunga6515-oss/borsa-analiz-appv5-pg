@@ -8,7 +8,7 @@ import SymbolAutocomplete from "@/components/SymbolAutocomplete";
 
 function AnalysisPageContent() {
     const { requireAuth, AuthModal } = useRequireAuth();
-    const [ticker, setTicker] = useState("THYAO");
+    const [ticker, setTicker] = useState("");
     const [data, setData] = useState<any>(null);
     const [chartData, setChartData] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
