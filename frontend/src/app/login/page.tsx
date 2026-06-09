@@ -49,11 +49,16 @@ function LoginContent() {
 
             if (res.data.access_token) {
                 localStorage.setItem("token", res.data.access_token);
+                // Middleware'in hemen görebilmesi için cookie'yi frontend'den de ayarlıyoruz
+                document.cookie = `access_token=${res.data.access_token}; path=/; max-age=86400; SameSite=Lax`;
             }
             localStorage.setItem("username", res.data.username || username);
             localStorage.setItem("role", res.data.role || "user");
 
-            router.push("/");
+            const redirectUrl = searchParams.get("redirect") || "/";
+            // Next.js Router Cache'i temizlemek ve tam sayfa yüklemesi (hard navigation) 
+            // yapmak için window.location.href kullanıyoruz. Bu sayede middleware redirect cache'i silinir.
+            window.location.href = redirectUrl;
         } catch (err: any) {
             setError(
                 err?.response?.data?.detail || "Giriş başarısız. Kullanıcı adı veya şifre hatalı."
