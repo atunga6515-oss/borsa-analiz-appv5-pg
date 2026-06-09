@@ -2,6 +2,7 @@
 import { useState } from "react";
 import api from "@/lib/api";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
+import SymbolAutocomplete from "@/components/SymbolAutocomplete";
 
 export default function KapPage() {
     const { requireAuth, AuthModal } = useRequireAuth();
@@ -35,12 +36,11 @@ export default function KapPage() {
             </div>
 
             <div className="flex gap-4 mb-6">
-                <input 
-                    type="text" 
-                    placeholder="Hisse Kodu (Örn: THYAO)"
+                <SymbolAutocomplete 
                     value={ticker}
-                    onChange={(e) => setTicker(e.target.value.toUpperCase())}
-                    className="p-3 bg-[#1e2329] border border-[var(--color-b-border)] rounded text-white font-bold w-64 focus:outline-none focus:border-[var(--color-b-yellow)]"
+                    onChange={(val) => setTicker(val)}
+                    placeholder="Hisse Kodu (Örn: THYAO)"
+                    className="w-64"
                 />
                 <button 
                     onClick={() => requireAuth(fetchKap)}

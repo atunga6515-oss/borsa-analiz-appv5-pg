@@ -484,7 +484,16 @@ export default function AdminPage() {
                                                 </button>
                                             </div>
                                         ) : (
-                                            <span className="text-[var(--color-b-muted)] text-xs italic">Kendi hesabınız</span>
+                                            <div className="flex gap-2 flex-wrap items-center">
+                                                <span className="text-[var(--color-b-muted)] text-xs italic">Kendi hesabınız</span>
+                                                <button
+                                                    onClick={() => changePassword(u.username)}
+                                                    disabled={updating === u.username}
+                                                    className="text-xs px-3 py-1.5 rounded border border-orange-700 text-orange-400 hover:bg-orange-900/30 transition-colors disabled:opacity-50"
+                                                >
+                                                    Şifre Değiştir
+                                                </button>
+                                            </div>
                                         )}
                                     </td>
                                 </tr>

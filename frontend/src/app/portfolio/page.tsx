@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import api from "@/lib/api";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import AIAnalyzeModal from "../components/AIAnalyzeModal";
+import SymbolAutocomplete from "@/components/SymbolAutocomplete";
 
 export default function PortfolioPage() {
     const { requireAuth, AuthModal } = useRequireAuth();
@@ -402,13 +403,11 @@ export default function PortfolioPage() {
                         <form onSubmit={handleAddTransaction} className="flex flex-col gap-4">
                             <div>
                                 <label className="block text-sm text-[var(--color-b-muted)] mb-1">Hisse Kodu</label>
-                                <input 
-                                    type="text" 
-                                    required 
+                                <SymbolAutocomplete 
                                     value={newTicker}
-                                    onChange={(e) => setNewTicker(e.target.value.toUpperCase())}
-                                    className="w-full p-2 bg-[#1e2329] border border-[var(--color-b-border)] rounded text-white focus:outline-none focus:border-[var(--color-b-yellow)]" 
-                                    placeholder="Örn: THYAO" 
+                                    onChange={(val) => setNewTicker(val)}
+                                    placeholder="Örn: THYAO"
+                                    className="w-full"
                                 />
                             </div>
                             <div>

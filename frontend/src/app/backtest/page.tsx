@@ -2,6 +2,7 @@
 import { useState } from "react";
 import api from "@/lib/api";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
+import SymbolAutocomplete from "@/components/SymbolAutocomplete";
 
 export default function BacktestPage() {
     const { requireAuth, AuthModal } = useRequireAuth();
@@ -53,11 +54,11 @@ export default function BacktestPage() {
             <div className="glass-panel p-6 rounded-lg mb-6 flex gap-6 flex-wrap items-end border border-[var(--color-b-border)]">
                 <div>
                     <label className="block text-sm text-[var(--color-b-muted)] mb-2">Hisse Kodu</label>
-                    <input 
-                        type="text" 
+                    <SymbolAutocomplete 
                         value={ticker}
-                        onChange={(e) => setTicker(e.target.value)}
-                        className="p-3 bg-[#1e2329] border border-[var(--color-b-border)] rounded text-white font-bold w-48 focus:outline-none focus:border-[var(--color-b-yellow)]"
+                        onChange={(val) => setTicker(val)}
+                        placeholder="Hisse Kodu"
+                        className="w-48"
                     />
                 </div>
                 <div>

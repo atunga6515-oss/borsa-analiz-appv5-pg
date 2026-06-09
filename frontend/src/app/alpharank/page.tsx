@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import api from '@/lib/api';
+import SymbolAutocomplete from "@/components/SymbolAutocomplete";
 
 export default function AlphaRankPage() {
     const [pool, setPool] = useState<any[]>([]);
@@ -165,13 +166,11 @@ export default function AlphaRankPage() {
                     </div>
 
                     <form onSubmit={handleAdd} className="flex gap-2 mb-6">
-                        <input
-                            type="text"
+                        <SymbolAutocomplete
                             placeholder="Hisse Kodu (Örn: THYAO)"
                             value={tickerInput}
-                            onChange={(e) => setTickerInput(e.target.value)}
-                            className="bg-gray-700 text-white px-3 py-2 rounded border border-gray-600 flex-1 focus:outline-none focus:border-blue-500 uppercase"
-                            disabled={pool.length >= 10}
+                            onChange={(val) => setTickerInput(val)}
+                            className="flex-1"
                         />
                         <button
                             type="submit"

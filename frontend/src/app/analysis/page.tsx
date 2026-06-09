@@ -4,6 +4,7 @@ import api from "@/lib/api";
 import TradingChart from "@/components/TradingChart";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useSearchParams } from "next/navigation";
+import SymbolAutocomplete from "@/components/SymbolAutocomplete";
 
 function AnalysisPageContent() {
     const { requireAuth, AuthModal } = useRequireAuth();
@@ -163,12 +164,10 @@ ${ssot.summary || "-"}`;
                         </select>
                     )}
                     <form onSubmit={handleSearch} className="flex gap-2">
-                        <input 
-                            type="text" 
+                        <SymbolAutocomplete 
                             value={ticker}
-                            onChange={(e) => setTicker(e.target.value.toUpperCase())}
-                            placeholder="Hisse Kodu (Örn: THYAO)"
-                            className="bg-[#1e2329] border border-[var(--color-b-border)] rounded-lg px-4 py-2 text-white outline-none focus:border-[var(--color-b-yellow)]"
+                            onChange={(val) => setTicker(val)}
+                            className="w-64"
                         />
                         <button 
                             type="submit"

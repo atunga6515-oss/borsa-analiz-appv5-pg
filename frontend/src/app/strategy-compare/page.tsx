@@ -2,6 +2,7 @@
 import { useState } from "react";
 import api from "@/lib/api";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
+import SymbolAutocomplete from "@/components/SymbolAutocomplete";
 
 export default function StrategyComparePage() {
     const { requireAuth, AuthModal } = useRequireAuth();
@@ -39,12 +40,11 @@ export default function StrategyComparePage() {
             </div>
 
             <div className="glass-panel p-6 rounded-lg mb-6 flex gap-4">
-                <input 
-                    type="text" 
-                    placeholder="Hisse Giriniz (Örn: THYAO, ASELS)"
-                    className="p-3 bg-[#1e2329] border border-[var(--color-b-border)] rounded text-white font-bold w-64 focus:outline-none uppercase"
+                <SymbolAutocomplete 
                     value={ticker}
-                    onChange={(e) => setTicker(e.target.value)}
+                    onChange={(val) => setTicker(val)}
+                    placeholder="Hisse Giriniz (Örn: THYAO, ASELS)"
+                    className="w-64"
                 />
                 <select 
                     className="p-3 bg-[#1e2329] border border-[var(--color-b-border)] rounded text-white font-bold w-48 focus:outline-none"

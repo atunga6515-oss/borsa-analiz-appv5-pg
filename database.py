@@ -292,6 +292,14 @@ def init_db():
             )
         """))
 
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS bist_symbols (
+                symbol VARCHAR(20) PRIMARY KEY,
+                name VARCHAR(255),
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """))
+
         # ai_analyses_history UNIQUE constraint (sadece PostgreSQL için)
         if engine.name == "postgresql":
             conn.execute(text("""

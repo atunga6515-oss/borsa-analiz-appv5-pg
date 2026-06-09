@@ -69,6 +69,15 @@ def start_scheduler():
         replace_existing=True
     )
     
+    # Her gün saat 00:00'da hisse isimlerini günceller
+    from api.symbol_service import update_bist_symbols
+    scheduler.add_job(
+        update_bist_symbols,
+        CronTrigger(hour=0, minute=0),
+        id="daily_symbol_update",
+        replace_existing=True
+    )
+    
     # Robot Satış Kontrolü (Pazartesi-Cuma, 10:00 - 17:50 arası her 10 dakikada bir)
     scheduler.add_job(
         process_robot_sales,

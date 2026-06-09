@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
+import SymbolAutocomplete from "@/components/SymbolAutocomplete";
 
 const CONDITION_MAP: Record<string, string> = {
     price_above: "Fiyat Şunu Geçerse ↑",
@@ -212,12 +213,11 @@ export default function AlarmsPage() {
                                 <label className="block text-sm font-medium text-[var(--color-b-muted)] mb-1">
                                     Hisse Kodu
                                 </label>
-                                <input
-                                    type="text"
+                                <SymbolAutocomplete
                                     value={formTicker}
-                                    onChange={(e) => setFormTicker(e.target.value.toUpperCase())}
+                                    onChange={(val) => setFormTicker(val)}
                                     placeholder="THYAO, FROTO, BIMAS..."
-                                    className="w-full px-4 py-3 bg-[#1e2329] border border-[var(--color-b-border)] rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-[var(--color-b-yellow)] transition-colors font-bold"
+                                    className="w-full"
                                 />
                             </div>
 
