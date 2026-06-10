@@ -94,11 +94,15 @@ def get_user_quota(username: str) -> int:
 
 def touch_last_active(username: str):
     """Kullanıcının son aktif zamanını günceller."""
+    from datetime import datetime
+    import pytz
+    TR_TZ = pytz.timezone("Europe/Istanbul")
+    now_str = datetime.now(TR_TZ).strftime('%Y-%m-%d %H:%M:%S')
     try:
         with engine.begin() as conn:
             conn.execute(
-                text("UPDATE users SET last_active=NOW() WHERE username=:u"),
-                {"u": username},
+                text("UPDATE users SET last_active=:n WHERE username=:u"),
+                {"u": username, "n": now_str},
             )
     except Exception:
         pass
@@ -191,14 +195,18 @@ def update_password(username: str, new_password: str) -> bool:
 
 def log_action(username: str, action: str, details: str = "", level: str = "INFO"):
     """system_logs tablosuna kayıt ekler."""
+    from datetime import datetime
+    import pytz
+    TR_TZ = pytz.timezone("Europe/Istanbul")
+    now_str = datetime.now(TR_TZ).strftime('%Y-%m-%d %H:%M:%S')
     try:
         with engine.begin() as conn:
             conn.execute(
                 text(
-                    "INSERT INTO system_logs (username, action, details, level) "
-                    "VALUES (:u, :a, :d, :l)"
+                    "INSERT INTO system_logs (username, action, details, level, created_at) "
+                    "VALUES (:u, :a, :d, :l, :c)"
                 ),
-                {"u": username, "a": action, "d": details, "l": level},
+                {"u": username, "a": action, "d": details, "l": level, "c": now_str},
             )
     except Exception as e:
         logging.error(f"log_action hatası: {e}")

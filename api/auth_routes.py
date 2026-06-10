@@ -143,7 +143,31 @@ def login_for_access_token(request: Request, response: Response, form_data: OAut
     }
 
 @router.post("/logout")
-def logout(response: Response):
+def logout(request: Request, response: Response):
+    # Token'ı cookie veya header'dan manuel okuyup hata fırlatmadan işlem yapalım.
+    cookie_token = request.cookies.get("access_token")
+    auth_header = request.headers.get("Authorization")
+    actual_token = cookie_token
+    if not actual_token and auth_header and auth_header.startswith("Bearer "):
+        actual_token = auth_header.split(" ")[1]
+        
+    if actual_token:
+        try:
+            payload = jwt.decode(actual_token, SECRET_KEY, algorithms=[ALGORITHM])
+            username = payload.get("sub")
+            if username:
+                log_action(username, "LOGOFF", "Başarılı çıkış")
+                # Kullanıcıyı hemen offline göstermek için son aktiviteyi eskiye çek
+                from database import engine
+                from sqlalchemy import text
+                with engine.begin() as conn:
+                    conn.execute(
+                        text("UPDATE users SET last_active = '2000-01-01 00:00:00' WHERE username = :u"),
+                        {"u": username}
+                    )
+        except Exception:
+            pass # Geçersiz/Süresi dolmuş token olsa da cookie'yi silmeye devam et
+
     response.delete_cookie(
         key="access_token",
         httponly=True,

@@ -201,7 +201,7 @@ def active_sessions(admin: str = Depends(get_current_admin)):
             rows = conn.execute(text("""
                 SELECT username, role, last_active
                 FROM users
-                WHERE last_active >= datetime('now', '-15 minutes')
+                WHERE last_active >= datetime('now', 'localtime', '-15 minutes')
                 ORDER BY last_active DESC
             """)).fetchall()
 
