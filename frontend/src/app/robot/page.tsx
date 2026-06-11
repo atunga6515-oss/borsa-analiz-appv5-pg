@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
+import toast from 'react-hot-toast';
 
 export default function RobotPage() {
     const { requireAuth, AuthModal, loggedIn } = useRequireAuth();
@@ -46,7 +47,7 @@ export default function RobotPage() {
             fetchStatus();
         } catch (e) {
             console.error(e);
-            alert("Robot başlatılamadı.");
+            toast.success("Robot başlatılamadı.");
         }
     };
 
@@ -57,7 +58,7 @@ export default function RobotPage() {
             fetchStatus();
         } catch (e) {
             console.error(e);
-            alert("Robot durdurulamadı.");
+            toast.success("Robot durdurulamadı.");
         }
     };
 

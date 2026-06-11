@@ -5,6 +5,7 @@ import TradingChart from "@/components/TradingChart";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useSearchParams } from "next/navigation";
 import SymbolAutocomplete from "@/components/SymbolAutocomplete";
+import toast from 'react-hot-toast';
 
 function AnalysisPageContent() {
     const { requireAuth, AuthModal } = useRequireAuth();
@@ -128,9 +129,9 @@ function AnalysisPageContent() {
 ${ssot.summary || "-"}`;
 
             const res = await api.post("/telegram/send", { message: msg });
-            alert(res.data.message || "Başarıyla gönderildi.");
+            toast.success(res.data.message || "Başarıyla gönderildi.");
         } catch (err: any) {
-            alert(err?.response?.data?.detail || "Gönderilirken bir hata oluştu.");
+            toast.error(err?.response?.data?.detail || "Gönderilirken bir hata oluştu.");
         } finally {
             setLoading(false);
         }

@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
+import toast from 'react-hot-toast';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface UserRow {
@@ -144,9 +145,9 @@ export default function AdminPage() {
         setUpdating("settings");
         try {
             await api.post("/admin/settings", { settings });
-            alert("Ayarlar kaydedildi.");
+            toast.success("Ayarlar kaydedildi.");
         } catch (e: any) {
-            alert("Ayarlar kaydedilemedi.");
+            toast.success("Ayarlar kaydedilemedi.");
         } finally {
             setUpdating(null);
         }
@@ -167,7 +168,7 @@ export default function AdminPage() {
             await api.put(`/admin/users/${username}/status`, { is_active: !current });
             setUsers(prev => prev.map(u => u.username === username ? { ...u, is_active: !current } : u));
         } catch (e: any) {
-            alert(e?.response?.data?.detail || "Güncelleme başarısız.");
+            toast.error(e?.response?.data?.detail || "Güncelleme başarısız.");
         } finally { setUpdating(null); }
     };
 
@@ -177,7 +178,7 @@ export default function AdminPage() {
             await api.put(`/admin/users/${username}/status`, { role: newRole });
             setUsers(prev => prev.map(u => u.username === username ? { ...u, role: newRole } : u));
         } catch (e: any) {
-            alert(e?.response?.data?.detail || "Rol değiştirilemedi.");
+            toast.success(e?.response?.data?.detail || "Rol değiştirilemedi.");
         } finally { setUpdating(null); }
     };
 
@@ -187,7 +188,7 @@ export default function AdminPage() {
             await api.put(`/admin/users/${username}/status`, { ai_quota: newQuota });
             setUsers(prev => prev.map(u => u.username === username ? { ...u, ai_quota: newQuota } : u));
         } catch (e: any) {
-            alert(e?.response?.data?.detail || "Kullanıcı kotası güncellenemedi.");
+            toast.success(e?.response?.data?.detail || "Kullanıcı kotası güncellenemedi.");
         } finally {
             setUpdating(null);
         }
@@ -201,7 +202,7 @@ export default function AdminPage() {
                 await api.put(`/admin/users/${username}/status`, { email: val });
                 setUsers(prev => prev.map(u => u.username === username ? { ...u, email: val } : u));
             } catch (e: any) {
-                alert(e?.response?.data?.detail || "E-posta güncellenemedi.");
+                toast.success(e?.response?.data?.detail || "E-posta güncellenemedi.");
             } finally { setUpdating(null); }
         }
     };
@@ -214,7 +215,7 @@ export default function AdminPage() {
                 await api.put(`/admin/users/${username}/status`, { phone: val });
                 setUsers(prev => prev.map(u => u.username === username ? { ...u, phone: val } : u));
             } catch (e: any) {
-                alert(e?.response?.data?.detail || "Telefon güncellenemedi.");
+                toast.success(e?.response?.data?.detail || "Telefon güncellenemedi.");
             } finally { setUpdating(null); }
         }
     };
@@ -225,12 +226,12 @@ export default function AdminPage() {
             setUpdating(username);
             try {
                 await api.put(`/admin/users/${username}/status`, { password: val });
-                alert("Şifre başarıyla güncellendi.");
+                toast.success("Şifre başarıyla güncellendi.");
             } catch (e: any) {
-                alert(e?.response?.data?.detail || "Şifre güncellenemedi.");
+                toast.success(e?.response?.data?.detail || "Şifre güncellenemedi.");
             } finally { setUpdating(null); }
         } else if (val !== null) {
-            alert("Şifre en az 6 karakter olmalıdır.");
+            toast.success("Şifre en az 6 karakter olmalıdır.");
         }
     };
 
@@ -240,10 +241,10 @@ export default function AdminPage() {
             setUpdating(username);
             try {
                 await api.put(`/admin/users/${username}/subscription`, { add_days: parseInt(val, 10) });
-                alert("Abonelik güncellendi. Yeni verileri görmek için tablo yenileniyor.");
+                toast.success("Abonelik güncellendi. Yeni verileri görmek için tablo yenileniyor.");
                 fetchUsers();
             } catch (e: any) {
-                alert(e?.response?.data?.detail || "Abonelik güncellenemedi.");
+                toast.success(e?.response?.data?.detail || "Abonelik güncellenemedi.");
             } finally { setUpdating(null); }
         }
     };
@@ -264,7 +265,7 @@ export default function AdminPage() {
             fetchUsers();
             fetchStats();
         } catch (e: any) {
-            alert(e?.response?.data?.detail || "Kullanıcı eklenemedi.");
+            toast.error(e?.response?.data?.detail || "Kullanıcı eklenemedi.");
         } finally {
             setUpdating(null);
         }

@@ -3,6 +3,7 @@ import { useState } from "react";
 import api from "@/lib/api";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import SymbolAutocomplete from "@/components/SymbolAutocomplete";
+import toast from 'react-hot-toast';
 
 export default function StrategyComparePage() {
     const { requireAuth, AuthModal } = useRequireAuth();
@@ -22,11 +23,11 @@ export default function StrategyComparePage() {
             if (res.data && res.data.data) {
                 setResults(res.data.data);
             } else if (res.data && res.data.error) {
-                alert(res.data.error);
+                toast.success(res.data.error);
             }
         } catch (error) {
             console.error("Comparison error:", error);
-            alert("Analiz sırasında hata oluştu.");
+            toast.error("Analiz sırasında hata oluştu.");
         } finally {
             setLoading(false);
         }

@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import api from "@/lib/api";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import AIAnalyzeModal from "../components/AIAnalyzeModal";
+import toast from 'react-hot-toast';
 
 export default function TopPicksPage() {
     const { requireAuth, AuthModal } = useRequireAuth();
@@ -89,7 +90,7 @@ export default function TopPicksPage() {
             }
         } catch (error) {
             console.error("Tarama hatası:", error);
-            alert("Tarama başlatılırken hata oluştu!");
+            toast.error("Tarama başlatılırken hata oluştu!");
             setLoading(false);
         }
     };
@@ -110,7 +111,7 @@ export default function TopPicksPage() {
                             setTaskId("");
                             fetchHistoryDates();
                         } else if (res.data.status === "error") {
-                            alert("Tarama sırasında hata: " + res.data.text);
+                            toast.error("Tarama sırasında hata: " + res.data.text);
                             setLoading(false);
                             setTaskId("");
                         }
@@ -140,9 +141,9 @@ export default function TopPicksPage() {
         requireAuth(async () => {
             try {
                 const res = await api.post('/alpharank/pool/add', { ticker });
-                alert(res.data.message);
+                toast.success(res.data.message);
             } catch (err: any) {
-                alert(err.response?.data?.detail || 'AlphaRank havuzuna eklenemedi.');
+                toast.error(err.response?.data?.detail || 'AlphaRank havuzuna eklenemedi.');
             }
         });
     };
@@ -157,10 +158,10 @@ export default function TopPicksPage() {
                 price: parseFloat(modalPrice)
             });
             setModalOpen(false);
-            alert(`${modalTicker} sanal portföye eklendi!`);
+            toast.success(`${modalTicker} sanal portföye eklendi!`);
         } catch(error) {
             console.error("Portföy ekleme hatası:", error);
-            alert("Portföye eklenirken hata oluştu.");
+            toast.error("Portföye eklenirken hata oluştu.");
         }
     };
 
@@ -181,9 +182,9 @@ export default function TopPicksPage() {
             const msg = `*🏆 Stratejik Seçki (Top Picks)*\n\n${listStr}`;
 
             const res = await api.post("/telegram/send", { message: msg });
-            alert(res.data.message || "Başarıyla gönderildi.");
+            toast.success(res.data.message || "Başarıyla gönderildi.");
         } catch (err: any) {
-            alert(err?.response?.data?.detail || "Gönderilirken bir hata oluştu.");
+            toast.error(err?.response?.data?.detail || "Gönderilirken bir hata oluştu.");
         } finally {
             setLoading(false);
         }

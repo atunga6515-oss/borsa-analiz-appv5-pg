@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import AIAnalyzeModal from "../components/AIAnalyzeModal";
+import toast from 'react-hot-toast';
 
 export default function ScreenerPage() {
     const router = useRouter();
@@ -92,7 +93,7 @@ export default function ScreenerPage() {
                             clearInterval(intervalId);
                             console.error("Tarama hatası:", sData.text);
                             setScanning(false);
-                            alert("Tarama sırasında bir hata oluştu: " + sData.text);
+                            toast.error("Tarama sırasında bir hata oluştu: " + sData.text);
                         } else if (sData.status === "not_found") {
                             clearInterval(intervalId);
                             setScanning(false);
@@ -162,9 +163,9 @@ export default function ScreenerPage() {
         requireAuth(async () => {
             try {
                 const res = await api.post('/alpharank/pool/add', { ticker });
-                alert(res.data.message);
+                toast.success(res.data.message);
             } catch (err: any) {
-                alert(err.response?.data?.detail || 'AlphaRank havuzuna eklenemedi.');
+                toast.error(err.response?.data?.detail || 'AlphaRank havuzuna eklenemedi.');
             }
         });
     };
@@ -179,10 +180,10 @@ export default function ScreenerPage() {
                 price: parseFloat(modalPrice)
             });
             setModalOpen(false);
-            alert(`${modalTicker} sanal portföye eklendi!`);
+            toast.success(`${modalTicker} sanal portföye eklendi!`);
         } catch(error) {
             console.error("Portföy ekleme hatası:", error);
-            alert("Portföye eklenirken hata oluştu.");
+            toast.error("Portföye eklenirken hata oluştu.");
         }
     };
     

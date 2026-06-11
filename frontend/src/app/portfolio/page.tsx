@@ -5,6 +5,7 @@ import { useRequireAuth } from "@/hooks/useRequireAuth";
 import AIAnalyzeModal from "../components/AIAnalyzeModal";
 import SymbolAutocomplete from "@/components/SymbolAutocomplete";
 import DOMPurify from 'dompurify';
+import toast from 'react-hot-toast';
 
 export default function PortfolioPage() {
     const { requireAuth, AuthModal } = useRequireAuth();
@@ -103,7 +104,7 @@ export default function PortfolioPage() {
             fetchPortfolio();
         } catch (error) {
             console.error("İşlem eklenemedi:", error);
-            alert("İşlem eklenirken hata oluştu.");
+            toast.error("İşlem eklenirken hata oluştu.");
         }
     };
 
@@ -120,7 +121,7 @@ export default function PortfolioPage() {
             fetchPortfolio();
         } catch (error) {
             console.error("Güncellenemedi:", error);
-            alert("Güncellenirken hata oluştu.");
+            toast.error("Güncellenirken hata oluştu.");
         }
     };
 
@@ -135,22 +136,22 @@ export default function PortfolioPage() {
             fetchPortfolio();
         } catch (error) {
             console.error("Kapatılamadı:", error);
-            alert("Kapatılırken hata oluştu.");
+            toast.error("Kapatılırken hata oluştu.");
         }
     };
 
     const handleAddToAlphaRank = async (ticker: string) => {
         try {
             const res = await api.post('/alpharank/pool/add', { ticker });
-            alert(res.data.message);
+            toast.success(res.data.message);
         } catch (err: any) {
-            alert(err.response?.data?.detail || 'AlphaRank havuzuna eklenemedi.');
+            toast.error(err.response?.data?.detail || 'AlphaRank havuzuna eklenemedi.');
         }
     };
 
     const handleOptimize = async () => {
         if (positions.length < 2) {
-            alert("Optimizasyon için portföyünüzde en az 2 hisse bulunmalıdır.");
+            toast.error("Optimizasyon için portföyünüzde en az 2 hisse bulunmalıdır.");
             return;
         }
         setOptimizeLoading(true);
@@ -165,7 +166,7 @@ export default function PortfolioPage() {
                 setOptimizeResult(res.data);
             }
         } catch (error: any) {
-            alert(error.response?.data?.detail || "Optimizasyon başarısız oldu.");
+            toast.error(error.response?.data?.detail || "Optimizasyon başarısız oldu.");
         } finally {
             setOptimizeLoading(false);
         }
@@ -227,7 +228,7 @@ export default function PortfolioPage() {
                     <button 
                         onClick={() => requireAuth(() => {
                             if(positions.length < 2) {
-                                alert("Optimizasyon için en az 2 hisse eklemelisiniz.");
+                                toast.success("Optimizasyon için en az 2 hisse eklemelisiniz.");
                                 return;
                             }
                             setOptimizeModalOpen(true);

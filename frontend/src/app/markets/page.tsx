@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import TradingChart from "@/components/TradingChart";
 import api from "@/lib/api";
 import SymbolAutocomplete from "@/components/SymbolAutocomplete";
+import toast from 'react-hot-toast';
 
 export default function Home() {
     const [chartData, setChartData] = useState([]);
@@ -185,7 +186,7 @@ export default function Home() {
                 // Revert
                 setWatchlist(watchlist);
                 localStorage.setItem('watchlistOrder', JSON.stringify(watchlist));
-                alert("Hisse izleme listesine eklenemedi (Veritabanı hatası).");
+                toast.error("Hisse izleme listesine eklenemedi (Veritabanı hatası).");
             }
         }
         setNewTicker("");

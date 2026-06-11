@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import SymbolAutocomplete from "@/components/SymbolAutocomplete";
+import toast from 'react-hot-toast';
 
 const CONDITION_MAP: Record<string, string> = {
     price_above: "Fiyat Şunu Geçerse ↑",
@@ -64,7 +65,7 @@ export default function AlarmsPage() {
             await api.delete(`/alarms/${id}`);
             setAlarms((prev) => prev.filter((a) => a.id !== id));
         } catch {
-            alert("Alarm silinirken bir hata oluştu.");
+            toast.error("Alarm silinirken bir hata oluştu.");
         }
     };
 
