@@ -4,6 +4,7 @@ import api from "@/lib/api";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import AIAnalyzeModal from "../components/AIAnalyzeModal";
 import SymbolAutocomplete from "@/components/SymbolAutocomplete";
+import DOMPurify from 'dompurify';
 
 export default function PortfolioPage() {
     const { requireAuth, AuthModal } = useRequireAuth();
@@ -605,7 +606,7 @@ export default function PortfolioPage() {
 
                                 <div className="bg-indigo-900/20 border border-indigo-500/30 p-4 rounded text-indigo-100 text-sm leading-relaxed">
                                     <h3 className="text-lg font-bold text-indigo-400 mb-2">🤖 AI Değerlendirmesi</h3>
-                                    <div dangerouslySetInnerHTML={{ __html: optimizeResult.ai_commentary.replace(/\n/g, '<br/>') }} />
+                                    <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(optimizeResult.ai_commentary.replace(/\n/g, '<br/>')) }} />
                                 </div>
 
                                 <button 

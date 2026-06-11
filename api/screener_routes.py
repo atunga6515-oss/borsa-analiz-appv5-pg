@@ -163,8 +163,11 @@ def fetch_watchlist(current_user: str = Depends(get_current_user)):
 
 @router.post("/watchlist")
 def add_watchlist_item(req: WatchlistAddRequest, current_user: str = Depends(get_current_user)):
-    add_to_watchlist(current_user, req.ticker)
-    return {"status": "success", "ticker": req.ticker}
+    try:
+        add_to_watchlist(current_user, req.ticker)
+        return {"status": "success", "ticker": req.ticker}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/watchlist/{ticker}")
 def remove_watchlist_item(ticker: str, current_user: str = Depends(get_current_user)):

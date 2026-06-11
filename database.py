@@ -44,19 +44,17 @@ if not DATABASE_URL:
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
-
 if DATABASE_URL.startswith("postgresql"):
     engine = create_engine(
         DATABASE_URL, 
-        connect_args=connect_args,
         pool_size=10,
         max_overflow=20,
         pool_pre_ping=True,
         pool_recycle=1800  # 30 dakikada bir bağlantıyı yenile (uzun idle bağlantı hatası önleme)
     )
 else:
-    engine = create_engine(DATABASE_URL, connect_args=connect_args)
+    raise ValueError("Lütfen geçerli bir PostgreSQL bağlantı dizesi kullanın.")
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
