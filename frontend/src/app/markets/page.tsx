@@ -230,6 +230,13 @@ export default function Home() {
                             placeholder="THYAO, FROTO..."
                             className="flex-1"
                         />
+                        <button 
+                            onClick={() => handleAddTicker(newTicker)}
+                            disabled={!newTicker.trim()}
+                            className="px-3 py-2 bg-[var(--color-b-yellow)] text-[#181a20] font-bold rounded hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Ekle
+                        </button>
                     </div>
                 )}
                 
