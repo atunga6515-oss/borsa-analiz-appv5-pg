@@ -248,7 +248,30 @@ def init_db():
                 end_date TIMESTAMP NOT NULL,
                 initial_balance FLOAT NOT NULL,
                 current_balance FLOAT NOT NULL,
-                status VARCHAR(20) DEFAULT 'active'
+                status VARCHAR(20) DEFAULT 'active',
+                mode VARCHAR(20) DEFAULT 'Normal',
+                max_positions INTEGER DEFAULT 5
+            )
+        """))
+
+        # Mevcut robot_sessions tablosuna mode ve max_positions eklenecek (migration)
+        for col_def in [
+            ("mode", "VARCHAR(20) DEFAULT 'Normal'"),
+            ("max_positions", "INTEGER DEFAULT 5")
+        ]:
+            col_name, col_type = col_def
+            try:
+                conn.execute(text(f"ALTER TABLE robot_sessions ADD COLUMN IF NOT EXISTS {col_name} {col_type}"))
+            except Exception:
+                pass
+
+        conn.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS robot_watchlist (
+                id {serial_type} PRIMARY KEY,
+                ticker VARCHAR(20) NOT NULL,
+                vote_strength FLOAT NOT NULL,
+                added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE (ticker)
             )
         """))
 

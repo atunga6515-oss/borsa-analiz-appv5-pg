@@ -13,6 +13,7 @@ export default function RobotPage() {
     // Form state
     const [balance, setBalance] = useState(1000000);
     const [duration, setDuration] = useState(5);
+    const [mode, setMode] = useState("Normal");
     
     const fetchStatus = async () => {
         setLoading(true);
@@ -41,7 +42,7 @@ export default function RobotPage() {
     const handleStart = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await api.post('/robot/start', { initial_balance: balance, duration_days: duration });
+            await api.post('/robot/start', { initial_balance: balance, duration_days: duration, mode });
             fetchStatus();
         } catch (e) {
             console.error(e);
@@ -110,6 +111,18 @@ export default function RobotPage() {
                                 className="w-full bg-[#0b0e14] border border-[#2b3139] rounded px-4 py-3 text-white focus:outline-none focus:border-[var(--color-b-yellow)] transition-colors"
                             />
                         </div>
+                        <div>
+                            <label className="block text-sm text-[var(--color-text-dim)] mb-1">Çalışma Modu & Risk Seviyesi</label>
+                            <select 
+                                value={mode} 
+                                onChange={(e) => setMode(e.target.value)}
+                                className="w-full bg-[#0b0e14] border border-[#2b3139] rounded px-4 py-3 text-white focus:outline-none focus:border-[var(--color-b-yellow)] transition-colors"
+                            >
+                                <option value="Temkinli">Temkinli (Max 8 Hisse - Düşük Risk)</option>
+                                <option value="Normal">Normal (Max 5 Hisse - Dengeli)</option>
+                                <option value="Agresif">Agresif (Max 3 Hisse - Yüksek Kazanç/Risk)</option>
+                            </select>
+                        </div>
                         <button type="submit" className="w-full bg-gradient-to-r from-[var(--color-b-yellow)] to-yellow-600 text-[#181a20] font-bold py-3 rounded hover:opacity-90 transition-opacity">
                             Robotu Başlat 🚀
                         </button>
@@ -133,6 +146,7 @@ export default function RobotPage() {
                         <div className="glass-panel p-6">
                             <div className="text-sm text-[var(--color-text-dim)] mb-1">Başlangıç Sermayesi</div>
                             <div className="text-2xl font-bold text-white">{statusData.initial_balance.toLocaleString("tr-TR", {maximumFractionDigits:2})} TL</div>
+                            <div className="text-xs text-[var(--color-b-yellow)] mt-2 font-bold bg-[#2b3139]/50 inline-block px-2 py-1 rounded">Mod: {statusData.mode} (Max: {statusData.max_positions})</div>
                         </div>
                         <div className="glass-panel p-6">
                             <div className="text-sm text-[var(--color-text-dim)] mb-1">Nakit Bakiye</div>

@@ -10,6 +10,7 @@ router = APIRouter(prefix="/api/robot", tags=["Robot"])
 class RobotStartRequest(BaseModel):
     initial_balance: float = 1000000.0
     duration_days: int = 5
+    mode: str = "Normal"  # Temkinli, Normal, Agresif
 
 @router.post("/start")
 def start_robot(req: RobotStartRequest, current_user: str = Depends(get_current_user)):
@@ -24,12 +25,19 @@ def start_robot(req: RobotStartRequest, current_user: str = Depends(get_current_
         now = datetime.now()
         end_date = now + timedelta(days=req.duration_days)
         
+        mode = req.mode if req.mode in ["Temkinli", "Normal", "Agresif"] else "Normal"
+        max_positions = 5
+        if mode == "Temkinli":
+            max_positions = 8
+        elif mode == "Agresif":
+            max_positions = 3
+            
         conn.execute(
             text("""
-                INSERT INTO robot_sessions (username, start_date, end_date, initial_balance, current_balance, status)
-                VALUES (:u, :sd, :ed, :ib, :cb, 'active')
+                INSERT INTO robot_sessions (username, start_date, end_date, initial_balance, current_balance, status, mode, max_positions)
+                VALUES (:u, :sd, :ed, :ib, :cb, 'active', :m, :mp)
             """),
-            {"u": current_user, "sd": now, "ed": end_date, "ib": req.initial_balance, "cb": req.initial_balance}
+            {"u": current_user, "sd": now, "ed": end_date, "ib": req.initial_balance, "cb": req.initial_balance, "m": mode, "mp": max_positions}
         )
         
     return {"message": "Robot başarıyla başlatıldı!"}
@@ -48,7 +56,7 @@ def stop_robot(current_user: str = Depends(get_current_user)):
         session_id = active_session[0]
         
         # Elindeki tüm hisseleri sat ve seansı kapat
-        from api.robot_engine import get_live_price
+        from data_loader import get_live_price
         portfolio = conn.execute(
             text("SELECT id, ticker, adet FROM robot_portfolio WHERE session_id = :sid"),
             {"sid": session_id}
@@ -89,14 +97,14 @@ def stop_robot(current_user: str = Depends(get_current_user)):
 def get_robot_status(current_user: str = Depends(get_current_user)):
     with engine.connect() as conn:
         session = conn.execute(
-            text("SELECT id, start_date, end_date, initial_balance, current_balance, status FROM robot_sessions WHERE username = :u ORDER BY id DESC LIMIT 1"),
+            text("SELECT id, start_date, end_date, initial_balance, current_balance, status, mode, max_positions FROM robot_sessions WHERE username = :u ORDER BY id DESC LIMIT 1"),
             {"u": current_user}
         ).fetchone()
         
         if not session:
             return {"active": False}
             
-        session_id, start_date, end_date, initial_balance, current_balance, status = session
+        session_id, start_date, end_date, initial_balance, current_balance, status, mode, max_positions = session
         
         portfolio = conn.execute(
             text("SELECT ticker, adet, alis_fiyati, alis_tarihi FROM robot_portfolio WHERE session_id = :sid"),
@@ -110,7 +118,7 @@ def get_robot_status(current_user: str = Depends(get_current_user)):
 
     port_list = []
     total_portfolio_value = 0.0
-    from api.robot_engine import get_live_price
+    from data_loader import get_live_price
     for p in portfolio:
         t, a, af, at = p
         lp = get_live_price(t)
@@ -152,6 +160,8 @@ def get_robot_status(current_user: str = Depends(get_current_user)):
         "total_trades_count": total_trades_count,
         "start_date": str(start_date),
         "end_date": str(end_date),
+        "mode": mode,
+        "max_positions": max_positions,
         "portfolio": port_list,
         "trades": trade_list
     }

@@ -5,7 +5,7 @@ from apscheduler.triggers.cron import CronTrigger
 from database import engine
 from sqlalchemy import text
 from api.email_service import send_subscription_warning_email
-from api.robot_engine import process_robot_sales, process_robot_buys
+from api.robot_engine import process_robot_core_loop, process_robot_hourly_scan
 
 logger = logging.getLogger(__name__)
 
@@ -78,19 +78,19 @@ def start_scheduler():
         replace_existing=True
     )
     
-    # Robot Satış Kontrolü (Pazartesi-Cuma, 10:00 - 17:50 arası her 10 dakikada bir)
+    # Robot Çekirdek Döngüsü (Mikro - 5 dk'da bir - Pazartesi-Cuma, 10:00 - 17:55)
     scheduler.add_job(
-        process_robot_sales,
-        CronTrigger(day_of_week="mon-fri", hour="10-17", minute="*/10"),
-        id="robot_sell_cycle",
+        process_robot_core_loop,
+        CronTrigger(day_of_week="mon-fri", hour="10-17", minute="*/5"),
+        id="robot_core_cycle",
         replace_existing=True
     )
     
-    # Robot Alış Taraması (Pazartesi-Cuma, 10:00 - 17:00 arası her saat başı)
+    # Robot Makro Tarama (Saatlik Watchlist - Pazartesi-Cuma, 10:00 - 17:00 arası her saat başı)
     scheduler.add_job(
-        process_robot_buys,
+        process_robot_hourly_scan,
         CronTrigger(day_of_week="mon-fri", hour="10-17", minute="0"),
-        id="robot_buy_cycle",
+        id="robot_macro_cycle",
         replace_existing=True
     )
     
