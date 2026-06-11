@@ -118,6 +118,6 @@ export default function TradingChart({ data }: { data: ChartData[] }) {
     }, [data]);
 
     return (
-        <div className="w-full h-full min-h-[500px]" ref={chartContainerRef} />
+        <div className="absolute inset-0" ref={chartContainerRef} />
     );
 }
