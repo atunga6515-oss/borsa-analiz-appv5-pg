@@ -47,19 +47,30 @@ export default function RobotPage() {
             fetchStatus();
         } catch (e) {
             console.error(e);
-            toast.success("Robot başlatılamadı.");
+            toast.error("Robot başlatılamadı.");
         }
     };
 
-    const handleStop = async () => {
-        if (!confirm("Robotu durdurmak ve elindeki tüm hisseleri satmak istediğinize emin misiniz?")) return;
-        try {
-            await api.post('/robot/stop');
-            fetchStatus();
-        } catch (e) {
-            console.error(e);
-            toast.success("Robot durdurulamadı.");
-        }
+    const handleStop = () => {
+        toast((t) => (
+            <div className="flex flex-col gap-3">
+                <span className="font-medium text-white">Robotu durdurmak ve elindeki tüm hisseleri satmak istediğinize emin misiniz?</span>
+                <div className="flex gap-2 justify-end">
+                    <button className="px-3 py-1 bg-[#2b3139] hover:bg-[#3b4149] text-white rounded transition-colors text-sm" onClick={() => toast.dismiss(t.id)}>İptal</button>
+                    <button className="px-3 py-1 bg-[var(--color-b-red)] hover:bg-red-600 text-white font-bold rounded transition-colors text-sm" onClick={async () => {
+                        toast.dismiss(t.id);
+                        try {
+                            await api.post('/robot/stop');
+                            fetchStatus();
+                            toast.success("Robot durduruldu.");
+                        } catch (e) {
+                            console.error(e);
+                            toast.error("Robot durdurulamadı.");
+                        }
+                    }}>Eminim, Durdur</button>
+                </div>
+            </div>
+        ), { duration: Infinity, style: { background: '#1e2329', border: '1px solid #2b3139', color: '#fff' } });
     };
 
     if (loading) {

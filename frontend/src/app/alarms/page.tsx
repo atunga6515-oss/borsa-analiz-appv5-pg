@@ -59,14 +59,25 @@ export default function AlarmsPage() {
         fetchAlarms();
     }, [fetchAlarms]);
 
-    const handleDelete = async (id: number) => {
-        if (!confirm("Bu alarmı silmek istediğinize emin misiniz?")) return;
-        try {
-            await api.delete(`/alarms/${id}`);
-            setAlarms((prev) => prev.filter((a) => a.id !== id));
-        } catch {
-            toast.error("Alarm silinirken bir hata oluştu.");
-        }
+    const handleDelete = (id: number) => {
+        toast((t) => (
+            <div className="flex flex-col gap-3">
+                <span className="font-medium text-white">Bu alarmı silmek istediğinize emin misiniz?</span>
+                <div className="flex gap-2 justify-end">
+                    <button className="px-3 py-1 bg-[#2b3139] hover:bg-[#3b4149] text-white rounded transition-colors text-sm" onClick={() => toast.dismiss(t.id)}>İptal</button>
+                    <button className="px-3 py-1 bg-[var(--color-b-red)] hover:bg-red-600 text-white font-bold rounded transition-colors text-sm" onClick={async () => {
+                        toast.dismiss(t.id);
+                        try {
+                            await api.delete(`/alarms/${id}`);
+                            setAlarms((prev) => prev.filter((a) => a.id !== id));
+                            toast.success("Alarm silindi.");
+                        } catch {
+                            toast.error("Alarm silinirken bir hata oluştu.");
+                        }
+                    }}>Eminim, Sil</button>
+                </div>
+            </div>
+        ), { duration: Infinity, style: { background: '#1e2329', border: '1px solid #2b3139', color: '#fff' } });
     };
 
     const handleSaveAlarm = async (e: React.FormEvent) => {

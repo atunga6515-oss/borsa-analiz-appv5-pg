@@ -81,31 +81,46 @@ export default function PortfolioPage() {
     const handleAddTransaction = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        // Merge check
+        const performAdd = async () => {
+            try {
+                await api.post('/portfolio/transaction', {
+                    ticker: newTicker,
+                    type: "ALIS",
+                    quantity: parseFloat(newQuantity),
+                    price: parseFloat(newPrice),
+                    date: newDate || undefined
+                });
+                setShowModal(false);
+                setNewTicker("");
+                setNewQuantity("");
+                setNewPrice("");
+                setNewDate("");
+                fetchPortfolio();
+                toast.success("İşlem başarıyla eklendi.");
+            } catch (error) {
+                console.error("İşlem eklenemedi:", error);
+                toast.error("İşlem eklenirken hata oluştu.");
+            }
+        };
+
         const existing = positions.find((p: any) => p.ticker === newTicker.toUpperCase());
         if (existing) {
-            const confirmed = window.confirm(`"${newTicker.toUpperCase()}" hissesi portföyünüzde zaten bulunuyor. Devam ederseniz lot sayınız artacak ve ortalama maliyetiniz yeniden hesaplanacaktır. Onaylıyor musunuz?`);
-            if (!confirmed) return;
+            toast((t) => (
+                <div className="flex flex-col gap-3">
+                    <span className="font-medium text-white">{`"${newTicker.toUpperCase()}" hissesi portföyünüzde zaten bulunuyor. Devam ederseniz lot sayınız artacak ve ortalama maliyetiniz yeniden hesaplanacaktır. Onaylıyor musunuz?`}</span>
+                    <div className="flex gap-2 justify-end">
+                        <button className="px-3 py-1 bg-[#2b3139] hover:bg-[#3b4149] text-white rounded transition-colors text-sm" onClick={() => toast.dismiss(t.id)}>İptal</button>
+                        <button className="px-3 py-1 bg-[var(--color-b-yellow)] hover:bg-yellow-400 text-black font-bold rounded transition-colors text-sm" onClick={() => {
+                            toast.dismiss(t.id);
+                            performAdd();
+                        }}>Onaylıyorum</button>
+                    </div>
+                </div>
+            ), { duration: Infinity, style: { background: '#1e2329', border: '1px solid #2b3139', color: '#fff' } });
+            return;
         }
         
-        try {
-            await api.post('/portfolio/transaction', {
-                ticker: newTicker,
-                type: "ALIS",
-                quantity: parseFloat(newQuantity),
-                price: parseFloat(newPrice),
-                date: newDate || undefined
-            });
-            setShowModal(false);
-            setNewTicker("");
-            setNewQuantity("");
-            setNewPrice("");
-            setNewDate("");
-            fetchPortfolio();
-        } catch (error) {
-            console.error("İşlem eklenemedi:", error);
-            toast.error("İşlem eklenirken hata oluştu.");
-        }
+        performAdd();
     };
 
     const handleEditSubmit = async (e: React.FormEvent) => {

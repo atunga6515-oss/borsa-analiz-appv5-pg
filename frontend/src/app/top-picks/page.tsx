@@ -76,23 +76,33 @@ export default function TopPicksPage() {
         }
     };
 
-    const handleScan = async () => {
-        if (!confirm(`${topN} hisselik derin tarama başlatılacak. Onaylıyor musunuz?`)) return;
-        setLoading(true);
-        setPicks([]);
-        setSelectedHistoryId("");
-        setScanProgress(0);
-        setScanText("Hazırlanıyor...");
-        try {
-            const res = await api.post('/top_picks/scan', { top_n: topN, pool: pool });
-            if (res.data && res.data.task_id) {
-                setTaskId(res.data.task_id);
-            }
-        } catch (error) {
-            console.error("Tarama hatası:", error);
-            toast.error("Tarama başlatılırken hata oluştu!");
-            setLoading(false);
-        }
+    const handleScan = () => {
+        toast((t) => (
+            <div className="flex flex-col gap-3">
+                <span className="font-medium text-white">{`${topN} hisselik derin tarama başlatılacak. Onaylıyor musunuz?`}</span>
+                <div className="flex gap-2 justify-end">
+                    <button className="px-3 py-1 bg-[#2b3139] hover:bg-[#3b4149] text-white rounded transition-colors text-sm" onClick={() => toast.dismiss(t.id)}>İptal</button>
+                    <button className="px-3 py-1 bg-[var(--color-b-yellow)] hover:bg-yellow-400 text-black font-bold rounded transition-colors text-sm" onClick={async () => {
+                        toast.dismiss(t.id);
+                        setLoading(true);
+                        setPicks([]);
+                        setSelectedHistoryId("");
+                        setScanProgress(0);
+                        setScanText("Hazırlanıyor...");
+                        try {
+                            const res = await api.post('/top_picks/scan', { top_n: topN, pool: pool });
+                            if (res.data && res.data.task_id) {
+                                setTaskId(res.data.task_id);
+                            }
+                        } catch (error) {
+                            console.error("Tarama hatası:", error);
+                            toast.error("Tarama başlatılırken hata oluştu!");
+                            setLoading(false);
+                        }
+                    }}>Onaylıyorum</button>
+                </div>
+            </div>
+        ), { duration: Infinity, style: { background: '#1e2329', border: '1px solid #2b3139', color: '#fff' } });
     };
 
     useEffect(() => {

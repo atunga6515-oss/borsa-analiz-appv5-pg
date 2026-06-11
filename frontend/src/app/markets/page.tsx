@@ -1,8 +1,9 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import TradingChart from "@/components/TradingChart";
-import api from "@/lib/api";
 import SymbolAutocomplete from "@/components/SymbolAutocomplete";
+import TradingChart from "@/components/TradingChart";
+import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from "react-resizable-panels";
+import api from "@/lib/api";
 import toast from 'react-hot-toast';
 
 export default function Home() {
@@ -209,9 +210,10 @@ export default function Home() {
     const changePrefix = currentPriceInfo && currentPriceInfo.change > 0 ? "+" : "";
 
     return (
-        <div className="flex w-full h-[calc(100vh-64px)] p-4 gap-4 bg-[var(--color-b-bg)] text-[var(--color-b-text)] overflow-hidden">
-            {/* Sidebar / Watchlist */}
-            <aside className="w-80 glass-panel flex flex-col p-4 min-h-0">
+        <div className="w-full h-[calc(100vh-64px)] p-2 bg-[var(--color-b-bg)] text-[var(--color-b-text)] overflow-hidden">
+            <PanelGroup orientation="horizontal">
+                {/* Sidebar / Watchlist */}
+                <Panel defaultSize={22} minSize={15} maxSize={35} collapsible className="glass-panel flex flex-col p-4 min-h-0 mr-2">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="font-bold text-lg">Piyasa İzleme</h2>
                     <button 
@@ -277,11 +279,15 @@ export default function Home() {
                         );
                     })}
                 </div>
-            </aside>
+                </Panel>
 
-            {/* Main Content (Chart & Signals) */}
-            <section className="flex-1 flex flex-col gap-4 min-h-0">
-                {/* Upper Info Bar */}
+                <PanelResizeHandle className="w-2 hover:bg-[#2b3139] transition-colors cursor-col-resize flex flex-col items-center justify-center group relative z-10 mx-1">
+                    <div className="w-1 h-8 bg-[#2b3139] group-hover:bg-[var(--color-b-yellow)] rounded-full transition-colors" />
+                </PanelResizeHandle>
+
+                {/* Main Content (Chart & Signals) */}
+                <Panel className="flex flex-col min-h-0 ml-2">
+                    {/* Upper Info Bar (Static) */}
                 <div className="glass-panel p-4 flex items-center gap-8">
                     <div>
                         <h2 className="text-2xl font-bold text-white">{selectedTicker} <span className="text-sm font-normal text-[var(--color-b-muted)]">BIST Hissesi</span></h2>
@@ -300,8 +306,9 @@ export default function Home() {
                     </div>
                 </div>
 
-                {/* Chart Area */}
-                <div className="glass-panel flex-1 p-1 relative overflow-hidden flex flex-col">
+                {/* Resizable Chart & Calendar Area */}
+                <PanelGroup orientation="vertical" className="flex-1">
+                    <Panel defaultSize={70} minSize={30} className="glass-panel relative overflow-hidden flex flex-col mt-4">
                     {/* Toolbar inside chart */}
                     <div className="flex items-center gap-4 px-4 py-2 border-b border-[var(--color-b-border)] bg-[rgba(11,14,17,0.5)]">
                         <span 
@@ -338,10 +345,14 @@ export default function Home() {
                             </div>
                         )}
                     </div>
-                </div>
+                    </Panel>
 
-                {/* Macro Calendar Widget */}
-                <div className="glass-panel h-48 flex flex-col overflow-hidden">
+                    <PanelResizeHandle className="h-4 hover:bg-[#2b3139] transition-colors cursor-row-resize flex items-center justify-center group relative z-10 my-1">
+                        <div className="w-8 h-1 bg-[#2b3139] group-hover:bg-[var(--color-b-yellow)] rounded-full transition-colors" />
+                    </PanelResizeHandle>
+
+                    {/* Macro Calendar Widget */}
+                    <Panel defaultSize={30} minSize={15} collapsible className="glass-panel flex flex-col overflow-hidden">
                     <div className="p-3 border-b border-[var(--color-b-border)] flex items-center justify-between bg-[#1e2329]">
                         <h3 className="font-bold text-white text-sm">📅 Makroekonomik Takvim</h3>
                         <span className="text-xs text-[var(--color-b-muted)]">TCMB & FED & Enflasyon</span>
@@ -376,9 +387,10 @@ export default function Home() {
                             </tbody>
                         </table>
                     </div>
-                </div>
-
-            </section>
+                    </Panel>
+                </PanelGroup>
+            </Panel>
+        </PanelGroup>
         </div>
     );
 }
