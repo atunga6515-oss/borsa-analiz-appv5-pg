@@ -181,14 +181,24 @@ ${ssot.summary || "-"}`;
                         </button>
                     </form>
                     {data && (
-                        <button 
-                            type="button"
-                            onClick={() => requireAuth(handleSendTelegram)}
-                            className="bg-[#24A1DE] hover:bg-[#1d82b5] text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
-                            disabled={loading}
-                        >
-                            📤 Telegram'a Gönder
-                        </button>
+                        <div className="flex gap-2 items-center">
+                            {data.ssot_result?.core_votes_list && data.ssot_result.core_votes_list.length > 0 && (
+                                <button 
+                                    onClick={() => setIsIndicatorModalOpen(true)}
+                                    className="bg-gradient-to-r from-[#0ea5e9] to-[#06b6d4] hover:from-[#0284c7] hover:to-[#0891b2] border-none text-white px-4 py-2 rounded-lg font-medium shadow-md flex items-center justify-center gap-2 transition-all transform hover:-translate-y-0.5"
+                                >
+                                    🔍 İndikatör Sinyalleri
+                                </button>
+                            )}
+                            <button 
+                                type="button"
+                                onClick={() => requireAuth(handleSendTelegram)}
+                                className="bg-[#24A1DE] hover:bg-[#1d82b5] text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+                                disabled={loading}
+                            >
+                                📤 Telegram'a Gönder
+                            </button>
+                        </div>
                     )}
                 </div>
             </div>
@@ -301,14 +311,6 @@ ${ssot.summary || "-"}`;
                             </div>
                         </div>
 
-                        {data.ssot_result?.core_votes_list && data.ssot_result.core_votes_list.length > 0 && (
-                            <button 
-                                onClick={() => setIsIndicatorModalOpen(true)}
-                                className="w-full bg-gradient-to-r from-[#0ea5e9] to-[#06b6d4] hover:from-[#0284c7] hover:to-[#0891b2] shadow-lg border-none text-white p-4 rounded-lg font-bold flex items-center justify-center gap-2 transition-all mt-3 transform hover:-translate-y-0.5"
-                            >
-                                🔍 Tüm İndikatör Sinyallerini Gör
-                            </button>
-                        )}
 
                         </Panel>
 
