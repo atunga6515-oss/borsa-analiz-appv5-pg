@@ -279,7 +279,7 @@ def _analyze_single_stock(sym: str, market_regime: dict = None) -> dict:
 
         # Dipten Dönüş (Geliştirilmiş Hibrit Mantık)
         reversal_res = check_bottom_reversal(df)
-        reversal = reversal_res['text'] if reversal_res['detected'] else "-"
+        reversal = reversal_res.get('summary', reversal_res.get('text', '-')) if reversal_res['detected'] else "-"
 
         # Destek/Direnç
         zones = calculate_best_zones(df)

@@ -450,6 +450,7 @@ def generate_signals_and_score(df: pd.DataFrame, ticker: str = "", market_regime
                     pgs_score -= 10
                     summary.append(f"⚠️ Yabancı Satışı: Belirgin Çıkış (%{fr_change:.2f})")
             
+            # PGS her zaman 0-100 arasında sınırlandır (bonus'lar öncesi kontrol)
             pgs_score = round(max(0, min(100, pgs_score)), 1)
 
             if final_score > 75 and pgs_score > 75: conv_level = "YÜKSEK 🚀"

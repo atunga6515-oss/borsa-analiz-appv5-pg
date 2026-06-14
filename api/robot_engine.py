@@ -89,12 +89,14 @@ def _fetch_5m_data(tickers: list) -> dict:
     return data_dict
 
 def calculate_rsi(series: pd.Series, period: int = 14) -> pd.Series:
+    """Wilder's EMA smoothing kullanan doğru RSI hesaplaması (ewm com=period-1)."""
     delta = series.diff(1)
-    gain = delta.where(delta > 0, 0)
-    loss = -delta.where(delta < 0, 0)
-    avg_gain = gain.rolling(window=period, min_periods=1).mean()
-    avg_loss = loss.rolling(window=period, min_periods=1).mean()
-    rs = avg_gain / avg_loss
+    gain = delta.where(delta > 0, 0.0)
+    loss = -delta.where(delta < 0, 0.0)
+    # Wilder'in EMA yaklaşımı: com = period - 1
+    avg_gain = gain.ewm(com=period - 1, min_periods=period).mean()
+    avg_loss = loss.ewm(com=period - 1, min_periods=period).mean()
+    rs = avg_gain / avg_loss.replace(0, np.nan)
     return 100 - (100 / (1 + rs))
 
 def _analyze_5m_buy(df: pd.DataFrame) -> bool:
@@ -138,6 +140,19 @@ def get_mode_limits(mode: str):
 def process_robot_core_loop():
     """Her 5 dakikada bir çalışır. Watchlist'ten alım arar, portföyden satış arar."""
     now = datetime.now()
+    
+    # BIST Seans Saati Kontrolü (09:30 - 18:00 Tükiye saati)
+    import pytz
+    tr_tz = pytz.timezone("Europe/Istanbul")
+    now_tr = datetime.now(tr_tz)
+    is_market_open = (
+        now_tr.weekday() < 5 and  # Pazartesi-Cuma
+        (now_tr.hour, now_tr.minute) >= (9, 30) and
+        (now_tr.hour, now_tr.minute) < (18, 10)
+    )
+    if not is_market_open:
+        logger.info("[ROBOT] Borsa seansı dışı, işlem yapılmıyor.")
+        return
     
     try:
         with engine.begin() as conn:
@@ -214,9 +229,10 @@ def process_robot_core_loop():
                         elif df is not None and _analyze_5m_sell(df):
                             should_sell = True
                             reason = "Aşırı Alım (RSI > 70) Teknik Çıkış"
-                        elif mode == "Agresif" and pnl_pct < 0:
-                            # Fırsat Maliyeti: Agresif modda zarardayken watchlist'te sağlam hisse varsa sat
-                            if watchlist: 
+                        elif mode == "Agresif" and pnl_pct < -1.0:
+                            # Fırsat Maliyeti: Watchlist'te skoru daha iyi bir hisse varsa sat
+                            better_options = [t for t in watchlist if t != ticker and t not in held_tickers]
+                            if len(better_options) >= 2:  # En az 2 alternatif olmalı
                                 should_sell = True
                                 reason = "Fırsat Maliyeti (Zararına Kesip Yeni Fırsata Geçiş)"
                     

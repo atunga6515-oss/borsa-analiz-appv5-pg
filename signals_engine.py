@@ -201,9 +201,9 @@ def calculate_100_indicators(df: pd.DataFrame) -> pd.DataFrame:
 
     # 18. MACD Varyasyonları (6 adet)
     for fast, slow, sign in [(5, 35, 5), (24, 52, 18)]:
-        col_macd = f'MACD_{fast}_{slow}'
-        col_sign = f'MACDs_{fast}_{slow}'
-        col_diff = f'MACDh_{fast}_{slow}'
+        col_macd = f'MACD_{fast}_{slow}_{sign}'
+        col_sign = f'MACDs_{fast}_{slow}_{sign}'
+        col_diff = f'MACDh_{fast}_{slow}_{sign}'
         try:
             macd = ta.trend.MACD(close=df['Close'], window_fast=fast, window_slow=slow, window_sign=sign)
             df[col_macd] = macd.macd()
@@ -370,11 +370,32 @@ def get_all_indicator_rules(df: pd.DataFrame) -> tuple:
     rules["MACD 12/26/9 Kesişimi"] = lambda df: np.where(df['MACD'].isna() | df['MACDs'].isna(), 0, np.where(df['MACD'] > df['MACDs'], 1, -1))
     rules["MACD 12/26/9 Histogram"] = lambda df: np.where(df['MACDh'].isna(), 0, np.where(df['MACDh'] > 0, 1, -1))
     
-    rules["MACD 5/35/5 Kesişimi"] = lambda df: np.where(df['MACD_5_35'].isna() | df['MACDs_5_35'].isna(), 0, np.where(df['MACD_5_35'] > df['MACDs_5_35'], 1, -1))
-    rules["MACD 5/35/5 Histogram"] = lambda df: np.where(df['MACDh_5_35'].isna(), 0, np.where(df['MACDh_5_35'] > 0, 1, -1))
-    
-    rules["MACD 24/52/18 Kesişimi"] = lambda df: np.where(df['MACD_24_52'].isna() | df['MACDs_24_52'].isna(), 0, np.where(df['MACD_24_52'] > df['MACDs_24_52'], 1, -1))
-    rules["MACD 24/52/18 Histogram"] = lambda df: np.where(df['MACDh_24_52'].isna(), 0, np.where(df['MACDh_24_52'] > 0, 1, -1))
+    # BUG FIX: Doğru sütun adları (calculate_100_indicators'daki format ile eşleşmeli)
+    rules["MACD 5/35/5 Kesişimi"] = lambda df: np.where(
+        df.get('MACD_5_35', pd.Series(dtype=float)).isna().all() or 'MACD_5_35_5' not in df.columns,
+        0,
+        np.where(df['MACD_5_35_5'] > df['MACDs_5_35_5'], 1, -1)
+    ) if 'MACD_5_35_5' in df.columns else lambda df: 0
+    rules["MACD 5/35/5 Kesişimi"] = lambda df: np.where(
+        'MACD_5_35_5' not in df.columns or df['MACD_5_35_5'].isna().all(),
+        0,
+        np.where(df['MACD_5_35_5'].fillna(0) > df['MACDs_5_35_5'].fillna(0), 1, -1)
+    )
+    rules["MACD 5/35/5 Histogram"] = lambda df: np.where(
+        'MACDh_5_35_5' not in df.columns or df['MACDh_5_35_5'].isna().all(),
+        0,
+        np.where(df['MACDh_5_35_5'].fillna(0) > 0, 1, -1)
+    )
+    rules["MACD 24/52/18 Kesişimi"] = lambda df: np.where(
+        'MACD_24_52_18' not in df.columns or df['MACD_24_52_18'].isna().all(),
+        0,
+        np.where(df['MACD_24_52_18'].fillna(0) > df['MACDs_24_52_18'].fillna(0), 1, -1)
+    )
+    rules["MACD 24/52/18 Histogram"] = lambda df: np.where(
+        'MACDh_24_52_18' not in df.columns or df['MACDh_24_52_18'].isna().all(),
+        0,
+        np.where(df['MACDh_24_52_18'].fillna(0) > 0, 1, -1)
+    )
 
     # 19. Moving Average Crossover Rules (5 adet)
     rules["EMA 5/10 Altın Kesişim"] = lambda df: np.where(df['EMA_5'].isna() | df['EMA_10'].isna(), 0, np.where(df['EMA_5'] > df['EMA_10'], 1, -1))
@@ -685,28 +706,43 @@ def backtest_signals(df: pd.DataFrame) -> dict:
         pd.DataFrame({'Price': sell_signals['Close'], 'Type': 'SELL', 'Reason': sell_signals['Signal_Reason']}, index=sell_signals.index)
     ]).sort_index()
     
+    COMMISSION = 0.002  # %0.2 toplam (al + sat)
+    
     for date, row in all_signals.iterrows():
+        # 1 bar gecikme: Sinyalin ertesi bardan gir/çık (gerçekçi)
+        try:
+            signal_idx = df.index.get_loc(date)
+            exec_idx = min(signal_idx + 1, len(df) - 1)
+            exec_price = float(df['Close'].iloc[exec_idx])
+            exec_date = df.index[exec_idx]
+        except Exception:
+            exec_price = float(row['Price'])
+            exec_date = date
+            
         if row['Type'] == 'BUY' and active_trade is None:
+            # Komisyon sonrası efektif giriş fiyatı
+            actual_entry = exec_price * (1 + COMMISSION / 2)
             active_trade = {
-                'buy_date': date,
-                'buy_price': float(row['Price']),
+                'buy_date': exec_date,
+                'buy_price': actual_entry,
                 'buy_reason': row['Reason']
             }
         elif row['Type'] == 'SELL' and active_trade is not None:
             buy_price = active_trade['buy_price']
-            sell_price = float(row['Price'])
-            pct_return = ((sell_price - buy_price) / buy_price) * 100
+            # Komisyon sonrası efektif çıkış fiyatı
+            actual_exit = exec_price * (1 - COMMISSION / 2)
+            pct_return = ((actual_exit - buy_price) / buy_price) * 100
             
             trades.append({
                 'buy_date': active_trade['buy_date'].strftime('%Y-%m-%d'),
-                'buy_price': buy_price,
+                'buy_price': round(buy_price, 2),
                 'buy_reason': active_trade['buy_reason'],
-                'sell_date': date.strftime('%Y-%m-%d'),
-                'sell_price': sell_price,
+                'sell_date': exec_date.strftime('%Y-%m-%d') if hasattr(exec_date, 'strftime') else str(exec_date),
+                'sell_price': round(actual_exit, 2),
                 'sell_reason': row['Reason'],
                 'return_pct': round(pct_return, 2),
                 'win': pct_return > 0,
-                'duration_days': (date - active_trade['buy_date']).days
+                'duration_days': (exec_date - active_trade['buy_date']).days if hasattr(exec_date, 'days') else 0
             })
             active_trade = None
             

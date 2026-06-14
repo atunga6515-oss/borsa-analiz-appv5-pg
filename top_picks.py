@@ -414,9 +414,11 @@ def find_top_picks(symbol_list: list = None, top_n: int = 5, progress_bar=None) 
             return False
         if row.get("kompozit_skor", 0) < 55:
             return False
-        if row.get("pgs", 50) < 40:
+        # Hem 'pgs' hem de tarama sözlüğünde kullanılan 'Güven Skoru (PGS)' anahtarını destekle
+        pgs_val = row.get("pgs", row.get("Güven Skoru (PGS)", 50))
+        if pgs_val < 40:
             return False
-        return any(x in karar for x in ("al", "güçlü", "guclu", "lider", "potansiyel", "trend"))
+        return any(x in karar for x in ("al", "güçlü", "guclu", "lider", "potansiyel", "trend", "momentum", "pozitif"))
 
     filtered = [r for r in all_results if _eligible(r)]
     pool = filtered if filtered else [r for r in all_results if r.get("kompozit_skor", 0) >= 50]

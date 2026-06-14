@@ -60,7 +60,7 @@ def run_deep_analysis(ticker: str, *, period: str = "1y", market_regime: dict = 
             "sma": {
                 "sma_20": float(last_row["SMA_20"]) if pd.notna(last_row.get("SMA_20")) else None,
                 "sma_50": float(last_row["SMA_50"]) if pd.notna(last_row.get("SMA_50")) else None,
-                "sma_52": float(last_row["SMA_52", np.nan]) if pd.notna(last_row.get("SMA_52")) else None,
+                "sma_52": float(last_row["SMA_52"]) if pd.notna(last_row.get("SMA_52")) else None,
             }
         }
     }

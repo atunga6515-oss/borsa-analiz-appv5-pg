@@ -62,9 +62,16 @@ def get_fundamental_data(ticker_symbol: str) -> dict:
             div_yield = 0.0
         
         # Graham Sayısı (İçsel Değer) = sqrt(22.5 * EPS * BV)
+        # NOT: Negatif EPS durumunda Graham matematiksel olarak hesaplanamaz.
+        # BIST'te yüksek enflasyon nedeniyle TL bazında Graham değeri göreli bir referanstır.
         graham_value = 0.0
         if eps > 0 and bv > 0:
-            graham_value = math.sqrt(22.5 * eps * bv)
+            try:
+                raw = 22.5 * eps * bv
+                if raw > 0:
+                    graham_value = math.sqrt(raw)
+            except (ValueError, OverflowError):
+                graham_value = 0.0
             
         # Skorlama Sistemi
         score = 50

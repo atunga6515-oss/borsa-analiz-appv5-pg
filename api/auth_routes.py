@@ -228,7 +228,8 @@ class ContactRequest(BaseModel):
     message: str
 
 @router.post("/contact-admin")
-def contact_admin(req: ContactRequest):
+@limiter.limit("3/minute")
+def contact_admin(request: Request, req: ContactRequest):
     admin_email = os.getenv("ADMIN_EMAIL", "").strip()
     smtp_server = os.getenv("SMTP_SERVER", "").strip()
     smtp_port = os.getenv("SMTP_PORT", "587").strip()
