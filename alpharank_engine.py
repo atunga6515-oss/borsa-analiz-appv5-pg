@@ -78,102 +78,62 @@ class AlphaRank15D:
         return round(technical_score * 0.6, 1)
 
     def analyze_ticker(self, ticker: str, market_regime: dict = None) -> dict:
-        """Tek bir hisse için teknik hesaplamaları yapar ve skor üretir."""
-        from data_loader import fetch_data
-        from indicators import calculate_indicators
-        from signals_engine import get_core_signal
-        from core.walk_forward import walk_forward_vote
+        """Tek bir hisse için top_picks_15d motorunu kullanarak analiz yapar."""
+        from top_picks_15d import deep_analyze_stock
         
-        df = fetch_data(ticker, interval="1d", period="1y")
-        if df.empty or len(df) < 30:
+        # Orijinal motoru kullanarak tam analizi çek
+        res = deep_analyze_stock(ticker, market_regime)
+        if res.get("error"):
             return None
             
-        df = calculate_indicators(df)
+        v6_score = res.get("v6_score", 50)
+        current_price = res.get("price", 0)
+        details = res.get("details", {})
         
-        close = df['Close'].squeeze()
-        volume = df['Volume'].squeeze()
-        
-        # Son veriler
-        from data_loader import get_batch_live_prices
-        ssot = get_batch_live_prices([ticker]).get(ticker, {})
-        current_price = ssot.get("price", close.iloc[-1])
-        
-        c_ema9 = df['EMA_9'].iloc[-1] if 'EMA_9' in df.columns else close.iloc[-1]
-        c_ema21 = df['EMA_20'].iloc[-1] if 'EMA_20' in df.columns else close.iloc[-1]
-        c_macd = df['MACD_12_26_9'].iloc[-1] if 'MACD_12_26_9' in df.columns else 0
-        c_signal = df['MACDs_12_26_9'].iloc[-1] if 'MACDs_12_26_9' in df.columns else 0
-        c_hist = df['MACDh_12_26_9'].iloc[-1] if 'MACDh_12_26_9' in df.columns else 0
-        p_hist = df['MACDh_12_26_9'].iloc[-2] if 'MACDh_12_26_9' in df.columns else 0
-        c_rsi = df['RSI_14'].iloc[-1] if 'RSI_14' in df.columns else 50
-        
-        # Skorlama ve Gerekçeler
-        score = 0
         evidences = []
         
-        # 1. Trend Gücü
-        ema_score = 0
-        if current_price > c_ema9 > c_ema21:
-            ema_score += 20
-            evidences.append("Güçlü Trend: Fiyat kısa ve orta vadeli ortalamaların üzerinde.")
-        elif current_price > c_ema9:
-            ema_score += 10
-            evidences.append("Pozitif Trend: Fiyat kısa vadeli ortalamanın üzerinde.")
-        score += min(ema_score, 30)
-        
-        # 2. Momentum
-        macd_score = 0
-        if c_macd > c_signal:
-            macd_score += 15
-            evidences.append("Momentum Pozitif: MACD sinyal çizgisinin üzerinde.")
-        if c_hist > 0 and c_hist > p_hist:
-            macd_score += 15
-            evidences.append("Artan Momentum: MACD histogramı büyümeye devam ediyor.")
-        score += min(macd_score, 30)
-        
-        # 3. RSI
-        rsi_score = 0
-        if c_rsi < 35:
-            rsi_score += 10
-            evidences.append(f"Aşırı Satım: RSI ({c_rsi:.1f}) düşük, tepki gelebilir.")
-        elif 35 <= c_rsi <= 65:
-            rsi_score += 15
-            evidences.append(f"Sağlıklı Bölge: RSI ({c_rsi:.1f}) istikrarlı yükseliş bölgesinde.")
-        score += min(rsi_score, 25)
-        
-        # 4. YENİ: Kısa Vade İndikatör Motoru
-        core_sig = get_core_signal(df)
-        short_term_data = core_sig.get('short_term', {})
-        short_score = short_term_data.get('score', 50)
-        if short_score > 60:
-            score += 15
-            evidences.append(f"🚀 Kısa Vade Motoru Pozitif: İndikatörlerin %{short_score}'si AL sinyali veriyor.")
+        # 1. Kısa Vade Sinyalleri
+        sig = details.get("signals", {})
+        short_score = sig.get("short_term", {}).get("score", 50)
+        if short_score >= 60:
+            evidences.append(f"🚀 Güçlü Kısa Vade Motoru: 15 Günlük indikatörlerin %{short_score:.1f}'si AL sinyali veriyor.")
         elif short_score < 40:
-            score -= 10
-            evidences.append(f"⚠️ Kısa Vade Motoru Negatif: İndikatörlerin sadece %{short_score}'si AL veriyor.")
-        
-        # Walk Forward
-        votes = walk_forward_vote(df)
-        if votes["buy_vote"] > 60:
-            score += 15
-            evidences.append(f"Geçmiş Doğrulama: Benzer sinyallerde başarı oranı %{votes['buy_vote']:.1f}")
-        elif votes["sell_vote"] > 60:
-            score -= 12
-            evidences.append(f"Geçmiş Doğrulama (Negatif): Benzer kırılımlar genelde başarısız oldu.")
+            evidences.append(f"⚠️ Zayıf İvme: Kısa vade indikatörlerin sadece %{short_score:.1f}'si AL veriyor.")
+        else:
+            evidences.append(f"⚖️ Nötr İvme: Kısa vade indikatörler %{short_score:.1f} ile karar aşamasında.")
             
-        score = min(100, max(0, score))
-        
-        # XU100 Regime Penalty
-        if market_regime and market_regime.get("is_bear", False):
-            score *= 0.92
+        # 2. Hacim ve Momentum
+        vol_trend = details.get("volume_trend", "")
+        if vol_trend == "Hacim Artışıyla Yükseliş":
+            evidences.append("🔥 Hacim Onayı: Son günlerde belirgin bir hacim girişi var.")
             
-        prob_15d = self._calibrate_15d_probability(df, score)
-        
+        # 3. Formasyonlar
+        patterns = details.get("patterns", [])
+        if patterns:
+            evidences.append(f"📈 Mum Formasyonu: {', '.join(patterns)} tespit edildi.")
+            
+        # 4. Dönüş (Reversal)
+        is_bottom = details.get("is_bottom_reversal", False)
+        if is_bottom:
+            evidences.append("🔄 Dipten Dönüş Sinyali: Hisse aşırı satım bölgesinden tepki veriyor.")
+            
+        # 5. Temel Durum (15 Günlükte Düşük Ağırlıkta Olsa da Belirtmek İyi)
+        tem_durum = res.get("tem_durum", "Normal")
+        if tem_durum == "Kelepir":
+            evidences.append("💎 Temel Analiz: Finansal olarak ucuz / kelepir bölgesinde.")
+            
+        # 6. Güven Skoru (Walk Forward Başarısı)
+        confidence = res.get("confidence", 50)
+        if confidence >= 80:
+            evidences.append(f"🛡️ Yüksek Tarihsel Güvenilirlik: Geçmiş testlerde başarı oranı %{confidence:.1f}.")
+
+        # V6 Skorunu AlphaRank'in Yükseliş Olasılığı (prob_15d) ve genel Skoru olarak atıyoruz
         return {
             "ticker": ticker.replace(".IS", ""),
-            "score": round(score, 1),
-            "prob_15d": prob_15d,
-            "price": round(current_price, 2),
-            "evidences": evidences
+            "score": v6_score,
+            "prob_15d": v6_score,
+            "price": current_price,
+            "evidences": evidences if evidences else ["Kısa vadeli osilatörler stabil ilerliyor."]
         }
 
     def run_analysis(self, username: str) -> list:
