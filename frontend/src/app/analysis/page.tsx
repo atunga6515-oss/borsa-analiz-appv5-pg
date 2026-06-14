@@ -325,7 +325,7 @@ ${ssot.summary || "-"}`;
 
                                 <Panel defaultSize={40} minSize={20} className="flex flex-col space-y-6 overflow-y-auto pr-2 pb-4 pt-2">
                                     {/* AI Summary */}
-                                    <div className="bg-[#1e2329] p-5 rounded-lg border-l-4 border-[var(--color-b-yellow)]">
+                                    <div className="bg-[#1e2329] p-5 rounded-lg border-l-4 border-[var(--color-b-yellow)] flex-shrink-0">
                             <h3 className="font-bold text-white mb-2">🤖 Yapay Zeka Analiz Özeti</h3>
                             <p className="text-[var(--color-b-muted)] text-sm leading-relaxed whitespace-pre-wrap">
                                 {data.ssot_result?.summary}
@@ -334,7 +334,7 @@ ${ssot.summary || "-"}`;
 
                         {/* Indicator Proof Table */}
                         {data.ssot_result?.core_votes_list && data.ssot_result.core_votes_list.length > 0 && (
-                            <div className="glass-panel rounded-lg overflow-hidden">
+                            <div className="glass-panel rounded-lg overflow-hidden flex-shrink-0">
                                 <div className="p-4 bg-[#181a20] border-b border-[var(--color-b-border)]">
                                     <h3 className="font-bold text-white">🔍 İndikatör Kanıtları (Ensemble)</h3>
                                 </div>
