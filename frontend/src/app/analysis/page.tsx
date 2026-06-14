@@ -215,7 +215,7 @@ ${ssot.summary || "-"}`;
             )}
 
             {data && (
-                <div className="flex-1 w-full min-h-[700px] h-full flex mb-6">
+                <div className="flex-1 w-full flex mb-2" style={{ minHeight: "800px", height: "calc(100vh - 160px)" }}>
                     <PanelGroup orientation="horizontal" id="analysis-layout" autoSave="analysis-layout">
                         {/* LEFT COLUMN: Metrics */}
                         <Panel defaultSize={30} minSize={20} className="flex flex-col space-y-6 overflow-y-auto pr-4 pb-4">
@@ -338,7 +338,7 @@ ${ssot.summary || "-"}`;
                                 <div className="p-4 bg-[#181a20] border-b border-[var(--color-b-border)]">
                                     <h3 className="font-bold text-white">🔍 İndikatör Kanıtları (Ensemble)</h3>
                                 </div>
-                                <div className="max-h-[300px] overflow-y-auto">
+                                <div className="overflow-x-auto w-full">
                                     <table className="w-full text-left text-sm">
                                         <thead className="bg-[#1e2329] text-[var(--color-b-muted)] sticky top-0">
                                             <tr>
