@@ -86,15 +86,13 @@ class AlphaRank15D:
         if res.get("error"):
             return None
             
-        v6_score = res.get("v6_score", 50)
-        current_price = res.get("price", 0)
-        details = res.get("details", {})
+        v6_score = res.get("kompozit_skor", 50)
+        current_price = res.get("fiyat", 0)
         
         evidences = []
         
         # 1. Kısa Vade Sinyalleri
-        sig = details.get("signals", {})
-        short_score = sig.get("short_term", {}).get("score", 50)
+        short_score = res.get("short_term_score", 50)
         if short_score >= 60:
             evidences.append(f"🚀 Güçlü Kısa Vade Motoru: 15 Günlük indikatörlerin %{short_score:.1f}'si AL sinyali veriyor.")
         elif short_score < 40:
@@ -103,26 +101,26 @@ class AlphaRank15D:
             evidences.append(f"⚖️ Nötr İvme: Kısa vade indikatörler %{short_score:.1f} ile karar aşamasında.")
             
         # 2. Hacim ve Momentum
-        vol_trend = details.get("volume_trend", "")
-        if vol_trend == "Hacim Artışıyla Yükseliş":
+        vol_bonus = res.get("volume_bonus", 0)
+        if vol_bonus > 0:
             evidences.append("🔥 Hacim Onayı: Son günlerde belirgin bir hacim girişi var.")
             
         # 3. Formasyonlar
-        patterns = details.get("patterns", [])
-        if patterns:
-            evidences.append(f"📈 Mum Formasyonu: {', '.join(patterns)} tespit edildi.")
+        pattern = res.get("pattern_text", "-")
+        if pattern != "-":
+            evidences.append(f"📈 Mum Formasyonu: {pattern} tespit edildi.")
             
         # 4. Dönüş (Reversal)
-        is_bottom = details.get("is_bottom_reversal", False)
-        if is_bottom:
+        reversal_bonus = res.get("reversal_bonus", 0)
+        if reversal_bonus > 0:
             evidences.append("🔄 Dipten Dönüş Sinyali: Hisse aşırı satım bölgesinden tepki veriyor.")
             
-        # 5. Temel Durum (15 Günlükte Düşük Ağırlıkta Olsa da Belirtmek İyi)
-        tem_durum = res.get("tem_durum", "Normal")
+        # 5. Temel Durum
+        tem_durum = res.get("temel_durum", "Normal")
         if tem_durum == "Kelepir":
             evidences.append("💎 Temel Analiz: Finansal olarak ucuz / kelepir bölgesinde.")
             
-        # 6. Güven Skoru (Walk Forward Başarısı)
+        # 6. Güven Skoru (Walk Forward Başarısı) - Sadece mockluyoruz
         confidence = res.get("confidence", 50)
         if confidence >= 80:
             evidences.append(f"🛡️ Yüksek Tarihsel Güvenilirlik: Geçmiş testlerde başarı oranı %{confidence:.1f}.")

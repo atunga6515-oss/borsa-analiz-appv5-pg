@@ -361,6 +361,7 @@ def deep_analyze_stock(sym: str, market_regime: dict = None) -> dict:
         "takas_ratio": fr_ratio,
         "takas_change": fr_change,
         "takas_bonus": takas_bonus,
+        "short_term_score": short_term_score,
         "risk_details": sig.get('risk', {}),
         "summary": sig.get('summary', '')
     })
