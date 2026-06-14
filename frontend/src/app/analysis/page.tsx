@@ -15,28 +15,12 @@ function AnalysisPageContent() {
     const [chartData, setChartData] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
-    
-    // History State
-    const [historyList, setHistoryList] = useState<any[]>([]);
-    const [selectedHistoryId, setSelectedHistoryId] = useState("");
     const [isIndicatorModalOpen, setIsIndicatorModalOpen] = useState(false);
-
+    
     const searchParams = useSearchParams();
-
-    const fetchHistoryList = async () => {
-        try {
-            const res = await api.get('/analysis/history/list');
-            if (res.data && res.data.data) {
-                setHistoryList(res.data.data);
-            }
-        } catch(e) {
-            console.error("Geçmiş çekilemedi", e);
-        }
-    };
 
     useEffect(() => {
         // Cookie-based auth: token kontrolü yok, interceptor 401 yönetir
-        fetchHistoryList();
         
         const tickerParam = searchParams.get("ticker");
         if (tickerParam) {
@@ -45,32 +29,6 @@ function AnalysisPageContent() {
         }
     }, [searchParams]);
 
-    const fetchHistoryById = async (id: string) => {
-        if (!id) return;
-        setLoading(true);
-        setError("");
-        setData(null);
-        setChartData([]);
-        try {
-            const res = await api.get(`/analysis/history/${id}`);
-            if (res.data) {
-                setData(res.data);
-                // Also fetch chart data for the ticker in history
-                if (res.data.ticker) {
-                    setTicker(res.data.ticker);
-                    const chartRes = await api.get(`/data/ohlcv/${res.data.ticker}?interval=1d&period=1y`);
-                    if (chartRes.data && chartRes.data.data) {
-                        setChartData(chartRes.data.data);
-                    }
-                }
-            }
-        } catch (err: any) {
-            console.error("Geçmiş analiz yüklenemedi", err);
-            setError("Geçmiş veri çekilirken hata oluştu.");
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const fetchAnalysis = async (symbol: string) => {
         if (!symbol) return;
@@ -94,7 +52,6 @@ function AnalysisPageContent() {
             setError(err?.response?.data?.detail || "Veriler çekilirken bir hata oluştu.");
         } finally {
             setLoading(false);
-            fetchHistoryList(); // Analizden sonra history listesini güncelle
         }
     };
 
@@ -148,24 +105,6 @@ ${ssot.summary || "-"}`;
                     <p className="text-[var(--color-b-muted)]">Yapay zeka, 100+ teknik indikatör ve risk algoritmaları ile detaylı profil</p>
                 </div>
                 <div className="flex flex-col gap-2 items-end">
-                    {historyList.length > 0 && (
-                        <select 
-                            value={selectedHistoryId}
-                            onChange={(e) => {
-                                const val = e.target.value;
-                                setSelectedHistoryId(val);
-                                if (val) fetchHistoryById(val);
-                            }}
-                            className="bg-[#1e2329] border border-gray-700 text-[var(--color-b-muted)] text-sm px-3 py-1.5 rounded focus:outline-none focus:border-[var(--color-b-yellow)] w-[300px]"
-                        >
-                            <option value="">-- Geçmiş Analizlerim (Son 30) --</option>
-                            {historyList.map(h => (
-                                <option key={h.id} value={h.id}>
-                                    {h.run_date} - {h.ticker}
-                                </option>
-                            ))}
-                        </select>
-                    )}
                     <form onSubmit={handleSearch} className="flex gap-2">
                         <SymbolAutocomplete 
                             value={ticker}
