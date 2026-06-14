@@ -33,69 +33,12 @@ def clean_nans(obj):
 @router.get("/{ticker}")
 def fetch_comprehensive_analysis(ticker: str, current_user: str = Depends(get_current_user)):
     try:
-        # Fetch OHLCV data
-        df = fetch_data(ticker, "1d", "1y")
-        if df.empty:
-            raise HTTPException(status_code=404, detail="Hisse verisi bulunamadı.")
+        from core.analysis_service import run_deep_analysis
+        
+        final_payload = run_deep_analysis(ticker)
+        if final_payload.get("status") == "error":
+            raise HTTPException(status_code=404, detail=final_payload.get("detail", "Veri bulunamadı"))
             
-        # Market Regime
-        xu100_df = fetch_data("XU100", "1d", "1y")
-        market_regime = get_market_regime(xu100_df)
-        
-        # Sentiment Analysis
-        try:
-            sent_score, news_list = get_sentiment_summary(ticker)
-        except Exception as e:
-            sent_score, news_list = 0.0, []
-            
-        # Takas (Foreign Ownership)
-        try:
-            takas_info = get_takas_data(ticker)
-        except:
-            takas_info = {}
-            
-        # Run SSOT Engine
-        res = generate_signals_and_score(df, ticker=ticker, market_regime=market_regime, sentiment_score=sent_score)
-        
-        # Support/Resistance and Risk levels
-        sr_data = calculate_best_zones(df)
-        
-        # Averages for signals terminal
-        last_row = df.iloc[-1]
-        
-        # Some columns might not exist if data is too short
-        sma_20 = float(last_row.get('SMA_20', np.nan))
-        sma_50 = float(last_row.get('SMA_50', np.nan))
-        sma_52 = float(last_row.get('SMA_52', np.nan))
-        
-        # Live price using SSOT
-        from data_loader import get_batch_live_prices
-        ssot = get_batch_live_prices([ticker])
-        live_px = ssot.get(ticker, {}).get("price", 0.0)
-        if live_px == 0.0:
-            live_px = float(last_row['Close'])        
-        payload = {
-            "status": "success",
-            "data": {
-                "ticker": ticker.upper(),
-                "current_price": live_px,
-                "sentiment_score": sent_score,
-                "news_list": news_list,
-                "takas_info": takas_info,
-                "ssot_result": res,
-                "support_resistance": sr_data,
-                "sma": {
-                    "sma_20": sma_20,
-                    "sma_50": sma_50,
-                    "sma_52": sma_52
-                }
-            }
-        }
-        
-        # Clean NaNs before sending to JSON
-        final_payload = clean_nans(payload)
-        
-        # Kaydet
         run_date = datetime.now(TR_TZ).strftime("%Y-%m-%d %H:%M:%S")
         res_json = json.dumps(final_payload)
         

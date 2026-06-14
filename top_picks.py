@@ -407,6 +407,19 @@ def find_top_picks(symbol_list: list = None, top_n: int = 5, progress_bar=None) 
             if progress_bar:
                 progress_bar.progress(completed / total, text=f"🔬 Asenkron Tarama: {sym} incelendi... ({completed}/{total})")
 
-    # Kompozit skora göre sırala ve en iyileri döndür
-    all_results.sort(key=lambda x: x.get('kompozit_skor', 0), reverse=True)
-    return all_results[:top_n]
+    # V5 güncelleme: Sadece alım yönelimli adayları sırala (doğruluk odaklı filtre)
+    def _eligible(row: dict) -> bool:
+        karar = str(row.get("karar", "")).lower()
+        if any(x in karar for x in ("sat", "veto", "bekle", "doygun")):
+            return False
+        if row.get("kompozit_skor", 0) < 55:
+            return False
+        if row.get("pgs", 50) < 40:
+            return False
+        return any(x in karar for x in ("al", "güçlü", "guclu", "lider", "potansiyel", "trend"))
+
+    filtered = [r for r in all_results if _eligible(r)]
+    pool = filtered if filtered else [r for r in all_results if r.get("kompozit_skor", 0) >= 50]
+    # Kompozit skor ve Piyasa Gücü Skoruna (pgs) göre sırala
+    pool.sort(key=lambda x: (x.get("kompozit_skor", 0), x.get("pgs", 0)), reverse=True)
+    return pool[:top_n]

@@ -54,6 +54,14 @@ def init_auth_db():
 
         # Mevcut veritabanında phone ve subscription kolonu yoksa ekle (Migration)
         try:
+            conn.execute(text("ALTER TABLE users ADD COLUMN email VARCHAR(255)"))
+        except Exception:
+            pass
+        try:
+            conn.execute(text("ALTER TABLE users ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"))
+        except Exception:
+            pass
+        try:
             conn.execute(text("ALTER TABLE users ADD COLUMN phone VARCHAR(50)"))
         except Exception:
             pass  # Zaten varsa hata verecek ve geçecek

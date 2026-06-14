@@ -60,139 +60,106 @@ class AlphaRank15D:
             conn.execute(text("DELETE FROM alpharank_pool WHERE username=:u"), {"u": username})
             return {"success": True, "message": "Havuz tamamen temizlendi."}
 
-    def analyze_ticker(self, ticker: str) -> dict:
+    def _calibrate_15d_probability(self, df: pd.DataFrame, technical_score: float) -> float:
+        if len(df) < 40: return round(technical_score * 0.6, 1)
+        closes = df["Close"].values
+        rsi = df["RSI_14"].values if "RSI_14" in df.columns else pd.Series([50]*len(df)).values
+        hits = []
+        for i in range(25, len(closes) - 15):
+            fwd = (closes[i + 15] - closes[i]) / closes[i] * 100
+            ema20 = df["EMA_20"].iloc[i] if "EMA_20" in df.columns else closes[i]
+            dist = (closes[i] - ema20) / ema20 * 100 if ema20 else 0
+            pseudo = 50 + (rsi[i] - 50) * 0.4 + dist * 0.3
+            pseudo = max(0, min(100, pseudo))
+            if abs(pseudo - technical_score) <= 15:
+                hits.append(fwd > 2.0)
+        if len(hits) >= 5:
+            return round(min(95, max(5, sum(hits) / len(hits) * 100)), 1)
+        return round(technical_score * 0.6, 1)
+
+    def analyze_ticker(self, ticker: str, market_regime: dict = None) -> dict:
         """Tek bir hisse için teknik hesaplamaları yapar ve skor üretir."""
-        df = yf.download(ticker, period="100d", progress=False)
+        from data_loader import fetch_data
+        from indicators import calculate_indicators
+        from core.walk_forward import walk_forward_vote
+        
+        df = fetch_data(ticker, interval="1d", period="1y")
         if df.empty or len(df) < 30:
             return None
             
-        if isinstance(df.columns, pd.MultiIndex):
-            df.columns = df.columns.droplevel(1)
-            
+        df = calculate_indicators(df)
+        
         close = df['Close'].squeeze()
-        high = df['High'].squeeze()
-        low = df['Low'].squeeze()
         volume = df['Volume'].squeeze()
-        
-        # İndikatörleri Hesapla
-        # EMA
-        ema9 = ta.ema(close, length=9)
-        ema21 = ta.ema(close, length=21)
-        
-        # MACD (12, 26, 9)
-        macd_df = ta.macd(close, fast=12, slow=26, signal=9)
-        # macd_df columns: MACD_12_26_9, MACDh_12_26_9, MACDs_12_26_9
-        macd_line = macd_df['MACD_12_26_9']
-        macd_signal = macd_df['MACDs_12_26_9']
-        macd_hist = macd_df['MACDh_12_26_9']
-        
-        # RSI
-        rsi = ta.rsi(close, length=14)
-        
-        # Bollinger Bands (20, 2)
-        bbands = ta.bbands(close, length=20, std=2)
-        bb_lower = bbands[[c for c in bbands.columns if c.startswith('BBL')][0]]
-        bb_upper = bbands[[c for c in bbands.columns if c.startswith('BBU')][0]]
         
         # Son veriler
         from data_loader import get_batch_live_prices
         ssot = get_batch_live_prices([ticker]).get(ticker, {})
         current_price = ssot.get("price", close.iloc[-1])
-        prev_price = close.iloc[-2]
-        c_ema9 = ema9.iloc[-1]
-        c_ema21 = ema21.iloc[-1]
-        c_macd = macd_line.iloc[-1]
-        c_signal = macd_signal.iloc[-1]
-        c_hist = macd_hist.iloc[-1]
-        p_hist = macd_hist.iloc[-2]
-        c_rsi = rsi.iloc[-1]
+        
+        c_ema9 = df['EMA_9'].iloc[-1] if 'EMA_9' in df.columns else close.iloc[-1]
+        c_ema21 = df['EMA_20'].iloc[-1] if 'EMA_20' in df.columns else close.iloc[-1]
+        c_macd = df['MACD_12_26_9'].iloc[-1] if 'MACD_12_26_9' in df.columns else 0
+        c_signal = df['MACDs_12_26_9'].iloc[-1] if 'MACDs_12_26_9' in df.columns else 0
+        c_hist = df['MACDh_12_26_9'].iloc[-1] if 'MACDh_12_26_9' in df.columns else 0
+        p_hist = df['MACDh_12_26_9'].iloc[-2] if 'MACDh_12_26_9' in df.columns else 0
+        c_rsi = df['RSI_14'].iloc[-1] if 'RSI_14' in df.columns else 50
         
         # Skorlama ve Gerekçeler
         score = 0
         evidences = []
         
-        # 1. Trend Gücü (EMA Kesişimi) - Maksimum %30
+        # 1. Trend Gücü
         ema_score = 0
         if current_price > c_ema9 > c_ema21:
             ema_score += 20
-            evidences.append("Güçlü Trend: Fiyat kısa ve orta vadeli ortalamaların (EMA9 ve EMA21) üzerinde.")
+            evidences.append("Güçlü Trend: Fiyat kısa ve orta vadeli ortalamaların üzerinde.")
         elif current_price > c_ema9:
             ema_score += 10
-            evidences.append("Pozitif Trend: Fiyat kısa vadeli ortalamanın (EMA9) üzerinde.")
-            
-        # Son 5 gün içinde Golden Cross (EMA9 > EMA21 kesişimi) kontrolü
-        golden_cross = False
-        for i in range(-5, 0):
-            if ema9.iloc[i-1] <= ema21.iloc[i-1] and ema9.iloc[i] > ema21.iloc[i]:
-                golden_cross = True
-                break
-        if golden_cross:
-            ema_score += 10
-            evidences.append("Alım Sinyali: Son 5 gün içinde EMA9, EMA21'i yukarı kesti (Golden Cross).")
-        
+            evidences.append("Pozitif Trend: Fiyat kısa vadeli ortalamanın üzerinde.")
         score += min(ema_score, 30)
         
-        # 2. Momentum (MACD) - Maksimum %30
+        # 2. Momentum
         macd_score = 0
         if c_macd > c_signal:
             macd_score += 15
-            evidences.append("Momentum Pozitif: MACD çizgisi sinyal çizgisinin üzerinde (Alım bölgesinde).")
+            evidences.append("Momentum Pozitif: MACD sinyal çizgisinin üzerinde.")
         if c_hist > 0 and c_hist > p_hist:
             macd_score += 15
-            evidences.append("Artan Momentum: MACD histogramı sıfırın üzerinde ve büyümeye devam ediyor.")
-        elif c_hist < 0 and c_hist > p_hist:
-            macd_score += 10
-            evidences.append("Toparlanma Sinyali: MACD histogramı negatif bölgede olsa da daralma (pozitife yaklaşma) gösteriyor.")
-            
+            evidences.append("Artan Momentum: MACD histogramı büyümeye devam ediyor.")
         score += min(macd_score, 30)
         
-        # 3. Dip/Dönüş Gücü (RSI) - Maksimum %25
+        # 3. RSI
         rsi_score = 0
         if c_rsi < 35:
-            rsi_score += 5
-            evidences.append(f"Aşırı Satım Bölgesi: RSI ({c_rsi:.1f}) düşük seviyede, tepki alımı gelebilir.")
+            rsi_score += 10
+            evidences.append(f"Aşırı Satım: RSI ({c_rsi:.1f}) düşük, tepki gelebilir.")
         elif 35 <= c_rsi <= 65:
             rsi_score += 15
             evidences.append(f"Sağlıklı Bölge: RSI ({c_rsi:.1f}) istikrarlı yükseliş bölgesinde.")
-        elif c_rsi > 65:
-            rsi_score += 5
-            evidences.append(f"Aşırı Alım Yaklaşıyor: RSI ({c_rsi:.1f}) yüksek seviyede, dikkatli olunmalı.")
-            
-        # Pozitif Uyumsuzluk Kontrolü (Son 15 gün)
-        min_price_15 = close.iloc[-15:].min()
-        min_price_idx = close.iloc[-15:].idxmin()
-        prev_min_price = close.iloc[-30:-15].min()
-        
-        min_rsi_15 = rsi.loc[min_price_idx]
-        prev_min_rsi = rsi.iloc[-30:-15].min()
-        
-        if min_price_15 < prev_min_price and min_rsi_15 > prev_min_rsi:
-            rsi_score += 10
-            evidences.append("Güçlü Dönüş: Son 15 günde fiyat düşerken RSI yükseliyor (Pozitif Uyumsuzluk yakalandı).")
-            
         score += min(rsi_score, 25)
         
-        # 4. Sıkışma/Hacim (Bollinger & Volatilite) - Maksimum %15
-        bb_score = 0
-        bb_width = (bb_upper.iloc[-1] - bb_lower.iloc[-1]) / current_price
-        avg_bb_width = ((bb_upper.iloc[-20:] - bb_lower.iloc[-20:]) / close.iloc[-20:]).mean()
+        # Walk Forward
+        votes = walk_forward_vote(df)
+        if votes["buy_vote"] > 60:
+            score += 15
+            evidences.append(f"Geçmiş Doğrulama: Benzer sinyallerde başarı oranı %{votes['buy_vote']:.1f}")
+        elif votes["sell_vote"] > 60:
+            score -= 12
+            evidences.append(f"Geçmiş Doğrulama (Negatif): Benzer kırılımlar genelde başarısız oldu.")
+            
+        score = min(100, max(0, score))
         
-        if bb_width < avg_bb_width * 0.8:
-            bb_score += 8
-            evidences.append("Bant Daralması (Squeeze): Bollinger bantlarında sert bir fiyat hareketine hazırlık (sıkışma) gözlemleniyor.")
+        # XU100 Regime Penalty
+        if market_regime and market_regime.get("is_bear", False):
+            score *= 0.92
             
-        # Hacim artışı
-        avg_vol_5 = volume.iloc[-5:].mean()
-        avg_vol_20 = volume.iloc[-20:].mean()
-        if avg_vol_5 > avg_vol_20 * 1.2:
-            bb_score += 7
-            evidences.append("Hacim Onayı: Son 5 günlük ortalama hacim, 20 günlük ortalamaya göre ciddi bir artış gösteriyor.")
-            
-        score += min(bb_score, 15)
+        prob_15d = self._calibrate_15d_probability(df, score)
         
         return {
             "ticker": ticker.replace(".IS", ""),
             "score": round(score, 1),
+            "prob_15d": prob_15d,
             "price": round(current_price, 2),
             "evidences": evidences
         }
@@ -203,14 +170,19 @@ class AlphaRank15D:
         if not pool:
             return []
             
+        from indicators import get_market_regime
+        from data_loader import fetch_data
+        xu100_df = fetch_data("XU100", "1d", "1y")
+        market_regime = get_market_regime(xu100_df)
+            
         results = []
         for item in pool:
-            analysis = self.analyze_ticker(item["ticker"])
+            analysis = self.analyze_ticker(item["ticker"], market_regime)
             if analysis:
                 results.append(analysis)
                 
-        # Skora göre en yüksekten en düşüğe sırala
-        results.sort(key=lambda x: x["score"], reverse=True)
+        # Skora (prob_15d) göre en yüksekten en düşüğe sırala
+        results.sort(key=lambda x: x.get("prob_15d", 0), reverse=True)
         
         # Sıra numarası (Rank) ekle
         for i, res in enumerate(results):

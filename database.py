@@ -198,8 +198,10 @@ def init_db():
             )
         """))
 
-        # users tablosuna role, is_active, last_active, ai_quota, abonelik ve telefon alanları ekle (migration)
+        # users tablosuna role, is_active, last_active, ai_quota, abonelik, telefon ve email alanları ekle (migration)
         for col_def in [
+            ("email",       "VARCHAR(255)"),
+            ("created_at",  "TIMESTAMP    DEFAULT CURRENT_TIMESTAMP"),
             ("role",        "VARCHAR(20)  DEFAULT 'user'"),
             ("is_active",   "BOOLEAN      DEFAULT TRUE"),
             ("last_active", "TIMESTAMP"),
