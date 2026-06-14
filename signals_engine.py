@@ -443,15 +443,25 @@ def get_core_signal(df: pd.DataFrame) -> dict:
         "long": {"buy": 0, "sell": 0, "total": 0, "list": []}
     }
     
-    short_keywords = ["_5", "_7", "_9", "_10", "_11", "_14", "Hızlı"]
-    long_keywords = ["_75", "_100", "_150", "_200", "Uzun", "Senkou", "Kijun"]
-    
+    import re
     for name, rule_func in rules.items():
         horizon = "medium"
-        if any(k in name for k in short_keywords):
+        
+        # Matematiksel Periyot Çıkarımı
+        if "Bollinger" in name or "Keltner" in name:
+            period = 20
+        elif "Awesome" in name:
+            period = 34
+        else:
+            nums = [int(x) for x in re.findall(r'\d+', name)]
+            period = max(nums) if nums else 20
+            
+        if period <= 15:
             horizon = "short"
-        elif any(k in name for k in long_keywords):
+        elif period >= 75:
             horizon = "long"
+        else:
+            horizon = "medium"
             
         if is_ipo and horizon == "long":
             continue
