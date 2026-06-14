@@ -299,7 +299,7 @@ export default function ScreenerPage() {
                          }}
                     ></div>
                 )}
-            
+            </div>
             
             <div className="glass-panel flex-1 overflow-auto rounded-lg">
                 <table className="w-full text-left border-collapse">
