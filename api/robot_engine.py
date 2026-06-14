@@ -1,9 +1,10 @@
 import logging
 import concurrent.futures
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy import text
 from database import engine
 import pandas as pd
+import numpy as np
 import yfinance as yf
 
 from screener import BIST100_SYMBOLS
@@ -139,12 +140,11 @@ def get_mode_limits(mode: str):
 
 def process_robot_core_loop():
     """Her 5 dakikada bir çalışır. Watchlist'ten alım arar, portföyden satış arar."""
-    now = datetime.now()
-    
-    # BIST Seans Saati Kontrolü (09:30 - 18:00 Tükiye saati)
     import pytz
     tr_tz = pytz.timezone("Europe/Istanbul")
     now_tr = datetime.now(tr_tz)
+    
+    # BIST Seans Saati Kontrolü (09:30 - 18:10 Türkiye saati)
     is_market_open = (
         now_tr.weekday() < 5 and  # Pazartesi-Cuma
         (now_tr.hour, now_tr.minute) >= (9, 30) and
@@ -153,6 +153,9 @@ def process_robot_core_loop():
     if not is_market_open:
         logger.info("[ROBOT] Borsa seansı dışı, işlem yapılmıyor.")
         return
+    
+    # Tek bir referans zaman değişkeni (timezone-naive UTC) — DB karşılaştırması için
+    now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
     
     try:
         with engine.begin() as conn:
@@ -181,19 +184,21 @@ def process_robot_core_loop():
             for session in active_sessions:
                 session_id, current_balance, end_date_str, mode, max_positions = session
                 
-                # Check expiration
+                # Check expiration — timezone-naive UTC ile karşılaştır
                 is_expired = False
                 if isinstance(end_date_str, str):
                     try:
                         end_date = datetime.strptime(end_date_str, "%Y-%m-%d %H:%M:%S.%f")
-                    except:
+                    except Exception:
                         try:
                             end_date = datetime.strptime(end_date_str, "%Y-%m-%d %H:%M:%S")
-                        except:
-                            end_date = now
-                    is_expired = now >= end_date
+                        except Exception:
+                            end_date = now_utc
+                    is_expired = now_utc >= end_date
                 elif isinstance(end_date_str, datetime):
-                    is_expired = now >= end_date_str
+                    # timezone-aware datetime'dan tzinfo'ı sök (UTC bazında)
+                    end_cmp = end_date_str.replace(tzinfo=None)
+                    is_expired = now_utc >= end_cmp
 
                 tp_pct, sl_pct = get_mode_limits(mode)
 

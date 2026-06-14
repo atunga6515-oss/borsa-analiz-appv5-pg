@@ -134,9 +134,10 @@ def login_for_access_token(request: Request, response: Response, form_data: OAut
         secure=IS_PROD  # Prod ortamında True (HTTPS zorunlu)
     )
     
-    # access_token body'de döndürme (geriye dönük uyumluluk)
+    # Cookie-only auth modu: Token sadece HttpOnly cookie'de saklanır.
+    # Body'de token dönmek XSS riskini artırır (localStorage'a yazılabilir).
     return {
-        "access_token": access_token,
+        "access_token": None,
         "token_type": "bearer",
         "username": form_data.username,
         "role": role,

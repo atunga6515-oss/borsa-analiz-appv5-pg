@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from database import engine
@@ -13,7 +13,7 @@ def check_subscriptions():
     """Günlük abonelik kontrollerini yapar."""
     logger.info("Abonelik kontrolü başlatıldı...")
     
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)  # timezone-naive UTC
     three_days_later = now + timedelta(days=3)
     
     try:

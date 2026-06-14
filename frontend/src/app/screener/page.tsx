@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
@@ -19,6 +19,8 @@ export default function ScreenerPage() {
     // History State
     const [historyList, setHistoryList] = useState<any[]>([]);
     const [selectedHistoryId, setSelectedHistoryId] = useState<string>("");
+    // Interval ref - Memory leak'i önlemek için
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     
     // AI Modal State
     const [aiModalOpen, setAiModalOpen] = useState(false);
@@ -45,6 +47,10 @@ export default function ScreenerPage() {
     // İlk yüklemede history'yi çek (cookie-based auth, interceptor 401 yönetir)
     useEffect(() => {
         fetchHistoryList();
+        // Component unmount olduğunda aktif interval'i temizle
+        return () => {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+        };
     }, []);
     
     const loadHistoryDetails = async (id: string) => {
@@ -77,25 +83,27 @@ export default function ScreenerPage() {
             
             if (res.data && res.data.task_id) {
                 const tid = res.data.task_id;
+                // Önceki interval varsa temizle
+                if (intervalRef.current) clearInterval(intervalRef.current);
                 
-                const intervalId = setInterval(async () => {
+                intervalRef.current = setInterval(async () => {
                     try {
                         const statusRes = await api.get(`/screener/scan/progress/${tid}`);
                         const sData = statusRes.data;
                         
                         if (sData.status === "completed") {
-                            clearInterval(intervalId);
+                            if (intervalRef.current) clearInterval(intervalRef.current);
                             setScanResults(sData.data || []);
                             setScanning(false);
                             setScanProgress(100);
                             fetchHistoryList(); // Taramadan sonra listeyi yenile
                         } else if (sData.status === "error") {
-                            clearInterval(intervalId);
+                            if (intervalRef.current) clearInterval(intervalRef.current);
                             console.error("Tarama hatası:", sData.text);
                             setScanning(false);
                             toast.error("Tarama sırasında bir hata oluştu: " + sData.text);
                         } else if (sData.status === "not_found") {
-                            clearInterval(intervalId);
+                            if (intervalRef.current) clearInterval(intervalRef.current);
                             setScanning(false);
                         } else {
                             setScanProgress(sData.progress || 0);
@@ -291,14 +299,7 @@ export default function ScreenerPage() {
                          }}
                     ></div>
                 )}
-                {/* CSS animation definition directly in the component for the stripes effect */}
-                <style dangerouslySetInnerHTML={{__html: `
-                    @keyframes progress-bar-stripes {
-                        from { background-position: 200% 0; }
-                        to { background-position: -200% 0; }
-                    }
-                `}} />
-            </div>
+            
             
             <div className="glass-panel flex-1 overflow-auto rounded-lg">
                 <table className="w-full text-left border-collapse">

@@ -66,3 +66,9 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-b-muted);
 }
+
+/* Screener progress bar animation */
+@keyframes progress-bar-stripes {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}

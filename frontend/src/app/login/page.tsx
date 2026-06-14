@@ -47,11 +47,8 @@ function LoginContent() {
                 headers: { "Content-Type": "application/x-www-form-urlencoded" },
             });
 
-            if (res.data.access_token) {
-                localStorage.setItem("token", res.data.access_token);
-                // Middleware'in hemen görebilmesi için cookie'yi frontend'den de ayarlıyoruz
-                document.cookie = `access_token=${res.data.access_token}; path=/; max-age=86400; SameSite=Lax`;
-            }
+            // Auth sadece HttpOnly cookie (backend set ediyor).
+            // localStorage: yalnızca görüntüleme amaçlı kullanıcı adı ve rol cache'i.
             localStorage.setItem("username", res.data.username || username);
             localStorage.setItem("role", res.data.role || "user");
 

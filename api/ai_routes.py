@@ -76,18 +76,11 @@ def analyze_stock(request: Request, req: AIAnalysisRequest, current_user: str = 
     """
 
     try:
-        try:
-            model = genai.GenerativeModel('gemini-flash-latest')
-            response = model.generate_content(
-                system_prompt + "\n\n" + user_prompt,
-                generation_config=genai.types.GenerationConfig(temperature=0.7)
-            )
-        except Exception:
-            model = genai.GenerativeModel('gemini-2.5-flash')
-            response = model.generate_content(
-                system_prompt + "\n\n" + user_prompt,
-                generation_config=genai.types.GenerationConfig(temperature=0.7)
-            )
+        model = genai.GenerativeModel('gemini-2.0-flash')
+        response = model.generate_content(
+            system_prompt + "\n\n" + user_prompt,
+            generation_config=genai.types.GenerationConfig(temperature=0.7)
+        )
         result_text = response.text
     except Exception as e:
         # AI başarısız — kotayı geri ver
