@@ -6,7 +6,8 @@
 
 set -e  # Herhangi bir hata olursa dur
 
-APP_DIR="/var/www/borsa.atunga.tr/borsa-analiz-appv5-pg"
+# Scriptin çalıştığı dizini otomatik olarak bulur (Absolute path ifşasını önler)
+APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FRONTEND_DIR="$APP_DIR/frontend"
 
 echo ""
