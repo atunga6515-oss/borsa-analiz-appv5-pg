@@ -6,6 +6,7 @@ import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useSearchParams } from "next/navigation";
 import SymbolAutocomplete from "@/components/SymbolAutocomplete";
 import toast from 'react-hot-toast';
+import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from "react-resizable-panels";
 
 function AnalysisPageContent() {
     const { requireAuth, AuthModal } = useRequireAuth();
@@ -214,10 +215,11 @@ ${ssot.summary || "-"}`;
             )}
 
             {data && (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* LEFT COLUMN: Metrics */}
-                    <div className="lg:col-span-1 space-y-6">
-                        
+                <div className="flex-1 w-full min-h-[700px] h-full flex mb-6">
+                    <PanelGroup orientation="horizontal" id="analysis-layout" autoSave="analysis-layout">
+                        {/* LEFT COLUMN: Metrics */}
+                        <Panel defaultSize={30} minSize={20} className="flex flex-col space-y-6 overflow-y-auto pr-4 pb-4">
+                            
                         {/* Premium Card */}
                         <div className="glass-panel p-6 rounded-lg border border-[var(--color-b-border)] bg-gradient-to-br from-[#1e2329] to-[#0d1117]">
                             <div className="flex items-center justify-between mb-4">
@@ -295,23 +297,35 @@ ${ssot.summary || "-"}`;
                             </div>
                         </div>
 
-                    </div>
+                        </Panel>
 
-                    {/* RIGHT COLUMN: Chart and Details */}
-                    <div className="lg:col-span-2 space-y-6">
-                        {/* Chart Area */}
-                        <div className="glass-panel p-4 rounded-lg h-[400px]">
-                            {chartData.length > 0 ? (
-                                <TradingChart data={chartData} />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center text-[var(--color-b-muted)]">
-                                    Grafik verisi yükleniyor veya bulunamadı...
-                                </div>
-                            )}
-                        </div>
+                        <PanelResizeHandle className="w-1.5 mx-2 bg-gray-800 hover:bg-[var(--color-b-yellow)] rounded transition-colors cursor-col-resize flex flex-col justify-center items-center">
+                            <div className="h-8 w-0.5 bg-gray-500 rounded-full"></div>
+                        </PanelResizeHandle>
 
-                        {/* AI Summary */}
-                        <div className="bg-[#1e2329] p-5 rounded-lg border-l-4 border-[var(--color-b-yellow)]">
+                        {/* RIGHT COLUMN: Chart and Details */}
+                        <Panel defaultSize={70} minSize={30}>
+                            <PanelGroup orientation="vertical" id="analysis-layout-right" autoSave="analysis-layout-right">
+                                {/* Chart Area */}
+                                <Panel defaultSize={60} minSize={30} className="flex flex-col relative pb-2">
+                                    <div className="glass-panel p-4 rounded-lg flex-1 w-full relative">
+                                        {chartData.length > 0 ? (
+                                            <TradingChart data={chartData} />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-[var(--color-b-muted)]">
+                                                Grafik verisi yükleniyor veya bulunamadı...
+                                            </div>
+                                        )}
+                                    </div>
+                                </Panel>
+
+                                <PanelResizeHandle className="h-1.5 my-2 bg-gray-800 hover:bg-[var(--color-b-yellow)] rounded transition-colors cursor-row-resize flex justify-center items-center">
+                                    <div className="w-8 h-0.5 bg-gray-500 rounded-full"></div>
+                                </PanelResizeHandle>
+
+                                <Panel defaultSize={40} minSize={20} className="flex flex-col space-y-6 overflow-y-auto pr-2 pb-4 pt-2">
+                                    {/* AI Summary */}
+                                    <div className="bg-[#1e2329] p-5 rounded-lg border-l-4 border-[var(--color-b-yellow)]">
                             <h3 className="font-bold text-white mb-2">🤖 Yapay Zeka Analiz Özeti</h3>
                             <p className="text-[var(--color-b-muted)] text-sm leading-relaxed whitespace-pre-wrap">
                                 {data.ssot_result?.summary}
@@ -352,7 +366,10 @@ ${ssot.summary || "-"}`;
                                 </div>
                             </div>
                         )}
-                    </div>
+                                </Panel>
+                            </PanelGroup>
+                        </Panel>
+                    </PanelGroup>
                 </div>
             )}
         </div>
