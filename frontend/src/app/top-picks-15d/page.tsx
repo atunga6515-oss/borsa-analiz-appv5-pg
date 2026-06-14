@@ -5,7 +5,7 @@ import { useRequireAuth } from "@/hooks/useRequireAuth";
 import AIAnalyzeModal from "../components/AIAnalyzeModal";
 import toast from 'react-hot-toast';
 
-export default function TopPicksPage() {
+export default function TopPicks15DPage() {
     const { requireAuth, AuthModal } = useRequireAuth();
     const [picks, setPicks] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
@@ -37,7 +37,7 @@ export default function TopPicksPage() {
 
     const fetchHistoryDates = async () => {
         try {
-            const res = await api.get('/top_picks/history-dates');
+            const res = await api.get('/top-picks-15d/history-dates');
             if (res.data && res.data.dates) {
                 setHistoryDates(res.data.dates);
                 if (res.data.dates.length > 0 && !selectedHistoryId && !loading) {
@@ -55,7 +55,7 @@ export default function TopPicksPage() {
         if (!id) return;
         setLoading(true);
         try {
-            const res = await api.get(`/top_picks/history/${id}`);
+            const res = await api.get(`/top-picks-15d/history/${id}`);
             if (res.data && res.data.data) {
                 setPicks(res.data.data);
             }
@@ -90,7 +90,7 @@ export default function TopPicksPage() {
                         setScanProgress(0);
                         setScanText("Hazırlanıyor...");
                         try {
-                            const res = await api.post('/top_picks/scan', { top_n: topN, pool: pool });
+                            const res = await api.post('/top-picks-15d/scan', { top_n: topN, pool: pool });
                             if (res.data && res.data.task_id) {
                                 setTaskId(res.data.task_id);
                             }
@@ -110,7 +110,7 @@ export default function TopPicksPage() {
         if (loading && taskId) {
             interval = setInterval(async () => {
                 try {
-                    const res = await api.get(`/top_picks/scan/progress/${taskId}`);
+                    const res = await api.get(`/top-picks-15d/scan/progress/${taskId}`);
                     if (res.data) {
                         if (res.data.progress) setScanProgress(res.data.progress);
                         if (res.data.text) setScanText(res.data.text);
@@ -189,7 +189,7 @@ export default function TopPicksPage() {
         try {
             let listStr = sortedPicks.map((p, i) => `${i+1}. *${p.ticker || p.Hisse}* - Fiyat: ${p.fiyat || p.Fiyat}₺ | Skor: ${p.kompozit_skor} | PGS: ${p.pgs} | ${p.karar}`).join("\n");
             
-            const msg = `*🏆 Stratejik Seçki (Top Picks)*\n\n${listStr}`;
+            const msg = `*🚀 Stratejik Seçki (15 GÜN)*\n\n${listStr}`;
 
             const res = await api.post("/telegram/send", { message: msg });
             toast.success(res.data.message || "Başarıyla gönderildi.");
@@ -239,9 +239,9 @@ export default function TopPicksPage() {
         <div className="flex w-full h-full p-6 flex-col bg-[var(--color-b-bg)] text-[var(--color-b-text)] overflow-y-auto">
             <div className="flex justify-between items-end mb-6">
                 <div>
-                    <h1 className="text-3xl font-bold text-white mb-2">🏆 Stratejik Seçki (Orta-Uzun Vade)</h1>
+                    <h1 className="text-3xl font-bold text-white mb-2">🚀 Stratejik Seçki (15 Gün)</h1>
                     <p className="text-[var(--color-b-muted)]">
-                        100+ teknik indikatör, temel finansal veriler ve momentumu harmanlayarak "Orta ve Uzun Vadede" en yüksek potansiyelli hisseleri keşfedin.
+                        Sadece kısa vadeli (0-15 gün) indikatörler kullanılarak "Patlama Potansiyeli" olan hisseler taranır.
                     </p>
                 </div>
                 

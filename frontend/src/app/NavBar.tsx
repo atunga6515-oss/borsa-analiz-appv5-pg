@@ -17,8 +17,9 @@ const NAV_GROUPS = [
         title: "Tarama & Fırsatlar",
         links: [
             { href: "/screener", label: "Screener", icon: "⚡", tooltip: "Tüm BIST hisselerini temel ve teknik kriterlere göre saniyeler içinde tarayın." },
-            { href: "/top-picks", label: "Seçki", icon: "🎯", tooltip: "100+ teknik indikatörle analiz edilen en yüksek potansiyelli hisseleri görün." },
-            { href: "/alpharank", label: "AlphaRank", icon: "🚀", tooltip: "Takip listenizdeki hisseleri 15 günlük yükseliş potansiyellerine göre sıralayın." },
+            { href: "/top-picks-15d", label: "Seçki 15G", icon: "🚀", tooltip: "Sadece kısa vadeli (15 günlük) patlama potansiyeli arayan özel tarama motoru." },
+            { href: "/top-picks", label: "Seçki O-U Vade", icon: "🎯", tooltip: "100+ teknik indikatörle analiz edilen orta ve uzun vadeli potansiyelli hisseleri görün." },
+            { href: "/alpharank", label: "AlphaRank", icon: "📈", tooltip: "Takip listenizdeki hisseleri 15 günlük yükseliş potansiyellerine göre sıralayın." },
         ]
     },
     {

@@ -390,7 +390,7 @@ def generate_signals_and_score(df: pd.DataFrame, ticker: str = "", market_regime
         elif final_score <= 30: decision = "Güçlü Sat"
         else: decision = "Nötr"
 
-        # --- YENİ SSOT EKLENTİSİ: CORE TECHNICAL SCORE ---
+        # --- YENİ SSOT EKLENTİSİ: CORE TECHNICAL SCORE (Vadelere Göre) ---
         try:
             core_result = get_core_signal(df)
             core_decision = core_result['decision']
@@ -399,6 +399,12 @@ def generate_signals_and_score(df: pd.DataFrame, ticker: str = "", market_regime
             sell_votes = core_result.get('sell_votes', 0)
             total_votes = core_result.get('total_votes', 0)
             core_votes_list = core_result.get('core_votes_list', [])
+            
+            # Yeni vadeler
+            short_term = core_result.get('short_term', {})
+            medium_term = core_result.get('medium_term', {})
+            long_term = core_result.get('long_term', {})
+            
         except Exception:
             core_decision = "Nötr"
             core_score = 50
@@ -406,6 +412,9 @@ def generate_signals_and_score(df: pd.DataFrame, ticker: str = "", market_regime
             sell_votes = 0
             total_votes = 0
             core_votes_list = []
+            short_term = {}
+            medium_term = {}
+            long_term = {}
 
         # --- 3. GÜÇLÜ ONAY TEYİDİ ---
         # Eğer teknik AL diyorsa ve haber duygusu ÇOK POZİTİF (+0.6 üstü) ise
@@ -505,6 +514,9 @@ def generate_signals_and_score(df: pd.DataFrame, ticker: str = "", market_regime
             "sell_votes": sell_votes,
             "total_votes": total_votes,
             "core_votes_list": core_votes_list,
+            "short_term": short_term,
+            "medium_term": medium_term,
+            "long_term": long_term,
             "decision": decision,
             "pgs": pgs_score,
             "conviction_level": conviction_level,
@@ -514,4 +526,4 @@ def generate_signals_and_score(df: pd.DataFrame, ticker: str = "", market_regime
             "rr_ratio": round(rr_ratio, 2)
         }
     except Exception as e:
-        return {"score": 50, "pgs": 50, "decision": "Hata", "summary": str(e), "risk": {}, "details": {}, "rr_ratio": 0.0, "buy_votes":0, "sell_votes":0, "total_votes":0, "core_votes_list":[]}
+        return {"score": 50, "pgs": 50, "decision": "Hata", "summary": str(e), "risk": {}, "details": {}, "rr_ratio": 0.0, "buy_votes":0, "sell_votes":0, "total_votes":0, "core_votes_list":[], "short_term": {}, "medium_term": {}, "long_term": {}}

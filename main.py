@@ -6,6 +6,7 @@ from api.auth_routes import router as auth_router
 from api.screener_routes import router as screener_router
 from api.portfolio_routes import router as portfolio_router
 from api.top_picks_routes import router as top_picks_router
+from api.top_picks_15d_routes import router as top_picks_15d_router
 from api.takas_routes import router as takas_router
 from api.kap_routes import router as kap_router
 from api.data_routes import router as data_router
@@ -65,6 +66,7 @@ app.include_router(auth_router)
 app.include_router(screener_router)
 app.include_router(portfolio_router)
 app.include_router(top_picks_router)
+app.include_router(top_picks_15d_router)
 app.include_router(takas_router)
 app.include_router(kap_router)
 app.include_router(data_router)

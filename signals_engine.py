@@ -430,85 +430,107 @@ def get_all_indicator_rules(df: pd.DataFrame) -> tuple:
 def get_core_signal(df: pd.DataFrame) -> dict:
     """
     100-İndikatörlü (Core Technical Score) vektörel hızlı hesaplayıcı.
-    Sadece son günün verisiyle (vektörize edilmiş DataFrame üzerinden) oylama yapar.
-    Dynamic Fallback kuralını (200 günden az verisi olan IPO'lar için) içerir.
+    İndikatörleri Vadeye (Kısa, Orta, Uzun) göre ayırır ve her birini 0-100 ölçeğinde yüzdelik puanlar.
     """
     df, rules = get_all_indicator_rules(df)
     
-    total_weight = 0
-    buy_votes = 0
-    sell_votes = 0
-    core_votes_list = []
-    
-    # 3 Altın Kural - Kural 2: Dynamic Fallback (Yeni Halka Arzlar İçin Adaptasyon)
-    # Eğer hisse 200 günden kısa geçmişe sahipse, uzun vadeli kuralların ağırlığı düşürülür (veya sıfırlanır)
-    # ve kısa vadeli momentum göstergelerinin ağırlığı artırılarak skor normalize edilir.
     data_length = len(df)
     is_ipo = data_length < 200
+
+    pools = {
+        "short": {"buy": 0, "sell": 0, "total": 0, "list": []},
+        "medium": {"buy": 0, "sell": 0, "total": 0, "list": []},
+        "long": {"buy": 0, "sell": 0, "total": 0, "list": []}
+    }
     
-    # Kural 1: Vektörel (Vectorized) Hız Kuralı -> Döngü (for row in df) kullanılmaz. Sadece serinin son elemanı (iloc[-1]) alınır.
+    short_keywords = ["_5", "_7", "_9", "_10", "_11", "_14", "Hızlı"]
+    long_keywords = ["_75", "_100", "_150", "_200", "Uzun", "Senkou", "Kijun"]
+    
     for name, rule_func in rules.items():
-        weight = 10  # Standart ağırlık
-        
-        if is_ipo:
-            # Uzun vadeli kuralları muaf tut (Ağırlık = 0)
-            if any(term in name for term in ["200", "150", "100"]):
-                continue 
-            # Kısa vadeli trend ve momentuma ağırlık ver
-            elif any(term in name for term in ["5", "10", "14", "RSI", "MACD", "Stoch"]):
-                weight = 20
-                
+        horizon = "medium"
+        if any(k in name for k in short_keywords):
+            horizon = "short"
+        elif any(k in name for k in long_keywords):
+            horizon = "long"
+            
+        if is_ipo and horizon == "long":
+            continue
+            
         try:
-            # rule_func 1 (AL), -1 (SAT) veya 0 (NÖTR) dönen bir numpy array / pandas series'tir
             sig_array = rule_func(df)
             last_sig = sig_array[-1] if isinstance(sig_array, (np.ndarray, list)) else sig_array.iloc[-1]
             
-            # Sonuç NaN değilse oylamaya kat
             if pd.notna(last_sig):
+                dec_str = "NÖTR ⚖️"
+                pools[horizon]["total"] += 1
+                
                 if last_sig == 1:
-                    total_weight += weight
-                    buy_votes += weight
+                    pools[horizon]["buy"] += 1
                     dec_str = "AL 🟢"
                 elif last_sig == -1:
-                    total_weight += weight
-                    sell_votes += weight
+                    pools[horizon]["sell"] += 1
                     dec_str = "SAT 🔴"
-                else:
-                    total_weight += weight
-                    dec_str = "NÖTR ⚖️"
-                core_votes_list.append({"İndikatör/Kural": name, "Durum": dec_str, "Ağırlık Puanı": weight})
+                    
+                pools[horizon]["list"].append({
+                    "İndikatör/Kural": name, 
+                    "Durum": dec_str, 
+                    "Ağırlık Puanı": 1 # Yüzdelik sistemde her biri eşit oy (1) ağırlığına sahip
+                })
         except Exception:
             pass
 
-    if total_weight == 0:
-        return {"decision": "Nötr", "buy_pct": 50, "sell_pct": 50, "score": 50}
-        
-    buy_pct = (buy_votes / total_weight) * 100
-    sell_pct = (sell_votes / total_weight) * 100
+    result_dict = {}
+    overall_buy = 0
+    overall_sell = 0
+    overall_total = 0
     
-    # Core Signal Karar Mekanizması
-    if buy_pct >= 60:
-        dec = "Güçlü Al"
-    elif buy_pct >= 50:
-        dec = "Al"
-    elif sell_pct >= 60:
-        dec = "Güçlü Sat"
-    elif sell_pct >= 50:
-        dec = "Sat"
-    else:
-        dec = "Nötr"
+    for horizon, data in pools.items():
+        score = 50.0
+        decision = "NÖTR ⚖️"
         
-    # Core Technical Score (Teknik Skor = Alım Yüzdesi)
-    return {
-        "decision": dec, 
-        "buy_pct": round(buy_pct, 1), 
-        "sell_pct": round(sell_pct, 1), 
-        "score": round(buy_pct, 1),
-        "buy_votes": buy_votes,
-        "sell_votes": sell_votes,
-        "total_votes": total_weight,
-        "core_votes_list": core_votes_list
-    }
+        if data["total"] > 0:
+            buy_pct = (data["buy"] / data["total"]) * 100
+            sell_pct = (data["sell"] / data["total"]) * 100
+            score = round(buy_pct, 1)
+            
+            if buy_pct >= 60:
+                decision = "GÜÇLÜ AL 🟢"
+            elif buy_pct > 50:
+                decision = "AL 🟢"
+            elif sell_pct >= 60:
+                decision = "GÜÇLÜ SAT 🔴"
+            elif sell_pct > 50:
+                decision = "SAT 🔴"
+                
+            overall_buy += data["buy"]
+            overall_sell += data["sell"]
+            overall_total += data["total"]
+        
+        result_dict[f"{horizon}_term"] = {
+            "score": score,
+            "decision": decision,
+            "votes": data["list"],
+            "buy_count": data["buy"],
+            "sell_count": data["sell"],
+            "total_count": data["total"]
+        }
+        
+    hybrid_score = round((overall_buy / overall_total * 100), 1) if overall_total > 0 else 50.0
+    overall_sell_pct = round((overall_sell / overall_total * 100), 1) if overall_total > 0 else 50.0
+    
+    result_dict["hybrid_score"] = hybrid_score
+    result_dict["core_votes_list"] = pools["short"]["list"] + pools["medium"]["list"] + pools["long"]["list"]
+    
+    # Geriye dönük uyumluluk (Eski yapıyı bozmamak için)
+    result_dict["decision"] = result_dict["medium_term"]["decision"] if result_dict["medium_term"]["total_count"] > 0 else "NÖTR ⚖️"
+    result_dict["score"] = hybrid_score
+    result_dict["buy_pct"] = hybrid_score
+    result_dict["sell_pct"] = overall_sell_pct
+    result_dict["buy_votes"] = overall_buy
+    result_dict["sell_votes"] = overall_sell
+    result_dict["total_votes"] = overall_total
+    
+    return result_dict
 
 def evaluate_individual_indicators(df: pd.DataFrame) -> dict:
     """

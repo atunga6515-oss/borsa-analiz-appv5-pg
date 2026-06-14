@@ -203,8 +203,12 @@ export default function ScreenerPage() {
         <div className="flex w-full h-full p-6 flex-col bg-[var(--color-b-bg)] text-[var(--color-b-text)] overflow-y-auto">
             <div className="flex justify-between items-end mb-6">
                 <div>
-                    <h1 className="text-3xl font-bold text-white mb-2">⚡ Al-Sat Screener</h1>
-                    <p className="text-[var(--color-b-muted)]">100 İndikatörlü Gelişmiş Algoritma ile BIST Taraması</p>
+                    <h1 className="text-3xl font-bold text-white mb-2">⚡ Al-Sat Screener (Hibrit Tarama)</h1>
+                    <p className="text-[var(--color-b-muted)] mb-4">100 İndikatörlü Gelişmiş Algoritma ile BIST Taraması</p>
+                    
+                    <div className="bg-blue-900/20 border border-blue-500/30 p-3 rounded text-sm text-blue-200 mb-6 max-w-4xl">
+                        <strong>ℹ️ Tarama Mantığı:</strong> Bu modül; kısa (0-15 gün), orta (1-3 ay) ve uzun vade (3-12 ay) indikatörlerini harmanlayarak "Hibrit" bir puanlama yapar. Trendin genel sağlığını ölçmek için idealdir. Sadece kısa vade patlama potansiyeli arıyorsanız "Stratejik Seçki 15G" modülünü, sadece orta-uzun vade sağlam hisseler arıyorsanız "Stratejik Seçki O-U Vade" modülünü kullanın.
+                    </div>
                     
                     {scanning && (
                         <div className="mt-4 flex items-center gap-3 bg-[var(--color-b-card)] p-3 rounded-lg border border-gray-800 shadow-md max-w-lg">

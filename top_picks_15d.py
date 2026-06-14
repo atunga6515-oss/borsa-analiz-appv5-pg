@@ -28,14 +28,14 @@ def save_top_picks_history(username: str, results: list):
     now_str = datetime.now(TR_TZ).strftime("%Y-%m-%d %H:%M:%S")
     with engine.begin() as conn:
         conn.execute(
-            text("INSERT INTO top_picks_history (username, run_date, results_json) VALUES (:u, :d, :r)"),
+            text("INSERT INTO top_picks_15d_history (username, run_date, results_json) VALUES (:u, :d, :r)"),
             {"u": username, "d": now_str, "r": json.dumps(results)}
         )
         # Sadece son 30 kalsın
         conn.execute(text("""
-            DELETE FROM top_picks_history 
+            DELETE FROM top_picks_15d_history 
             WHERE username = :u AND id NOT IN (
-                SELECT id FROM top_picks_history 
+                SELECT id FROM top_picks_15d_history 
                 WHERE username = :u 
                 ORDER BY id DESC LIMIT 30
             )
@@ -45,7 +45,7 @@ def get_top_picks_history_dates(username: str) -> list:
     """Kaydedilmiş analiz tarihlerini id ve run_date olarak döndürür."""
     with engine.connect() as conn:
         cursor = conn.execute(
-            text("SELECT id, run_date FROM top_picks_history WHERE username=:u ORDER BY id DESC"),
+            text("SELECT id, run_date FROM top_picks_15d_history WHERE username=:u ORDER BY id DESC"),
             {"u": username}
         )
         dates = [{"id": row[0], "run_date": row[1]} for row in cursor.fetchall()]
@@ -55,7 +55,7 @@ def get_top_picks_by_date(username: str, history_id: int) -> list:
     """Belirli bir ID'deki analiz sonuçlarını döndürür."""
     with engine.connect() as conn:
         cursor = conn.execute(
-            text("SELECT results_json FROM top_picks_history WHERE username=:u AND id=:id"),
+            text("SELECT results_json FROM top_picks_15d_history WHERE username=:u AND id=:id"),
             {"u": username, "id": history_id}
         )
         row = cursor.fetchone()
@@ -205,39 +205,33 @@ def deep_analyze_stock(sym: str, market_regime: dict = None) -> dict:
     elif fr_change < -0.5: takas_bonus -= 15
 
     # ============================================================
-    # KOMPOZİT SKOR HESAPLAMA (Stratejik Seçki Orta-Uzun Vade)
-    # Bu modül kısa vadeli gürültüleri filtreleyip, ağırlığı Orta ve Uzun vadeye verir.
+    # KOMPOZİT SKOR HESAPLAMA (Stratejik Seçki 15 GÜN / KISA VADE)
+    # 15 Günlük patlama arayan motor. Uzun vadeyi tamamen pas geçer.
     # ============================================================
-    
-    # Ana Trend Puanı: Orta ve Uzun vadenin ortalaması
-    main_trend_score = (medium_term_score * 0.6) + (long_term_score * 0.4)
-    
     if is_bear:
         # Ayı Piyasası: Temel veriler, Destekten dönüş ve Haberler ön planda
         composite = (
-            main_trend_score * 0.25 +
-            tech_score * 0.15 +
-            (50 + momentum_bonus) * 0.05 +
+            short_term_score * 0.40 +
+            tech_score * 0.10 +
+            (50 + momentum_bonus) * 0.10 +
             (50 + volume_bonus) * 0.05 +
             (50 + tf_bonus) * 0.05 +
             (50 + pattern_bonus) * 0.05 +
             (50 + support_bonus) * 0.10 +
-            sent_100 * 0.15 +
-            (50 + reversal_bonus) * 0.15
+            sent_100 * 0.05 +
+            (50 + reversal_bonus) * 0.10
         )
     else:
-        # Boğa Piyasası: Momentum, Hacim ve Ana Trend ön planda
+        # Boğa Piyasası: Momentum, Hacim ve Kısa Trend ön planda
         composite = (
-            main_trend_score * 0.25 +
-            tech_score * 0.25 +
-            (50 + momentum_bonus) * 0.15 +
+            short_term_score * 0.45 +
+            tech_score * 0.15 +
+            (50 + momentum_bonus) * 0.10 +
             (50 + volume_bonus) * 0.10 +
             (50 + tf_bonus) * 0.05 +
             (50 + pattern_bonus) * 0.05 +
             (50 + support_bonus) * 0.05 +
-            sent_100 * 0.05 +
-            (50 + reversal_bonus) * 0.02 +
-            (50 + takas_bonus) * 0.03
+            sent_100 * 0.05
         )
 
     # 11. Göreceli Güç (Alpha)

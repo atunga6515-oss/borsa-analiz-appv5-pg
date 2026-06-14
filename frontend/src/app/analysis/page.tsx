@@ -239,38 +239,41 @@ ${ssot.summary || "-"}`;
                             </div>
                         </div>
 
-                        {/* Decision & Conviction */}
-                        <div className={`p-4 rounded-lg border ${getDecisionColor(data.ssot_result?.core_decision)}`}>
-                            <div className="text-sm uppercase font-bold opacity-80 mb-1">Stratejik Karar (SSOT)</div>
-                            <div className="text-2xl font-black">{data.ssot_result?.core_decision || "NÖTR"}</div>
-                        </div>
-
-                        <div className="bg-[#1e2329] p-4 rounded-lg border border-[var(--color-b-border)]">
-                            <div className="text-sm text-[var(--color-b-muted)] font-bold mb-1">Güven Seviyesi (Conviction)</div>
-                            <div className="text-xl font-bold text-white">{data.ssot_result?.conviction_level || "ORTA ⚖️"}</div>
-                        </div>
-
-                        {/* Voting Bar */}
-                        <div className="bg-[#181a20] p-5 rounded-lg border border-[var(--color-b-border)]">
-                            <h3 className="font-bold text-white mb-4">🚦 İndikatör Oylama Dağılımı</h3>
-                            <div className="flex gap-2 justify-between mb-2 text-sm font-bold">
-                                <span className="text-green-500">🟢 AL: {data.ssot_result?.buy_votes}</span>
-                                <span className="text-red-500">🔴 SAT: {data.ssot_result?.sell_votes}</span>
+                        {/* 3'lü Vade Kartları (Time Horizons) */}
+                        <div className="bg-[#181a20] p-4 rounded-lg border border-[var(--color-b-border)]">
+                            <h3 className="font-bold text-white mb-4">⏳ Vadelere Göre Strateji</h3>
+                            
+                            {/* Kısa Vade */}
+                            <div className="mb-4">
+                                <div className="flex justify-between text-sm mb-1">
+                                    <span className="font-bold text-[var(--color-b-muted)]">⚡ Kısa Vade (0-15 Gün)</span>
+                                    <span className={`font-black ${getDecisionColor(data.ssot_result?.short_term?.decision).replace('bg-', 'text-').replace('/10', '')}`}>{data.ssot_result?.short_term?.decision || "NÖTR"} ({data.ssot_result?.short_term?.score}%)</span>
+                                </div>
+                                <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+                                    <div className="h-full bg-green-500" style={{width: `${data.ssot_result?.short_term?.score || 50}%`}}></div>
+                                </div>
                             </div>
-                            {/* Visual Bar */}
-                            <div className="w-full h-4 rounded-full bg-gray-800 flex overflow-hidden">
-                                <div 
-                                    className="bg-green-500 h-full" 
-                                    style={{ width: `${(data.ssot_result?.buy_votes / (data.ssot_result?.total_votes || 1)) * 100}%` }}
-                                />
-                                <div 
-                                    className="bg-gray-600 h-full" 
-                                    style={{ width: `${((data.ssot_result?.total_votes - data.ssot_result?.buy_votes - data.ssot_result?.sell_votes) / (data.ssot_result?.total_votes || 1)) * 100}%` }}
-                                />
-                                <div 
-                                    className="bg-red-500 h-full" 
-                                    style={{ width: `${(data.ssot_result?.sell_votes / (data.ssot_result?.total_votes || 1)) * 100}%` }}
-                                />
+                            
+                            {/* Orta Vade */}
+                            <div className="mb-4">
+                                <div className="flex justify-between text-sm mb-1">
+                                    <span className="font-bold text-[var(--color-b-muted)]">📅 Orta Vade (1-3 Ay)</span>
+                                    <span className={`font-black ${getDecisionColor(data.ssot_result?.medium_term?.decision).replace('bg-', 'text-').replace('/10', '')}`}>{data.ssot_result?.medium_term?.decision || "NÖTR"} ({data.ssot_result?.medium_term?.score}%)</span>
+                                </div>
+                                <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+                                    <div className="h-full bg-blue-500" style={{width: `${data.ssot_result?.medium_term?.score || 50}%`}}></div>
+                                </div>
+                            </div>
+                            
+                            {/* Uzun Vade */}
+                            <div>
+                                <div className="flex justify-between text-sm mb-1">
+                                    <span className="font-bold text-[var(--color-b-muted)]">🔭 Uzun Vade (3-12 Ay)</span>
+                                    <span className={`font-black ${getDecisionColor(data.ssot_result?.long_term?.decision).replace('bg-', 'text-').replace('/10', '')}`}>{data.ssot_result?.long_term?.decision || "NÖTR"} ({data.ssot_result?.long_term?.score}%)</span>
+                                </div>
+                                <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+                                    <div className="h-full bg-purple-500" style={{width: `${data.ssot_result?.long_term?.score || 50}%`}}></div>
+                                </div>
                             </div>
                         </div>
 

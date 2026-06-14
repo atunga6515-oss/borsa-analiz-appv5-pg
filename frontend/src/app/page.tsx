@@ -13,9 +13,10 @@ const DASHBOARD_MODULES = [
     {
         category: "Tarama & Fırsatlar",
         items: [
-            { href: "/screener", label: "Screener", icon: "⚡", desc: "Tüm BIST hisselerini 100'den fazla temel ve teknik kritere göre saniyeler içinde filtreleyip tarayın.", color: "from-yellow-500 to-orange-500" },
-            { href: "/top-picks", label: "Stratejik Seçki", icon: "🎯", desc: "Teknik indikatörlerin ürettiği AL sinyallerine göre analiz edilen en yüksek potansiyelli hisseleri görün.", color: "from-red-500 to-pink-500" },
-            { href: "/alpharank", label: "AlphaRank 15D", icon: "🚀", desc: "Gelişmiş yapay zeka ve makine öğrenimi modeliyle hisseleri 15 günlük yükseliş potansiyellerine göre sıralayın.", color: "from-purple-600 to-indigo-500" },
+            { href: "/screener", label: "Screener (Hibrit)", icon: "⚡", desc: "Tüm BIST hisselerini kısa, orta ve uzun vade indikatörleriyle (hibrit) saniyeler içinde tarayın.", color: "from-yellow-500 to-orange-500" },
+            { href: "/top-picks-15d", label: "Seçki 15G", icon: "🚀", desc: "Sadece kısa vadeli (15 günlük) patlama potansiyeli arayan özel tarama motoru.", color: "from-green-500 to-emerald-400" },
+            { href: "/top-picks", label: "Seçki O-U Vade", icon: "🎯", desc: "Teknik indikatörlerin ürettiği AL sinyallerine göre orta ve uzun vadeli en yüksek potansiyelli hisseleri görün.", color: "from-red-500 to-pink-500" },
+            { href: "/alpharank", label: "AlphaRank 15D", icon: "📈", desc: "Takip havuzunuzdaki hisseleri 15 günlük yükseliş potansiyellerine göre sıralayan yapay zeka destekli model.", color: "from-purple-600 to-indigo-500" },
         ]
     },
     {

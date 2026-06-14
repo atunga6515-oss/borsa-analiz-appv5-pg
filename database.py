@@ -120,6 +120,15 @@ def init_db():
         """))
         
         conn.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS top_picks_15d_history (
+                id {serial_type} PRIMARY KEY,
+                username VARCHAR(255),
+                run_date VARCHAR(50),
+                results_json TEXT
+            )
+        """))
+        
+        conn.execute(text(f"""
             CREATE TABLE IF NOT EXISTS screener_history (
                 id {serial_type} PRIMARY KEY,
                 username VARCHAR(255),

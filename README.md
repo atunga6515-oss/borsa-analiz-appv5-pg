@@ -4,14 +4,17 @@ Bu proje, Borsa İstanbul (BIST) hisse senetleri için gelişmiş teknik ve teme
 
 Eski Streamlit (V4) yapısı terkedilmiş olup, sistem **FastAPI (Backend)** ve **Next.js (Frontend)** mimarisiyle baştan aşağı yenilenerek kurumsal bir yapıya kavuşturulmuştur.
 
-## 🌟 Yeni V5 Özellikleri
-- **Kapsamlı Analiz Modülü:** 100+ teknik indikatör (RSI, MACD, Bollinger, Ichimoku, SuperTrend vb.) ile hisse analizi.
-- **Yapay Zeka Destekli Özet:** Analiz sonuçlarını sizin için yorumlayan AI entegrasyonu.
-- **Risk Yönetimi:** ATR bazlı dinamik Kar Al ve Zarar Kes (Stop Loss) seviyeleri.
-- **Stratejik Seçki (Top Picks):** Haftalık bazda algoritmik olarak filtrelenmiş ve güven skoruyla sıralanmış en iyi hisseler listesi.
-- **Asenkron Al-Sat Screener:** BIST30, BIST100 veya TÜM hisseleri aynı anda tarayan, arka planda (background tasks) çalışan ve sayfanızı kilitlemeyen gelişmiş tarama motoru.
+## 🌟 Yeni V5 Özellikleri (PostgreSQL Destekli)
+- **Modüler Vade Ayrışımı:** İndikatörler 0-15 Gün (Kısa), 1-3 Ay (Orta) ve 3-12 Ay (Uzun) vade potansiyellerine göre 3 farklı motor halinde yeniden tasarlandı.
+- **Kapsamlı Analiz Modülü:** 101 farklı teknik indikatör (RSI, MACD, Bollinger, Ichimoku, SuperTrend vb.) ile hisse analizi ve vadelerine göre ayrıştırılmış "3'lü Gauge Progress" strateji görünümü.
+- **Hibrit Al-Sat Screener:** BIST30, BIST100 veya TÜM hisseleri aynı anda hem temel hem de teknik (Tüm vadeler harmanlanmış) kriterlere göre tarayan, asenkron tarama motoru.
+- **Seçki 15G (Kısa Vade):** BIST Tüm hisseleri üzerinden yalnızca 15 günlük patlama potansiyeli arayan, kısa vade indikatör ağırlıklı yepyeni stratejik tarama motoru.
+- **Seçki O-U Vade (Orta-Uzun):** Sadece güvenilir orta ve uzun vadeli indikatörlerden yola çıkarak hisseleri analiz eden ana tarama modülü.
+- **AlphaRank 15D:** Takip listenizdeki hisseleri Gelişmiş AI modeli ve Kısa Vadeli Motor bonus puanıyla sıralayan sıralama sistemi.
+- **Risk Yönetimi ve Graham Değeri:** BIST'in enflasyonist yapısına uygun Graham içsel değeri hesaplamaları ve ATR bazlı dinamik Kar Al/Zarar Kes seviyeleri.
 - **Telegram Entegrasyonu:** Bulduğunuz fırsatları veya kendi seçtiğiniz hisseleri tek tıkla (`📤 Telegram'a Gönder`) kişisel botunuza iletme imkanı.
 - **Canlı Yama Teknolojisi:** Yfinance gecikmelerine karşı, piyasa saatleri içinde anlık hisse fiyatlarını (live quote) doğrudan grafiğe yamalayan yenilikçi sistem.
+- **PostgreSQL Veritabanı:** Tarama geçmişleri, portföy hareketleri ve alarm kayıtları güvenli bir şekilde `postgres` üzerinde tutulur.
 
 ---
 

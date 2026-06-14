@@ -81,6 +81,7 @@ class AlphaRank15D:
         """Tek bir hisse için teknik hesaplamaları yapar ve skor üretir."""
         from data_loader import fetch_data
         from indicators import calculate_indicators
+        from signals_engine import get_core_signal
         from core.walk_forward import walk_forward_vote
         
         df = fetch_data(ticker, interval="1d", period="1y")
@@ -138,6 +139,17 @@ class AlphaRank15D:
             rsi_score += 15
             evidences.append(f"Sağlıklı Bölge: RSI ({c_rsi:.1f}) istikrarlı yükseliş bölgesinde.")
         score += min(rsi_score, 25)
+        
+        # 4. YENİ: Kısa Vade İndikatör Motoru
+        core_sig = get_core_signal(df)
+        short_term_data = core_sig.get('short_term', {})
+        short_score = short_term_data.get('score', 50)
+        if short_score > 60:
+            score += 15
+            evidences.append(f"🚀 Kısa Vade Motoru Pozitif: İndikatörlerin %{short_score}'si AL sinyali veriyor.")
+        elif short_score < 40:
+            score -= 10
+            evidences.append(f"⚠️ Kısa Vade Motoru Negatif: İndikatörlerin sadece %{short_score}'si AL veriyor.")
         
         # Walk Forward
         votes = walk_forward_vote(df)
