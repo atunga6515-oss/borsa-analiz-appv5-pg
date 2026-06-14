@@ -211,21 +211,19 @@ def deep_analyze_stock(sym: str, market_regime: dict = None) -> dict:
     if is_bear:
         # Ayı Piyasası: Temel veriler, Destekten dönüş ve Haberler ön planda
         composite = (
-            short_term_score * 0.40 +
-            tech_score * 0.10 +
+            short_term_score * 0.55 +
             (50 + momentum_bonus) * 0.10 +
             (50 + volume_bonus) * 0.05 +
             (50 + tf_bonus) * 0.05 +
             (50 + pattern_bonus) * 0.05 +
-            (50 + support_bonus) * 0.10 +
+            (50 + support_bonus) * 0.05 +
             sent_100 * 0.05 +
             (50 + reversal_bonus) * 0.10
         )
     else:
         # Boğa Piyasası: Momentum, Hacim ve Kısa Trend ön planda
         composite = (
-            short_term_score * 0.45 +
-            tech_score * 0.15 +
+            short_term_score * 0.60 +
             (50 + momentum_bonus) * 0.10 +
             (50 + volume_bonus) * 0.10 +
             (50 + tf_bonus) * 0.05 +
@@ -319,11 +317,9 @@ def deep_analyze_stock(sym: str, market_regime: dict = None) -> dict:
     except Exception:
         fund_data = {"pe": 0, "pb": 0, "div_yield": 0, "fundamental_score": 50, "status": "Veri Yok"}
         tem_skor = 50
-        fund_data = {"pe": 0, "pb": 0, "div_yield": 0, "fundamental_score": 50, "status": "Veri Yok"}
-        tem_skor = 50
     
-    # V6 Hibrit Skor: %60 Teknik Kompozit + %40 Temel Not
-    v6_score = round((composite * 0.6) + (tem_skor * 0.4), 1)
+    # KISA VADE (15D): %85 Teknik/Momentum Kompozit + Sadece %15 Temel Not
+    v6_score = round((composite * 0.85) + (tem_skor * 0.15), 1)
 
     # Detay sözlüğü
     rsi_val = df['RSI_14'].iloc[-1] if 'RSI_14' in df.columns and pd.notna(df['RSI_14'].iloc[-1]) else None
