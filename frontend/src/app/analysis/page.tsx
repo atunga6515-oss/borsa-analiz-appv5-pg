@@ -19,6 +19,7 @@ function AnalysisPageContent() {
     // History State
     const [historyList, setHistoryList] = useState<any[]>([]);
     const [selectedHistoryId, setSelectedHistoryId] = useState("");
+    const [isIndicatorModalOpen, setIsIndicatorModalOpen] = useState(false);
 
     const searchParams = useSearchParams();
 
@@ -300,6 +301,15 @@ ${ssot.summary || "-"}`;
                             </div>
                         </div>
 
+                        {data.ssot_result?.core_votes_list && data.ssot_result.core_votes_list.length > 0 && (
+                            <button 
+                                onClick={() => setIsIndicatorModalOpen(true)}
+                                className="w-full bg-[#1e2329] hover:bg-[#2a3038] border border-[var(--color-b-border)] text-white p-4 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors mt-2"
+                            >
+                                🔍 Tüm İndikatör Sinyallerini Gör
+                            </button>
+                        )}
+
                         </Panel>
 
                         <PanelResizeHandle className="w-1.5 mx-2 bg-gray-800 hover:bg-[var(--color-b-yellow)] rounded transition-colors cursor-col-resize flex flex-col justify-center items-center">
@@ -335,40 +345,7 @@ ${ssot.summary || "-"}`;
                             </p>
                         </div>
 
-                        {/* Indicator Proof Table */}
-                        {data.ssot_result?.core_votes_list && data.ssot_result.core_votes_list.length > 0 && (
-                            <div className="glass-panel rounded-lg overflow-hidden flex-shrink-0">
-                                <div className="p-4 bg-[#181a20] border-b border-[var(--color-b-border)]">
-                                    <h3 className="font-bold text-white">🔍 İndikatör Kanıtları (Ensemble)</h3>
-                                </div>
-                                <div className="overflow-x-auto w-full">
-                                    <table className="w-full text-left text-sm">
-                                        <thead className="bg-[#1e2329] text-[var(--color-b-muted)] sticky top-0">
-                                            <tr>
-                                                <th className="p-3 font-semibold">İndikatör / Kural</th>
-                                                <th className="p-3 font-semibold">Durum</th>
-                                                <th className="p-3 font-semibold">Etki Ağırlığı</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {data.ssot_result.core_votes_list.map((vote: any, idx: number) => {
-                                                const isAl = vote.Durum?.includes("AL");
-                                                const isSat = vote.Durum?.includes("SAT");
-                                                return (
-                                                    <tr key={idx} className="border-b border-[var(--color-b-border)] hover:bg-[#1e2329]">
-                                                        <td className="p-3 text-white">{vote["İndikatör/Kural"]}</td>
-                                                        <td className={`p-3 font-bold ${isAl ? 'text-green-500' : isSat ? 'text-red-500' : 'text-gray-400'}`}>
-                                                            {vote.Durum}
-                                                        </td>
-                                                        <td className="p-3 text-[var(--color-b-muted)]">Ağırlık: {vote["Ağırlık Puanı"]}</td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        )}
+                        {/* Indicator Proof Table moved to Modal */}
                                 </Panel>
                             </PanelGroup>
                         </Panel>
@@ -377,6 +354,51 @@ ${ssot.summary || "-"}`;
             )}
         </div>
         <AuthModal />
+        
+        {isIndicatorModalOpen && (
+            <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={() => setIsIndicatorModalOpen(false)}>
+                <div 
+                    className="bg-[#181a20] border border-[var(--color-b-border)] rounded-lg w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <div className="flex justify-between items-center p-5 border-b border-[var(--color-b-border)]">
+                        <div>
+                            <h3 className="font-bold text-white text-xl">🔍 İndikatör Sinyal Detayları</h3>
+                            <p className="text-[var(--color-b-muted)] text-sm mt-1">100+ teknik kuralın mevcut durumu ve hisseye etkisi</p>
+                        </div>
+                        <button onClick={() => setIsIndicatorModalOpen(false)} className="text-gray-400 hover:text-white text-2xl font-bold p-2">
+                            &times;
+                        </button>
+                    </div>
+                    <div className="overflow-y-auto w-full p-4">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-[#1e2329] text-[var(--color-b-muted)] sticky top-0 shadow-md">
+                                <tr>
+                                    <th className="p-3 font-semibold rounded-tl-md">İndikatör / Kural</th>
+                                    <th className="p-3 font-semibold">Durum</th>
+                                    <th className="p-3 font-semibold rounded-tr-md">Etki Ağırlığı</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {data?.ssot_result?.core_votes_list?.map((vote: any, idx: number) => {
+                                    const isAl = vote.Durum?.includes("AL");
+                                    const isSat = vote.Durum?.includes("SAT");
+                                    return (
+                                        <tr key={idx} className="border-b border-[#2a3038] hover:bg-[#1e2329] transition-colors">
+                                            <td className="p-3 text-white">{vote["İndikatör/Kural"]}</td>
+                                            <td className={`p-3 font-bold ${isAl ? 'text-green-500' : isSat ? 'text-red-500' : 'text-gray-400'}`}>
+                                                {vote.Durum}
+                                            </td>
+                                            <td className="p-3 text-[var(--color-b-muted)]">Ağırlık: {vote["Ağırlık Puanı"]}</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        )}
         </>
     );
 }
