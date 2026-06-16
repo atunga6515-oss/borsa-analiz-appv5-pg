@@ -21,13 +21,13 @@ export default function SMCPage() {
         setError(null);
         try {
             // 1. Fetch Deep Analysis for Market Structure
-            const deepRes = await api.get(`/analysis/deep?ticker=${symbol.toUpperCase()}`);
+            const deepRes = await api.get(`/analysis/${symbol.toUpperCase()}`);
             if (deepRes.data && deepRes.data.data) {
                 setMarketStructure(deepRes.data.data.market_structure);
             }
 
             // 2. Fetch Chart Data
-            const chartRes = await api.get(`/analysis/chart?ticker=${symbol.toUpperCase()}`);
+            const chartRes = await api.get(`/data/ohlcv/${symbol.toUpperCase()}?interval=1d&period=1y`);
             if (chartRes.data && chartRes.data.data) {
                 setChartData(chartRes.data.data);
             } else {

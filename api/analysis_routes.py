@@ -59,6 +59,8 @@ def fetch_comprehensive_analysis(ticker: str, current_user: str = Depends(get_cu
             
         return final_payload
         
+    except HTTPException as he:
+        raise he
     except Exception as e:
         import traceback
         print(f"Analysis error: {traceback.format_exc()}")
