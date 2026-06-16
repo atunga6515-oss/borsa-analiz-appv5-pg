@@ -158,8 +158,8 @@ export default function ScreenerPage() {
         if (aStr > bStr) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
     }).filter(row => {
-        if (strategyFilter === "🔥 Düzenini Kıran Hisseler") {
-            return row["Düzen Kırılımı"] === "Kırılım 🔥";
+        if (strategyFilter === "🔥 Düşeni Kıran Hisseler") {
+            return row["Düşen Kırılımı"] === "Kırılım 🔥";
         }
         return true;
     });
@@ -270,7 +270,7 @@ export default function ScreenerPage() {
                                 onChange={(e) => setStrategyFilter(e.target.value)}
                             >
                                 <option value="Tümü">Tümü</option>
-                                <option value="🔥 Düzenini Kıran Hisseler">🔥 Düzenini Kıran Hisseler</option>
+                                <option value="🔥 Düşeni Kıran Hisseler">🔥 Düşeni Kıran Hisseler</option>
                             </select>
                         </div>
                         
@@ -336,8 +336,8 @@ export default function ScreenerPage() {
                             <th className="p-4 border-b border-[var(--color-b-border)] font-semibold cursor-pointer hover:text-white select-none transition-colors" onClick={() => requestSort('Fiyat')}>
                                 Fiyat {getSortIndicator('Fiyat')}
                             </th>
-                            <th className="p-4 border-b border-[var(--color-b-border)] font-semibold cursor-pointer hover:text-white select-none transition-colors" onClick={() => requestSort('Düzen Kırılımı')}>
-                                Düzen Kırılımı {getSortIndicator('Düzen Kırılımı')}
+                            <th className="p-4 border-b border-[var(--color-b-border)] font-semibold cursor-pointer hover:text-white select-none transition-colors" onClick={() => requestSort('Düşen Kırılımı')}>
+                                Düşen Kırılımı {getSortIndicator('Düşen Kırılımı')}
                             </th>
                             <th className="p-4 border-b border-[var(--color-b-border)] font-semibold cursor-pointer hover:text-white select-none transition-colors" onClick={() => requestSort('Ara Hedef (₺)')}>
                                 Ara Hedef {getSortIndicator('Ara Hedef (₺)')}
@@ -390,7 +390,7 @@ export default function ScreenerPage() {
                                         </div>
                                     </td>
                                     <td className="p-4 font-medium text-white">{price}</td>
-                                    <td className="p-4 font-bold text-[var(--color-b-yellow)]">{row["Düzen Kırılımı"] || "-"}</td>
+                                    <td className="p-4 font-bold text-[var(--color-b-yellow)]">{row["Düşen Kırılımı"] || "-"}</td>
                                     <td className="p-4 font-bold text-[var(--color-b-green)]">{row["Ara Hedef (₺)"] || "-"}</td>
                                     <td className="p-4">
                                         <div className="flex flex-col">

@@ -167,7 +167,7 @@ def save_scan_results(results_df: pd.DataFrame, username: str):
                 text("INSERT INTO scan_history (username, scan_date, ticker, score, decision, price, pct_change, smc_bos, intermediate_target) VALUES (:u, :d, :t, :s, :dec, :p, :pct, :smc, :itg)"),
                 {"u": username, "d": today, "t": row.get('Hisse',''), "s": row.get('V6 Hibrit Skor',0), 
                  "dec": row.get('Piyasa Kararı',''), "p": row.get('Fiyat', 0), "pct": row.get('Değişim (%)',0),
-                 "smc": row.get('Düzen Kırılımı', '-'), "itg": float(row.get('Ara Hedef (₺)', 0)) if str(row.get('Ara Hedef (₺)', '0')).replace('.','',1).isdigit() else 0.0}
+                 "smc": row.get('Düşen Kırılımı', '-'), "itg": float(row.get('Ara Hedef (₺)', 0)) if str(row.get('Ara Hedef (₺)', '0')).replace('.','',1).isdigit() else 0.0}
             )
 
 def get_scan_history(username: str, days_back: int = 7) -> pd.DataFrame:
@@ -326,10 +326,10 @@ def _analyze_single_stock(sym: str, market_regime: dict = None) -> dict:
         vol_text = f"{vol_ratio}x ({vol_conf['status']})"
 
         # ==========================================
-        # SMC: Düzen Kırılımı (BOS) ve Ara Hedefler
+        # SMC: Düşen Kırılımı (BOS) ve Ara Hedefler
         # ==========================================
         smc_structure = detect_market_structure_break(df, order=10)
-        duzen_kirilimi = "Kırılım 🔥" if smc_structure["bos_detected"] else "-"
+        dusen_kirilimi = "Kırılım 🔥" if smc_structure["bos_detected"] else "-"
         
         # ATR Bazlı Ara Hedef (tp_intermediate_atr) = 1.5 * ATR
         atr_val = df['ATR_14'].iloc[-1] if 'ATR_14' in df.columns else 0
@@ -495,7 +495,7 @@ def _analyze_single_stock(sym: str, market_regime: dict = None) -> dict:
             "PD/DD": fund_data.get('pb', 0),
             "F/K": fund_data.get('pe', 0),
             "Sektör": sector,
-            "Düzen Kırılımı": duzen_kirilimi,
+            "Düşen Kırılımı": dusen_kirilimi,
             "Ara Hedef (₺)": ara_hedef_str
         }
     except Exception as e:
