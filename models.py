@@ -54,6 +54,8 @@ class ScanHistory(Base):
     price = Column(Float)
     pct_change = Column(Float)
     is_bad_signal = Column(Integer, default=0)
+    smc_bos = Column(String(50), nullable=True)
+    intermediate_target = Column(Float, nullable=True)
 
 class Watchlist(Base):
     __tablename__ = 'watchlist'

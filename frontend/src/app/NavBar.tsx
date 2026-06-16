@@ -30,6 +30,7 @@ const NAV_GROUPS = [
             { href: "/strategy-compare", label: "Kıyasla", icon: "🧪", tooltip: "Farklı al-sat stratejilerinin geçmiş getiri performanslarını birbiriyle kıyaslayın." },
             { href: "/robot", label: "Robot", icon: "🤖", tooltip: "Otonom Al-Sat Robotu (Paper Trading) ile stratejinizi test edin." },
             { href: "/risk", label: "Risk", icon: "⚠️", tooltip: "Portföyünüzün ve piyasanın risk durumunu, volatilite oranlarını analiz edin." },
+            { href: "/smc", label: "SMC", icon: "📐", tooltip: "Akıllı Para Konseptleri (Smart Money Concepts) ile market yapısı kırılımlarını (BOS) ve likidite seviyelerini inceleyin." },
         ]
     },
     {

@@ -15,6 +15,7 @@ export default function ScreenerPage() {
     const [scanText, setScanText] = useState("");
     const [scanMode, setScanMode] = useState("BIST30");
     const [sortConfig, setSortConfig] = useState<{key: string | null, direction: 'asc' | 'desc'}>({ key: null, direction: 'asc' });
+    const [strategyFilter, setStrategyFilter] = useState("Tümü");
     
     // History State
     const [historyList, setHistoryList] = useState<any[]>([]);
@@ -156,6 +157,11 @@ export default function ScreenerPage() {
         if (aStr < bStr) return sortConfig.direction === 'asc' ? -1 : 1;
         if (aStr > bStr) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
+    }).filter(row => {
+        if (strategyFilter === "🔥 Düzenini Kıran Hisseler") {
+            return row["Düzen Kırılımı"] === "Kırılım 🔥";
+        }
+        return true;
     });
 
     const openModal = (ticker: string, price: string) => {
@@ -255,6 +261,19 @@ export default function ScreenerPage() {
                             </label>
                         ))}
                         
+                        {/* Stratejik Filtreler */}
+                        <div className="ml-4 flex items-center gap-2">
+                            <span className="text-sm text-gray-400">Strateji:</span>
+                            <select 
+                                className="bg-[var(--color-b-card)] border border-gray-700 text-white text-sm rounded px-3 py-1.5 focus:outline-none focus:border-[var(--color-b-yellow)]"
+                                value={strategyFilter}
+                                onChange={(e) => setStrategyFilter(e.target.value)}
+                            >
+                                <option value="Tümü">Tümü</option>
+                                <option value="🔥 Düzenini Kıran Hisseler">🔥 Düzenini Kıran Hisseler</option>
+                            </select>
+                        </div>
+                        
                         {/* Geçmiş Dropdown */}
                         {historyList.length > 0 && (
                             <div className="ml-auto flex items-center gap-2">
@@ -317,6 +336,12 @@ export default function ScreenerPage() {
                             <th className="p-4 border-b border-[var(--color-b-border)] font-semibold cursor-pointer hover:text-white select-none transition-colors" onClick={() => requestSort('Fiyat')}>
                                 Fiyat {getSortIndicator('Fiyat')}
                             </th>
+                            <th className="p-4 border-b border-[var(--color-b-border)] font-semibold cursor-pointer hover:text-white select-none transition-colors" onClick={() => requestSort('Düzen Kırılımı')}>
+                                Düzen Kırılımı {getSortIndicator('Düzen Kırılımı')}
+                            </th>
+                            <th className="p-4 border-b border-[var(--color-b-border)] font-semibold cursor-pointer hover:text-white select-none transition-colors" onClick={() => requestSort('Ara Hedef (₺)')}>
+                                Ara Hedef {getSortIndicator('Ara Hedef (₺)')}
+                            </th>
                             <th className="p-4 border-b border-[var(--color-b-border)] font-semibold cursor-pointer hover:text-white select-none transition-colors" onClick={() => requestSort('Takas Değişimi (%)')}>
                                 Y. Takas Eğilimi {getSortIndicator('Takas Değişimi (%)')}
                             </th>
@@ -365,6 +390,8 @@ export default function ScreenerPage() {
                                         </div>
                                     </td>
                                     <td className="p-4 font-medium text-white">{price}</td>
+                                    <td className="p-4 font-bold text-[var(--color-b-yellow)]">{row["Düzen Kırılımı"] || "-"}</td>
+                                    <td className="p-4 font-bold text-[var(--color-b-green)]">{row["Ara Hedef (₺)"] || "-"}</td>
                                     <td className="p-4">
                                         <div className="flex flex-col">
                                             <span className="text-sm text-white">Yabancı: %{row["Yabancı Oranı (%)"] !== undefined ? row["Yabancı Oranı (%)"] : "-"}</span>

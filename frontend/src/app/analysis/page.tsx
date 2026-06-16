@@ -247,6 +247,33 @@ ${ssot.summary || "-"}`;
                                     <div className="text-[var(--color-b-muted)] text-xs">Hedef 2 (TP2)</div>
                                     <div className="text-blue-400 font-bold">{data.ssot_result?.risk?.TP2 ? data.ssot_result.risk.TP2.toFixed(2) : "-"} ₺</div>
                                 </div>
+                                <div>
+                                    <div className="text-[var(--color-b-muted)] text-xs">Ara Hedef (ATR)</div>
+                                    <div className="text-[var(--color-b-green)] font-bold">{data.smart_targets?.tp_intermediate_atr ? data.smart_targets.tp_intermediate_atr.toFixed(2) : "-"} ₺</div>
+                                </div>
+                                <div>
+                                    <div className="text-[var(--color-b-muted)] text-xs">Ara Hedef (Zirve)</div>
+                                    <div className="text-[var(--color-b-green)] font-bold">{data.smart_targets?.tp_intermediate_peak ? data.smart_targets.tp_intermediate_peak.toFixed(2) : "-"} ₺</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Market Structure (SMC) */}
+                        <div className="bg-[#181a20] p-5 rounded-lg border border-[var(--color-b-border)]">
+                            <h3 className="font-bold text-white mb-4">🔍 Market Yapısı (SMC)</h3>
+                            <div className="flex flex-col gap-2">
+                                <div className="flex justify-between items-center border-b border-gray-800 pb-2">
+                                    <span className="text-sm text-gray-400">Düzen Kırılımı (BOS):</span>
+                                    <span className={`font-bold ${data.market_structure?.bos_detected ? 'text-[var(--color-b-yellow)]' : 'text-gray-500'}`}>
+                                        {data.market_structure?.bos_detected ? "Kırılım 🔥" : "-"}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm text-gray-400">Trend Yönü Onayı:</span>
+                                    <span className="font-bold text-[var(--color-b-green)]">
+                                        {data.market_structure?.bos_detected ? "Yukarı Yönlü Market Değişimi" : "Konsolidasyon / Düşüş"}
+                                    </span>
+                                </div>
                             </div>
                         </div>
 

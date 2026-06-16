@@ -1,4 +1,6 @@
 import pandas as pd
+import numpy as np
+from scipy.signal import argrelextrema
 import os
 from datetime import datetime
 import pytz
@@ -162,9 +164,10 @@ def save_scan_results(results_df: pd.DataFrame, username: str):
         conn.execute(text("DELETE FROM scan_history WHERE scan_date=:d AND username=:u"), {"d": today, "u": username})
         for _, row in results_df.iterrows():
             conn.execute(
-                text("INSERT INTO scan_history (username, scan_date, ticker, score, decision, price, pct_change) VALUES (:u, :d, :t, :s, :dec, :p, :pct)"),
+                text("INSERT INTO scan_history (username, scan_date, ticker, score, decision, price, pct_change, smc_bos, intermediate_target) VALUES (:u, :d, :t, :s, :dec, :p, :pct, :smc, :itg)"),
                 {"u": username, "d": today, "t": row.get('Hisse',''), "s": row.get('V6 Hibrit Skor',0), 
-                 "dec": row.get('Piyasa Kararı',''), "p": row.get('Fiyat', 0), "pct": row.get('Değişim (%)',0)}
+                 "dec": row.get('Piyasa Kararı',''), "p": row.get('Fiyat', 0), "pct": row.get('Değişim (%)',0),
+                 "smc": row.get('Düzen Kırılımı', '-'), "itg": float(row.get('Ara Hedef (₺)', 0)) if str(row.get('Ara Hedef (₺)', '0')).replace('.','',1).isdigit() else 0.0}
             )
 
 def get_scan_history(username: str, days_back: int = 7) -> pd.DataFrame:
@@ -226,6 +229,74 @@ def get_watchlist(username: str) -> pd.DataFrame:
 
 
 # ============================================================
+# MARKET STRUCTURE (SMC) & ARA HEDEFLER
+# ============================================================
+def detect_market_structure_break(df, order=10):
+    if len(df) < order * 2:
+        return {"bos_detected": False, "last_peak": None, "last_trough": None, "historical_breaks": []}
+        
+    closes = df['Close'].values
+    highs = df['High'].values
+    lows = df['Low'].values
+    
+    peak_indices = argrelextrema(highs, np.greater, order=order)[0]
+    trough_indices = argrelextrema(lows, np.less, order=order)[0]
+    
+    if len(peak_indices) == 0:
+        return {"bos_detected": False, "last_peak": None, "last_trough": None, "historical_breaks": []}
+        
+    last_peak_idx = peak_indices[-1]
+    last_peak_price = highs[last_peak_idx]
+    
+    last_trough_price = None
+    if len(trough_indices) > 0:
+        last_trough_idx = trough_indices[-1]
+        last_trough_price = lows[last_trough_idx]
+        
+    bos_detected = False
+    current_close = closes[-1]
+    
+    if last_peak_idx < len(df) - 1:
+        if current_close > last_peak_price:
+            bos_detected = True
+            
+    historical_breaks = []
+    # Son 5 zirveyi kontrol et
+    for p_idx in peak_indices[-5:]:
+        p_price = highs[p_idx]
+        p_date_str = str(df.index[p_idx]).split(' ')[0] if hasattr(df, 'index') else str(p_idx)
+        if 'Date' in df.columns:
+             p_date_str = str(df['Date'].iloc[p_idx]).split(' ')[0]
+             
+        future_closes = closes[p_idx+1:]
+        break_idx = np.where(future_closes > p_price)[0]
+        if len(break_idx) > 0:
+            b_idx = p_idx + 1 + break_idx[0]
+            b_date_str = str(df.index[b_idx]).split(' ')[0] if hasattr(df, 'index') else str(b_idx)
+            if 'Date' in df.columns:
+                 b_date_str = str(df['Date'].iloc[b_idx]).split(' ')[0]
+            historical_breaks.append({
+                "peak_date": p_date_str,
+                "peak_price": float(p_price),
+                "break_date": b_date_str,
+                "broken": True
+            })
+        else:
+            historical_breaks.append({
+                "peak_date": p_date_str,
+                "peak_price": float(p_price),
+                "break_date": "-",
+                "broken": False
+            })
+            
+    return {
+        "bos_detected": bos_detected,
+        "last_peak": float(last_peak_price),
+        "last_trough": float(last_trough_price) if last_trough_price else None,
+        "historical_breaks": historical_breaks
+    }
+
+# ============================================================
 # TEKİL HİSSE ANALİZ FONKSİYONU (Paralel tarama için)
 # ============================================================
 
@@ -253,6 +324,23 @@ def _analyze_single_stock(sym: str, market_regime: dict = None) -> dict:
         vol_conf = calculate_volume_confirmation(df, is_bear=market_regime['is_bear'] if market_regime else False)
         vol_ratio = round(vol_conf['ratio'], 2)
         vol_text = f"{vol_ratio}x ({vol_conf['status']})"
+
+        # ==========================================
+        # SMC: Düzen Kırılımı (BOS) ve Ara Hedefler
+        # ==========================================
+        smc_structure = detect_market_structure_break(df, order=10)
+        duzen_kirilimi = "Kırılım 🔥" if smc_structure["bos_detected"] else "-"
+        
+        # ATR Bazlı Ara Hedef (tp_intermediate_atr) = 1.5 * ATR
+        atr_val = df['ATR_14'].iloc[-1] if 'ATR_14' in df.columns else 0
+        tp_intermediate_atr = round(display_price + (1.5 * atr_val), 2) if atr_val > 0 else 0
+        
+        # Zirve Bazlı Ara Hedef
+        tp_intermediate_resistance = smc_structure["last_peak"] if smc_structure["last_peak"] else 0
+        
+        # Ekranda Gösterilecek Ara Hedef
+        ara_hedef_str = f"{tp_intermediate_resistance:.2f}" if tp_intermediate_resistance > display_price else f"{tp_intermediate_atr:.2f}"
+
 
         # Zirve Uzaklığı (Yeni)
         day_high = last['High']
@@ -406,7 +494,9 @@ def _analyze_single_stock(sym: str, market_regime: dict = None) -> dict:
             "Temel Durum": fund_data.get('status', 'Normal'),
             "PD/DD": fund_data.get('pb', 0),
             "F/K": fund_data.get('pe', 0),
-            "Sektör": sector
+            "Sektör": sector,
+            "Düzen Kırılımı": duzen_kirilimi,
+            "Ara Hedef (₺)": ara_hedef_str
         }
     except Exception as e:
         import traceback

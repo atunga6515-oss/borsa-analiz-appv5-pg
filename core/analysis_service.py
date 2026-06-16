@@ -5,6 +5,7 @@ from indicators import calculate_indicators, generate_signals_and_score, get_mar
 from kap_news import get_sentiment_summary
 from support_resistance import calculate_best_zones
 from takas_engine import get_takas_data
+from screener import detect_market_structure_break
 
 def _clean_nans(obj):
     if isinstance(obj, float) and np.isnan(obj): return None
@@ -57,6 +58,11 @@ def run_deep_analysis(ticker: str, *, period: str = "1y", market_regime: dict = 
             "ssot_result": ssot,
             "support_resistance": sr_data,
             "is_buy_signal": _is_buy_decision(ssot.get("decision", "")),
+            "market_structure": detect_market_structure_break(df, order=10),
+            "smart_targets": {
+                "tp_intermediate_atr": round(live_px + (1.5 * (df['ATR_14'].iloc[-1] if 'ATR_14' in df.columns else 0)), 2),
+                "tp_intermediate_peak": detect_market_structure_break(df, order=10).get("last_peak", None)
+            },
             "sma": {
                 "sma_20": float(last_row["SMA_20"]) if pd.notna(last_row.get("SMA_20")) else None,
                 "sma_50": float(last_row["SMA_50"]) if pd.notna(last_row.get("SMA_50")) else None,

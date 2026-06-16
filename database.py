@@ -225,6 +225,17 @@ def init_db():
             except Exception:
                 pass  # Sütun zaten varsa atla (SQLite IF NOT EXISTS desteklemez)
 
+        # scan_history tablosuna smc_bos ve intermediate_target alanlarını ekle (migration)
+        for col_def in [
+            ("smc_bos", "VARCHAR(50)"),
+            ("intermediate_target", "FLOAT"),
+        ]:
+            col_name, col_type = col_def
+            try:
+                conn.execute(text(f"ALTER TABLE scan_history ADD COLUMN IF NOT EXISTS {col_name} {col_type}"))
+            except Exception:
+                pass
+
         conn.execute(text(f"""
             CREATE TABLE IF NOT EXISTS system_logs (
                 id {serial_type} PRIMARY KEY,
