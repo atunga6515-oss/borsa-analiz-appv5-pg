@@ -138,11 +138,26 @@ export default function ScreenerPage() {
         return sortConfig.direction === 'asc' ? <span className="text-[var(--color-b-yellow)] ml-1">▲</span> : <span className="text-[var(--color-b-yellow)] ml-1">▼</span>;
     };
 
-    const sortedResults = [...scanResults].sort((a, b) => {
+    const filteredResults = [...scanResults].filter(row => {
+        if (strategyFilter === "🔥 Düşeni Kıran Hisseler") {
+            return row["Düşen Kırılımı"] === "Kırılım 🔥" || row["Düzen Kırılımı"] === "Kırılım 🔥";
+        }
+        return true;
+    });
+
+    const sortedResults = [...filteredResults].sort((a, b) => {
         if (sortConfig.key === null) return 0;
         
-        const aVal = a[sortConfig.key] || "";
-        const bVal = b[sortConfig.key] || "";
+        let aVal = a[sortConfig.key];
+        let bVal = b[sortConfig.key];
+        
+        if (sortConfig.key === 'Düşen Kırılımı') {
+            aVal = aVal || a["Düzen Kırılımı"] || "";
+            bVal = bVal || b["Düzen Kırılımı"] || "";
+        }
+        
+        if (aVal === undefined || aVal === null) aVal = "";
+        if (bVal === undefined || bVal === null) bVal = "";
         
         // Handle numeric sorting
         const aNum = parseFloat(aVal);
@@ -159,7 +174,7 @@ export default function ScreenerPage() {
         return 0;
     }).filter(row => {
         if (strategyFilter === "🔥 Düşeni Kıran Hisseler") {
-            return row["Düşen Kırılımı"] === "Kırılım 🔥";
+            return row["Düşen Kırılımı"] === "Kırılım 🔥" || row["Düzen Kırılımı"] === "Kırılım 🔥";
         }
         return true;
     });
@@ -390,7 +405,7 @@ export default function ScreenerPage() {
                                         </div>
                                     </td>
                                     <td className="p-4 font-medium text-white">{price}</td>
-                                    <td className="p-4 font-bold text-[var(--color-b-yellow)]">{row["Düşen Kırılımı"] || "-"}</td>
+                                    <td className="p-4 font-bold text-[var(--color-b-yellow)]">{row["Düşen Kırılımı"] || row["Düzen Kırılımı"] || "-"}</td>
                                     <td className="p-4 font-bold text-[var(--color-b-green)]">{row["Ara Hedef (₺)"] || "-"}</td>
                                     <td className="p-4">
                                         <div className="flex flex-col">
