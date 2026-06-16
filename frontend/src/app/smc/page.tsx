@@ -7,8 +7,8 @@ import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 export default function SMCPage() {
     const { requireAuth, AuthModal } = useRequireAuth();
-    const [ticker, setTicker] = useState("THYAO");
-    const [inputTicker, setInputTicker] = useState("THYAO");
+    const [ticker, setTicker] = useState("");
+    const [inputTicker, setInputTicker] = useState("");
     const [loading, setLoading] = useState(false);
     
     const [chartData, setChartData] = useState<any[]>([]);
@@ -94,6 +94,11 @@ export default function SMCPage() {
                         <div className="text-4xl mb-4">❌</div>
                         <p>{error}</p>
                     </div>
+                </div>
+            ) : !ticker ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-[var(--color-b-muted)]">
+                    <div className="text-5xl mb-4">🔍</div>
+                    <p>SMC analizi yapmak için lütfen yukarıdan bir hisse kodu (örn: THYAO) girin.</p>
                 </div>
             ) : (
                 <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-[500px]">
