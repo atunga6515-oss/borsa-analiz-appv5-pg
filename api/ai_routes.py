@@ -66,14 +66,58 @@ def analyze_stock(request: Request, req: AIAnalysisRequest, current_user: str = 
         "'Burada yer alan yatırım bilgi, yorum ve tavsiyeleri yatırım danışmanlığı kapsamında değildir (YTD).'"
     )
 
-    user_prompt = f"""
-    Hisse: {req.ticker}
-    Mevcut Fiyat: {req.price}
-    RSI: {req.rsi if req.rsi is not None else 'Bilinmiyor'}
-    MACD Sinyali: {req.macd_signal if req.macd_signal else 'Bilinmiyor'}
-    Trend Durumu: {req.trend if req.trend else 'Bilinmiyor'}
-    Ek Notlar: {req.note}
-    """
+    # Kullanıcıdan gelen bazı veriler eksik olabileceği için (RSI vs.), arka planda o hisseye anlık derin analiz atıyoruz
+    # Sentiment false yapıyoruz ki AI kendi içinde bir daha Gemini API'ye gidip haber özeti sormasın (hız ve kota için)
+    try:
+        from core.analysis_service import run_deep_analysis
+        deep_data = run_deep_analysis(req.ticker, include_sentiment=False)
+        
+        if deep_data.get("status") == "success":
+            d = deep_data.get("data", {})
+            ssot = d.get("ssot", {})
+            indicators = ssot.get("indicators", {})
+            
+            # Use dynamic live data
+            dynamic_price = d.get("live_px", req.price)
+            dynamic_rsi = indicators.get("RSI", req.rsi)
+            dynamic_macd = ssot.get("macd_signal", req.macd_signal)
+            dynamic_trend = ssot.get("trend_durumu", ssot.get("karar", req.trend))
+            
+            # Ekstra zengin veriler:
+            smc = d.get("smc", {})
+            sr_data = d.get("sr_data", {})
+            
+            user_prompt = f"""
+            Hisse: {req.ticker}
+            Mevcut Fiyat: {dynamic_price}
+            RSI (14): {dynamic_rsi if dynamic_rsi is not None else 'Bilinmiyor'}
+            MACD Sinyali: {dynamic_macd if dynamic_macd else 'Bilinmiyor'}
+            Trend Durumu ve Algoritma Kararı: {dynamic_trend if dynamic_trend else 'Bilinmiyor'}
+            
+            Önemli Seviyeler:
+            - Destek: {sr_data.get("Destek_1", "Bilinmiyor")}
+            - Direnç: {sr_data.get("Direnc_1", "Bilinmiyor")}
+            
+            SMC (Akıllı Para Konsepti):
+            - Piyasa Yapısı: {smc.get('market_structure', 'Bilinmiyor')}
+            - Son Kırılım (BOS): {smc.get('last_bos', 'Bilinmiyor')}
+            - Yakın Likidite Seviyesi: {smc.get('nearest_liquidity', 'Bilinmiyor')}
+            
+            Ek Notlar: {req.note}
+            """
+        else:
+            # Fallback to frontend request data if error fetching
+            raise Exception("Deep analysis failed")
+    except Exception:
+        # Fallback
+        user_prompt = f"""
+        Hisse: {req.ticker}
+        Mevcut Fiyat: {req.price}
+        RSI: {req.rsi if req.rsi is not None else 'Bilinmiyor'}
+        MACD Sinyali: {req.macd_signal if req.macd_signal else 'Bilinmiyor'}
+        Trend Durumu: {req.trend if req.trend else 'Bilinmiyor'}
+        Ek Notlar: {req.note}
+        """
 
     try:
         model_names = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
