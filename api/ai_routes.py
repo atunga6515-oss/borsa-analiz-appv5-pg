@@ -113,6 +113,10 @@ def analyze_stock(request: Request, req: AIAnalysisRequest, current_user: str = 
             - En Yakın Zirve (Likit): {peak_text}
             - En Yakın Dip (Likit): {trough_text}
             
+            Yabancı Oranı ve Değişim:
+            - Yabancı Oranı: %{analysis_data.get("takas_info", {}).get("foreign_ratio", "Bilinmiyor")}
+            - Son Değişim: %{analysis_data.get("takas_info", {}).get("daily_change", "Bilinmiyor")}
+            
             Ek Notlar: {req.note}
             """
         else:
