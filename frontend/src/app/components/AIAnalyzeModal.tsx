@@ -49,7 +49,7 @@ export default function AIAnalyzeModal({ isOpen, onClose, ticker, price, rsi, ma
             const res = await api.post('/ai/analyze', {
                 ticker,
                 price,
-                rsi: rsi || 0,
+                rsi: rsi !== undefined && rsi !== null ? rsi : null,
                 macd_signal: macd_signal || "Bilinmiyor",
                 trend: trend || "Bilinmiyor",
                 note: note || ""
