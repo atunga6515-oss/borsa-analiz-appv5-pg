@@ -58,7 +58,11 @@ export default function AIAnalyzeModal({ isOpen, onClose, ticker, price, rsi, ma
             setStep("RESULT");
         } catch(error: any) {
             console.error("AI Hatası:", error);
-            setErrorText(error.response?.data?.detail || "AI analizi sırasında bir hata oluştu.");
+            let errDetail = error.response?.data?.detail || "AI analizi sırasında bir hata oluştu.";
+            if (typeof errDetail !== 'string') {
+                errDetail = JSON.stringify(errDetail);
+            }
+            setErrorText(errDetail);
             setStep("ERROR");
         }
     };

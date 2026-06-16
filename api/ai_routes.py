@@ -16,13 +16,15 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
+from typing import Optional
+
 class AIAnalysisRequest(BaseModel):
     ticker: str
     price: float
-    rsi: float = None
-    macd_signal: str = None
-    trend: str = None
-    note: str = ""
+    rsi: Optional[float] = None
+    macd_signal: Optional[str] = None
+    trend: Optional[str] = None
+    note: Optional[str] = ""
 
 @router.post("/analyze")
 @limiter.limit("10/minute")
