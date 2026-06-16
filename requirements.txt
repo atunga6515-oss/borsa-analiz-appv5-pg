@@ -22,3 +22,4 @@ slowapi>=0.1.9
 bcrypt>=4.1.2
 apscheduler>=3.10.4
 pandas-ta
+lxml==5.2.2
