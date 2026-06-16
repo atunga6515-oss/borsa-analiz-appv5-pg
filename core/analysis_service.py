@@ -7,8 +7,16 @@ from support_resistance import calculate_best_zones
 from takas_engine import get_takas_data
 from screener import detect_market_structure_break
 
+import numpy as np
+
 def _clean_nans(obj):
-    if isinstance(obj, float) and np.isnan(obj): return None
+    if isinstance(obj, (float, np.floating)):
+        if np.isnan(obj) or np.isinf(obj): return None
+        return float(obj)
+    if isinstance(obj, (int, np.integer)) and not isinstance(obj, bool):
+        return int(obj)
+    if isinstance(obj, (bool, np.bool_)):
+        return bool(obj)
     if isinstance(obj, dict): return {k: _clean_nans(v) for k, v in obj.items()}
     if isinstance(obj, list): return [_clean_nans(x) for x in obj]
     return obj
