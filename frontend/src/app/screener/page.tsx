@@ -358,7 +358,7 @@ export default function ScreenerPage() {
                                 Ara Hedef {getSortIndicator('Ara Hedef (₺)')}
                             </th>
                             <th className="p-4 border-b border-[var(--color-b-border)] font-semibold cursor-pointer hover:text-white select-none transition-colors" onClick={() => requestSort('Takas Değişimi (%)')}>
-                                Y. Takas Eğilimi {getSortIndicator('Takas Değişimi (%)')}
+                                Yabancı Takas (Günlük) {getSortIndicator('Takas Değişimi (%)')}
                             </th>
                             <th className="p-4 border-b border-[var(--color-b-border)] font-semibold">İşlemler</th>
                         </tr>
@@ -411,7 +411,7 @@ export default function ScreenerPage() {
                                         <div className="flex flex-col">
                                             <span className="text-sm text-white">Yabancı: %{row["Yabancı Oranı (%)"] !== undefined ? row["Yabancı Oranı (%)"] : "-"}</span>
                                             <span className={`text-sm font-bold ${row["Takas Değişimi (%)"] > 0 ? "text-[var(--color-b-green)]" : row["Takas Değişimi (%)"] < 0 ? "text-[var(--color-b-red)]" : "text-[var(--color-b-muted)]"}`}>
-                                                Δ: {row["Takas Değişimi (%)"] !== undefined ? (row["Takas Değişimi (%)"] > 0 ? "+" : "") + row["Takas Değişimi (%)"] + "%" : "-"}
+                                                Günlük Değişim: {row["Takas Değişimi (%)"] !== undefined ? (row["Takas Değişimi (%)"] > 0 ? "+" : "") + row["Takas Değişimi (%)"] + "%" : "-"}
                                             </span>
                                         </div>
                                     </td>
