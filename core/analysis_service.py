@@ -75,6 +75,12 @@ def run_deep_analysis(ticker: str, *, period: str = "1y", market_regime: dict = 
                 "sma_20": float(last_row["SMA_20"]) if pd.notna(last_row.get("SMA_20")) else None,
                 "sma_50": float(last_row["SMA_50"]) if pd.notna(last_row.get("SMA_50")) else None,
                 "sma_52": float(last_row["SMA_52"]) if pd.notna(last_row.get("SMA_52")) else None,
+            },
+            "indicators": {
+                "RSI": float(last_row.get("RSI_14")) if pd.notna(last_row.get("RSI_14")) else None,
+                "MACD": float(last_row.get("MACD")) if pd.notna(last_row.get("MACD")) else None,
+                "MACD_Signal": float(last_row.get("MACDs")) if pd.notna(last_row.get("MACDs")) else None,
+                "MFI": float(last_row.get("MFI_14")) if pd.notna(last_row.get("MFI_14")) else None
             }
         }
     }

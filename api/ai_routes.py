@@ -76,24 +76,32 @@ def analyze_stock(request: Request, req: AIAnalysisRequest, current_user: str = 
         
         if deep_data.get("status") == "success":
             d = deep_data.get("data", {})
-            ssot = d.get("ssot", {})
-            indicators = ssot.get("indicators", {})
+            ssot = d.get("ssot_result", {})
+            indicators = d.get("indicators", {})
             
             # Use dynamic live data
-            dynamic_price = d.get("live_px", req.price)
+            dynamic_price = d.get("current_price", req.price)
             dynamic_rsi = indicators.get("RSI", req.rsi)
-            dynamic_macd = ssot.get("macd_signal", req.macd_signal)
-            dynamic_trend = ssot.get("trend_durumu", ssot.get("karar", req.trend))
+            dynamic_macd = indicators.get("MACD_Signal", req.macd_signal)
+            dynamic_trend = ssot.get("decision", req.trend)
             
             # Ekstra zengin veriler:
-            smc = d.get("smc", {})
-            sr_data = d.get("sr_data", {})
+            smc = d.get("market_structure", {})
+            sr_data = d.get("support_resistance", {})
+            
+            bos_detected = smc.get("bos_detected", False)
+            last_peak = smc.get("last_peak")
+            last_trough = smc.get("last_trough")
+            
+            bos_text = "Tespit Edildi (Kırılım Var)" if bos_detected else "Yok"
+            peak_text = f"Tepe: {last_peak:.2f}" if last_peak else "Bilinmiyor"
+            trough_text = f"Dip: {last_trough:.2f}" if last_trough else "Bilinmiyor"
             
             user_prompt = f"""
             Hisse: {req.ticker}
             Mevcut Fiyat: {dynamic_price}
             RSI (14): {dynamic_rsi if dynamic_rsi is not None else 'Bilinmiyor'}
-            MACD Sinyali: {dynamic_macd if dynamic_macd else 'Bilinmiyor'}
+            MACD Sinyali: {dynamic_macd if dynamic_macd is not None else 'Bilinmiyor'}
             Trend Durumu ve Algoritma Kararı: {dynamic_trend if dynamic_trend else 'Bilinmiyor'}
             
             Önemli Seviyeler:
@@ -101,9 +109,9 @@ def analyze_stock(request: Request, req: AIAnalysisRequest, current_user: str = 
             - Direnç: {sr_data.get("Direnc_1", "Bilinmiyor")}
             
             SMC (Akıllı Para Konsepti):
-            - Piyasa Yapısı: {smc.get('market_structure', 'Bilinmiyor')}
-            - Son Kırılım (BOS): {smc.get('last_bos', 'Bilinmiyor')}
-            - Yakın Likidite Seviyesi: {smc.get('nearest_liquidity', 'Bilinmiyor')}
+            - Son Kırılım (BOS): {bos_text}
+            - En Yakın Zirve (Likit): {peak_text}
+            - En Yakın Dip (Likit): {trough_text}
             
             Ek Notlar: {req.note}
             """
