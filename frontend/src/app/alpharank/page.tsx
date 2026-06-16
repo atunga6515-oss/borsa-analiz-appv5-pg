@@ -239,7 +239,15 @@ export default function AlphaRankPage() {
                         )}
                     </div>
 
-                    {results.length === 0 ? (
+                    {analyzing ? (
+                        <div className="bg-gray-800 p-10 rounded-lg border border-gray-700 flex flex-col items-center justify-center text-center h-[500px]">
+                            <div className="animate-spin text-5xl mb-4">⏳</div>
+                            <h3 className="text-xl font-medium text-gray-300 mb-2">Yapay Zeka Analiz Yapıyor...</h3>
+                            <p className="text-gray-500 max-w-md">
+                                Seçtiğiniz hisseler AlphaRank modeli ile değerlendiriliyor. Bu işlem kısa sürecektir, lütfen bekleyin.
+                            </p>
+                        </div>
+                    ) : results.length === 0 ? (
                         <div className="bg-gray-800 p-10 rounded-lg border border-gray-700 flex flex-col items-center justify-center text-center h-[500px]">
                             <span className="text-5xl mb-4">🕵️‍♂️</span>
                             <h3 className="text-xl font-medium text-gray-300 mb-2">Henüz Analiz Yapılmadı</h3>
