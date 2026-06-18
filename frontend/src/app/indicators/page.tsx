@@ -303,7 +303,7 @@ export default function IndicatorsDashboard() {
                     <div className="bg-[#1e2329] border border-gray-700 rounded-xl shadow-2xl p-8 w-[650px] flex flex-col gap-5">
                         <div className="flex justify-between items-center border-b border-gray-800 pb-4">
                             <h3 className="text-base font-bold text-yellow-500 uppercase tracking-wider flex items-center gap-2">
-                                🤖 Kantitatif Karar Matrisi (0-15 Gün)
+                                🤖 {aiResult.ticker || selectedTicker} - Kantitatif Karar Matrisi
                             </h3>
                             <span className={`px-4 py-1.5 rounded text-sm font-black tracking-widest ${
                                 aiResult.decision.includes('BUY') ? 'bg-emerald-950 text-emerald-400 border border-emerald-500' :
