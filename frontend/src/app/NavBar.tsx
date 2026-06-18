@@ -51,7 +51,13 @@ export default function NavBar() {
     const [aiQuota, setAiQuota] = useState<number | null>(null);
 
     useEffect(() => {
-        // Cookie-based auth: /auth/me ile username, rol ve kota senkronize edilir
+        // UI titremesini (flash) engellemek için önce önbellekten oku
+        const cachedUser = localStorage.getItem("username");
+        const cachedRole = localStorage.getItem("role");
+        if (cachedUser) setUsername(cachedUser);
+        if (cachedRole) setRole(cachedRole);
+
+        // Cookie-based auth: /auth/me ile username, rol ve kota arka planda senkronize edilir
         api.get('/auth/me')
             .then(res => {
                 if (res.data) {
