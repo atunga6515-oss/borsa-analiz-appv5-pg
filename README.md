@@ -7,14 +7,17 @@ Eski Streamlit (V4) yapısı terkedilmiş olup, sistem **FastAPI (Backend)** ve 
 ## 🌟 Yeni V5 Özellikleri (PostgreSQL Destekli)
 - **Modüler Vade Ayrışımı:** İndikatörler 0-15 Gün (Kısa), 1-3 Ay (Orta) ve 3-12 Ay (Uzun) vade potansiyellerine göre 3 farklı motor halinde yeniden tasarlandı.
 - **Kapsamlı Analiz Modülü:** 101 farklı teknik indikatör (RSI, MACD, Bollinger, Ichimoku, SuperTrend vb.) ile hisse analizi ve vadelerine göre ayrıştırılmış "3'lü Gauge Progress" strateji görünümü.
+- **Göstergeler (Indicators) Dashboard:** TradingView tarzı 16 katmanlı (SuperTrend, SMC/FVG, Divergence, Anchored VWAP, WaveTrend vb.) gelişmiş, izole panelli grafik ve hover destekli gösterge arayüzü.
+- **İzleme Listesi (Watchlist):** En çok ilgilendiğiniz hisseleri (maks. 10 adet) sol panelde tutup tek tıkla gelişmiş grafik paneline aktarma özelliği.
 - **Hibrit Al-Sat Screener:** BIST30, BIST100 veya TÜM hisseleri aynı anda hem temel hem de teknik (Tüm vadeler harmanlanmış) kriterlere göre tarayan, asenkron tarama motoru.
 - **Seçki 15G (Kısa Vade):** BIST Tüm hisseleri üzerinden yalnızca 15 günlük patlama potansiyeli arayan, kısa vade indikatör ağırlıklı yepyeni stratejik tarama motoru.
 - **Seçki O-U Vade (Orta-Uzun):** Sadece güvenilir orta ve uzun vadeli indikatörlerden yola çıkarak hisseleri analiz eden ana tarama modülü.
 - **AlphaRank 15D:** Takip listenizdeki hisseleri Gelişmiş AI modeli ve Kısa Vadeli Motor bonus puanıyla sıralayan sıralama sistemi.
 - **Risk Yönetimi ve Graham Değeri:** BIST'in enflasyonist yapısına uygun Graham içsel değeri hesaplamaları ve ATR bazlı dinamik Kar Al/Zarar Kes seviyeleri.
 - **Telegram Entegrasyonu:** Bulduğunuz fırsatları veya kendi seçtiğiniz hisseleri tek tıkla (`📤 Telegram'a Gönder`) kişisel botunuza iletme imkanı.
-- **Canlı Yama Teknolojisi:** Yfinance gecikmelerine karşı, piyasa saatleri içinde anlık hisse fiyatlarını (live quote) doğrudan grafiğe yamalayan yenilikçi sistem.
+- **Canlı Yama Teknolojisi:** Yfinance gecikmelerine karşı, piyasa saatleri içinde anlık hisse fiyatlarını (live quote) ve günlük değişim yüzdelerini doğrudan arayüze/grafiğe yamalayan yenilikçi sistem.
 - **PostgreSQL Veritabanı:** Tarama geçmişleri, portföy hareketleri ve alarm kayıtları güvenli bir şekilde `postgres` üzerinde tutulur.
+- **Memory-Leak Koruması:** Ön yüzde Canvas bileşenlerinde oluşan hayalet çizgiler ve bellek sızıntıları otomatik çöp toplayıcı (Garbage Collector) komutlarıyla engellendi.
 
 ---
 
