@@ -193,9 +193,26 @@ class AIAnalysisRequestLayered(BaseModel):
     active_indicators: list[str] = []
 
 @router.post("/analyze-indicators")
-def analyze_indicators_endpoint(request: AIAnalysisRequestLayered):
+def analyze_indicators_endpoint(request: AIAnalysisRequestLayered, current_user: str = Depends(get_current_user)):
     if not GEMINI_API_KEY:
         raise HTTPException(status_code=500, detail="Gemini API Anahtarı sunucuda tanımlı değil. Lütfen .env dosyasına GEMINI_API_KEY ekleyin.")
+
+    # 1. Kota rezervasyonu — ATOMIK (Race Condition koruması)
+    with engine.begin() as conn:
+        result = conn.execute(
+            text("UPDATE users SET ai_quota = ai_quota - 1 WHERE username=:u AND ai_quota > 0 RETURNING ai_quota"),
+            {"u": current_user}
+        ).fetchone()
+
+        if result is None:
+            user_exists = conn.execute(
+                text("SELECT 1 FROM users WHERE username=:u"), {"u": current_user}
+            ).fetchone()
+            if not user_exists:
+                raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı.")
+            raise HTTPException(status_code=403, detail="Yapay Zeka analiz kotanız bitmiştir. Lütfen yöneticinizle iletişime geçin.")
+
+        new_quota = result[0]
 
     try:
         raw_data = get_layered_data(request.ticker)
@@ -256,7 +273,12 @@ def analyze_indicators_endpoint(request: AIAnalysisRequestLayered):
             generation_config={"response_mime_type": "application/json"}
         )
         
-        return json.loads(response.text)
+        # Log the action
+        log_action(current_user, "AI_ANALYSIS", f"Pro Terminal: {request.ticker} için AI analizi yapıldı. Kalan kota: {new_quota}")
+
+        res_data = json.loads(response.text)
+        res_data["remaining_quota"] = new_quota
+        return res_data
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
