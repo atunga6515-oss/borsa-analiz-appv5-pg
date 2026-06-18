@@ -226,7 +226,8 @@ def init_db():
         ]:
             col_name, col_type = col_def
             try:
-                conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}"))
+                with conn.begin_nested():
+                    conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}"))
             except Exception:
                 pass  # Sütun zaten varsa atla
 
@@ -237,7 +238,8 @@ def init_db():
         ]:
             col_name, col_type = col_def
             try:
-                conn.execute(text(f"ALTER TABLE scan_history ADD COLUMN {col_name} {col_type}"))
+                with conn.begin_nested():
+                    conn.execute(text(f"ALTER TABLE scan_history ADD COLUMN {col_name} {col_type}"))
             except Exception:
                 pass
 

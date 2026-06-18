@@ -55,40 +55,48 @@ def init_auth_db():
 
         # Mevcut veritabanında phone ve subscription kolonu yoksa ekle (Migration)
         try:
-            conn.execute(text("ALTER TABLE users ADD COLUMN email VARCHAR(255)"))
+            with conn.begin_nested():
+                conn.execute(text("ALTER TABLE users ADD COLUMN email VARCHAR(255)"))
         except Exception:
             pass
         try:
-            conn.execute(text("ALTER TABLE users ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"))
+            with conn.begin_nested():
+                conn.execute(text("ALTER TABLE users ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"))
         except Exception:
             pass
         try:
-            conn.execute(text("ALTER TABLE users ADD COLUMN phone VARCHAR(50)"))
+            with conn.begin_nested():
+                conn.execute(text("ALTER TABLE users ADD COLUMN phone VARCHAR(50)"))
         except Exception:
             pass  # Zaten varsa hata verecek ve geçecek
             
         try:
-            conn.execute(text("ALTER TABLE users ADD COLUMN subscription_expires_at TIMESTAMP"))
+            with conn.begin_nested():
+                conn.execute(text("ALTER TABLE users ADD COLUMN subscription_expires_at TIMESTAMP"))
         except Exception:
             pass
             
         try:
-            conn.execute(text("ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT TRUE"))
+            with conn.begin_nested():
+                conn.execute(text("ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT TRUE"))
         except Exception:
             pass
             
         try:
-            conn.execute(text("ALTER TABLE users ADD COLUMN last_active TIMESTAMP"))
+            with conn.begin_nested():
+                conn.execute(text("ALTER TABLE users ADD COLUMN last_active TIMESTAMP"))
         except Exception:
             pass
 
         try:
-            conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT 'user'"))
+            with conn.begin_nested():
+                conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT 'user'"))
         except Exception:
             pass
 
         try:
-            conn.execute(text("ALTER TABLE users ADD COLUMN ai_quota INT DEFAULT 0"))
+            with conn.begin_nested():
+                conn.execute(text("ALTER TABLE users ADD COLUMN ai_quota INT DEFAULT 0"))
         except Exception:
             pass        # Varsayılan admin kullanıcıları üretimi üretim ortamında kapatıldı
         # İlk admin kullanıcısının doğrudan veritabanı komutu veya güvenli bir CLI scripti ile oluşturulması önerilir.
