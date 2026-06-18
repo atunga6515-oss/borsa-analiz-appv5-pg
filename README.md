@@ -8,6 +8,7 @@ Eski Streamlit (V4) yapısı terkedilmiş olup, sistem **FastAPI (Backend)** ve 
 - **Modüler Vade Ayrışımı:** İndikatörler 0-15 Gün (Kısa), 1-3 Ay (Orta) ve 3-12 Ay (Uzun) vade potansiyellerine göre 3 farklı motor halinde yeniden tasarlandı.
 - **Kapsamlı Analiz Modülü:** 101 farklı teknik indikatör (RSI, MACD, Bollinger, Ichimoku, SuperTrend vb.) ile hisse analizi ve vadelerine göre ayrıştırılmış "3'lü Gauge Progress" strateji görünümü.
 - **Göstergeler (Indicators) Dashboard:** TradingView tarzı 16 katmanlı (SuperTrend, SMC/FVG, Divergence, Anchored VWAP, WaveTrend vb.) gelişmiş, izole panelli grafik ve hover destekli gösterge arayüzü.
+- **Yapay Zeka Kantitatif Karar Matrisi (Gemini AI):** Göstergeler sayfasında seçilen aktif indikatör kesişimlerini 0-15 günlük swing trade stratejisine göre yorumlayan, kota korumalı ve geçmiş kayıtları saklayan entegre yapay zeka asistanı.
 - **İzleme Listesi (Watchlist):** En çok ilgilendiğiniz hisseleri (maks. 10 adet) sol panelde tutup tek tıkla gelişmiş grafik paneline aktarma özelliği.
 - **Hibrit Al-Sat Screener:** BIST30, BIST100 veya TÜM hisseleri aynı anda hem temel hem de teknik (Tüm vadeler harmanlanmış) kriterlere göre tarayan, asenkron tarama motoru.
 - **Seçki 15G (Kısa Vade):** BIST Tüm hisseleri üzerinden yalnızca 15 günlük patlama potansiyeli arayan, kısa vade indikatör ağırlıklı yepyeni stratejik tarama motoru.
@@ -46,12 +47,13 @@ Bu komut; `Backend` servisini `8000` portundan, `Frontend` arayüzünü ise `300
 
 ---
 
-## 🔑 Telegram Ayarları
-Projenin "Telegram'a Gönder" özelliklerinin çalışması için proje kök dizininde `.env` isimli bir dosya oluşturup (veya `.env.example` dosyasının adını değiştirip) içerisine anahtarlarınızı girmelisiniz:
+## 🔑 Çevre Değişkenleri ve Ayarlar (Telegram & AI)
+Projenin "Telegram'a Gönder" ve "Yapay Zeka" özelliklerinin çalışması için proje kök dizininde `.env` isimli bir dosya oluşturup içerisine anahtarlarınızı girmelisiniz:
 
 ```env
 TELEGRAM_BOT_TOKEN=123456789:ABCDefghIJKLmnopQRSTuvwxYZ
 TELEGRAM_CHAT_ID=-1001234567890
+GEMINI_API_KEY=AIzaSyAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 ## 🌐 Adresler
