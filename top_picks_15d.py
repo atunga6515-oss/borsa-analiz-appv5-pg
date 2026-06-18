@@ -420,7 +420,14 @@ def find_top_picks(symbol_list: list = None, top_n: int = 5, progress_bar=None) 
         return any(x in karar for x in ("al", "güçlü", "guclu", "lider", "potansiyel", "trend", "momentum", "pozitif"))
 
     filtered = [r for r in all_results if _eligible(r)]
-    pool = filtered if filtered else [r for r in all_results if r.get("kompozit_skor", 0) >= 50]
+    
+    # İstenen sayı (top_n) kadar hisse bulamadıysa, katı filtreye takılan ama puanı fena olmayanları da havuza ekle
+    if len(filtered) < top_n:
+        others = [r for r in all_results if r not in filtered and r.get("kompozit_skor", 0) >= 40]
+        pool = filtered + others
+    else:
+        pool = filtered
+        
     # Kompozit skor ve Piyasa Gücü Skoruna (pgs) göre sırala
     pool.sort(key=lambda x: (x.get("kompozit_skor", 0), x.get("pgs", 0)), reverse=True)
     return pool[:top_n]
