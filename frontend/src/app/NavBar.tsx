@@ -49,8 +49,10 @@ export default function NavBar() {
     const [username, setUsername] = useState<string | null>(null);
     const [role, setRole] = useState<string | null>(null);
     const [aiQuota, setAiQuota] = useState<number | null>(null);
+    const [isMounted, setIsMounted] = useState<boolean>(false);
 
     useEffect(() => {
+        setIsMounted(true);
         // UI titremesini (flash) engellemek için önce önbellekten oku
         const cachedUser = localStorage.getItem("username");
         const cachedRole = localStorage.getItem("role");
@@ -177,7 +179,9 @@ export default function NavBar() {
                 </nav>
             </div>
             <div className="flex items-center gap-3">
-                {username ? (
+                {!isMounted ? (
+                    <div className="w-24 h-8 animate-pulse bg-gray-800/50 rounded"></div>
+                ) : username ? (
                     <>
                         {aiQuota !== null && (
                             <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-900/30 border border-blue-700/50 text-blue-300 text-xs font-bold cursor-help" title="Yapay Zeka Analiz Krediniz">
