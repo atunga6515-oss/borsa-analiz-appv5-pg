@@ -13,7 +13,7 @@ export default function IndicatorsDashboard() {
     const [loading, setLoading] = useState(false);
     const [manualInput, setManualInput] = useState("");
     const [aiLoading, setAiLoading] = useState<boolean>(false);
-    const [aiResult, setAiResult] = useState<{ decision: string; summary: string } | null>(null);
+    const [aiResult, setAiResult] = useState<{ decision: string; summary: string; ticker?: string; remaining_quota?: number } | null>(null);
     const [activeLayers, setActiveLayers] = useState<Record<LayerKeys, boolean>>({
         autoTrend: false, supertrend: false, alphaSignal: false, smcFvg: false, squeeze: false, wavetrend: false,
         divergence: false, anchoredVwap: false, volProfilePoc: false, chandelier: false, adxDmi: false, stochRSI: false, cmf: false, donchian: false, ichimoku: false, bollinger: false
