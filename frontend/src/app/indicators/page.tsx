@@ -210,9 +210,9 @@ export default function IndicatorsDashboard() {
                         <div className="ml-auto flex items-center gap-3 relative">
                             <button 
                                 onClick={() => setShowHistoryDropdown(!showHistoryDropdown)}
-                                className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-sm text-gray-300 rounded border border-gray-700 transition-colors"
+                                className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-sm text-gray-300 rounded border border-gray-700 transition-colors flex items-center gap-2"
                             >
-                                Geçmiş ▾
+                                Geçmiş Yapay Zeka Analiz Sonuçları ▾
                             </button>
                             {showHistoryDropdown && (
                                 <div className="absolute top-10 right-32 w-64 bg-gray-800 border border-gray-700 rounded shadow-xl z-50">
@@ -237,9 +237,9 @@ export default function IndicatorsDashboard() {
                             
                             <button 
                                 onClick={() => setShowPreModal(true)}
-                                className="px-4 py-1.5 bg-gradient-to-r from-purple-800 to-indigo-800 hover:from-purple-700 hover:to-indigo-700 text-white font-bold rounded shadow-lg text-sm transition-all border border-purple-600 flex items-center gap-2"
+                                className="px-6 py-2 bg-gradient-to-r from-purple-700 to-indigo-600 hover:from-purple-600 hover:to-indigo-500 text-white font-black rounded-lg shadow-[0_0_15px_rgba(147,51,234,0.4)] text-sm transition-all border border-purple-400 flex items-center gap-2 tracking-wide"
                             >
-                                <span>🤖</span> Yapay Zeka
+                                🤖 YAPAY ZEKA İLE ANALİZ ET
                             </button>
                         </div>
                     )}
