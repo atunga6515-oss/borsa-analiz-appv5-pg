@@ -295,12 +295,12 @@ export default function IndicatorsDashboard() {
             {/* Result Modal */}
             {showResultModal && aiResult && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-                    <div className="bg-[#1e2329] border border-gray-700 rounded-xl shadow-2xl p-6 w-[550px] flex flex-col gap-4">
-                        <div className="flex justify-between items-center border-b border-gray-800 pb-3">
-                            <h3 className="text-sm font-bold text-yellow-500 uppercase tracking-wider flex items-center gap-2">
+                    <div className="bg-[#1e2329] border border-gray-700 rounded-xl shadow-2xl p-8 w-[650px] flex flex-col gap-5">
+                        <div className="flex justify-between items-center border-b border-gray-800 pb-4">
+                            <h3 className="text-base font-bold text-yellow-500 uppercase tracking-wider flex items-center gap-2">
                                 🤖 Kantitatif Karar Matrisi (0-15 Gün)
                             </h3>
-                            <span className={`px-3 py-1 rounded text-xs font-black tracking-widest ${
+                            <span className={`px-4 py-1.5 rounded text-sm font-black tracking-widest ${
                                 aiResult.decision.includes('BUY') ? 'bg-emerald-950 text-emerald-400 border border-emerald-500' :
                                 aiResult.decision.includes('SELL') ? 'bg-rose-950 text-rose-400 border border-rose-500' : 'bg-gray-800 text-gray-300 border border-gray-600'
                             }`}>
@@ -308,14 +308,24 @@ export default function IndicatorsDashboard() {
                             </span>
                         </div>
                         
-                        <p className="text-sm text-gray-300 leading-relaxed italic">
+                        <p className="text-lg text-gray-200 leading-relaxed italic">
                             "{aiResult.summary}"
                         </p>
 
-                        <div className="flex gap-3 justify-end mt-4 border-t border-gray-800 pt-4">
-                            <button onClick={() => setShowResultModal(false)} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm font-semibold transition-colors">Kapat</button>
-                            <button onClick={handleSaveAnalysis} className="px-4 py-2 bg-blue-700 hover:bg-blue-600 text-white rounded text-sm font-semibold transition-colors">💾 Sonucu Kaydet</button>
+                        <div className="flex gap-3 justify-end mt-4 border-t border-gray-800 pt-5">
+                            <button onClick={() => setShowResultModal(false)} className="px-5 py-2.5 bg-gray-700 hover:bg-gray-600 rounded text-sm font-semibold transition-colors">Kapat</button>
+                            <button onClick={handleSaveAnalysis} className="px-5 py-2.5 bg-blue-700 hover:bg-blue-600 text-white rounded text-sm font-semibold transition-colors">💾 Sonucu Kaydet</button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* AI Loading Overlay */}
+            {aiLoading && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                    <div className="bg-[#1e2329] border border-gray-700 rounded-xl shadow-2xl p-8 flex flex-col items-center gap-5">
+                        <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                        <p className="text-lg text-gray-300 font-medium">Yapay Zeka grafiği okuyor, lütfen bekleyin...</p>
                     </div>
                 </div>
             )}
