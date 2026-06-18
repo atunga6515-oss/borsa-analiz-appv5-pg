@@ -194,6 +194,9 @@ class AIAnalysisRequestLayered(BaseModel):
 
 @router.post("/analyze-indicators")
 def analyze_indicators_endpoint(request: AIAnalysisRequestLayered):
+    if not GEMINI_API_KEY:
+        raise HTTPException(status_code=500, detail="Gemini API Anahtarı sunucuda tanımlı değil. Lütfen .env dosyasına GEMINI_API_KEY ekleyin.")
+
     try:
         raw_data = get_layered_data(request.ticker)
         
