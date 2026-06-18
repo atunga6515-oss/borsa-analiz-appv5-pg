@@ -117,7 +117,7 @@ export default function IndicatorsDashboard() {
                                 onClick={() => setSelectedTicker(ticker)}
                                 className={`flex items-center justify-between px-4 py-3 rounded-lg cursor-pointer transition-all ${selectedTicker === ticker ? 'bg-blue-600/20 border border-blue-500/50' : 'hover:bg-gray-800 border border-transparent'}`}
                             >
-                                <span className={`font-semibold ${selectedTicker === ticker ? 'text-blue-400' : 'text-gray-200'}`}>{ticker}</span>
+                                <span className={`font-semibold ${selectedTicker === ticker ? 'text-blue-400' : 'text-gray-200'}`}>{ticker.replace('.IS', '')}</span>
                                 <button 
                                     onClick={(e) => handleRemoveFromWatchlist(e, ticker)}
                                     className="text-gray-500 hover:text-red-400 p-1"
