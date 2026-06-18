@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import LayeredChart from "@/components/LayeredChart";
+import LayeredChart, { LayerKeys } from "@/components/LayeredChart";
 import api from "@/lib/api";
 import { toast } from "react-hot-toast";
 import { getWatchlist, addTickerToWatchlist, removeTickerFromWatchlist } from "@/lib/watchlist";
@@ -12,6 +12,16 @@ export default function IndicatorsDashboard() {
     const [chartData, setChartData] = useState<any>(null);
     const [loading, setLoading] = useState(false);
     const [manualInput, setManualInput] = useState("");
+    const [aiLoading, setAiLoading] = useState<boolean>(false);
+    const [aiResult, setAiResult] = useState<{ decision: string; summary: string } | null>(null);
+    const [activeLayers, setActiveLayers] = useState<Record<LayerKeys, boolean>>({
+        autoTrend: false, supertrend: false, alphaSignal: false, smcFvg: false, squeeze: false, wavetrend: false,
+        divergence: false, anchoredVwap: false, volProfilePoc: false, chandelier: false, adxDmi: false, stochRSI: false, cmf: false, donchian: false, ichimoku: false, bollinger: false
+    });
+    const [aiHistory, setAiHistory] = useState<any[]>([]);
+    const [showPreModal, setShowPreModal] = useState(false);
+    const [showResultModal, setShowResultModal] = useState(false);
+    const [showHistoryDropdown, setShowHistoryDropdown] = useState(false);
 
     // Load watchlist from utility
     const loadWatchlist = () => {
@@ -31,6 +41,14 @@ export default function IndicatorsDashboard() {
         window.addEventListener("storage", loadWatchlist);
         // Custom event for same-tab updates
         window.addEventListener("watchlist_updated", loadWatchlist);
+        // Load AI History
+        try {
+            const savedHistory = localStorage.getItem('alfabist_ai_history');
+            if (savedHistory) setAiHistory(JSON.parse(savedHistory));
+        } catch (e) {
+            console.error("Error loading aiHistory from localStorage");
+        }
+
         return () => {
             window.removeEventListener("storage", loadWatchlist);
             window.removeEventListener("watchlist_updated", loadWatchlist);
@@ -41,8 +59,15 @@ export default function IndicatorsDashboard() {
     useEffect(() => {
         if (!selectedTicker) {
             setChartData(null);
+            setAiResult(null);
             return;
         }
+
+        setAiResult(null);
+        setActiveLayers({
+            autoTrend: false, supertrend: false, alphaSignal: false, smcFvg: false, squeeze: false, wavetrend: false,
+            divergence: false, anchoredVwap: false, volProfilePoc: false, chandelier: false, adxDmi: false, stochRSI: false, cmf: false, donchian: false, ichimoku: false, bollinger: false
+        });
 
         let isMounted = true;
         setLoading(true);
@@ -79,6 +104,40 @@ export default function IndicatorsDashboard() {
             addTickerToWatchlist(manualInput);
             setManualInput("");
         }
+    };
+
+    const handleAIAnalysis = async () => {
+        if (!selectedTicker) return;
+        setAiLoading(true);
+        setAiResult(null);
+        setShowPreModal(false);
+        try {
+            const activeIndicatorKeys = Object.entries(activeLayers).filter(([k, v]) => v).map(([k]) => k);
+            const res = await api.post('/ai/analyze-indicators', { ticker: selectedTicker, active_indicators: activeIndicatorKeys });
+            if (res.data) {
+                setAiResult(res.data);
+                setShowResultModal(true);
+            }
+        } catch (err) {
+            console.error("AI Analysis failed:", err);
+            toast.error("Yapay Zeka analizi sırasında bir hata oluştu.");
+        } finally {
+            setAiLoading(false);
+        }
+    };
+
+    const handleSaveAnalysis = () => {
+        if (!aiResult || !selectedTicker) return;
+        const newEntry = { ticker: selectedTicker, date: new Date().toLocaleString(), ...aiResult };
+        const newHistory = [newEntry, ...aiHistory].slice(0, 10);
+        setAiHistory(newHistory);
+        localStorage.setItem('alfabist_ai_history', JSON.stringify(newHistory));
+        toast.success("Analiz kaydedildi!");
+        setShowResultModal(false);
+    };
+
+    const handleToggleLayer = (key: LayerKeys) => {
+        setActiveLayers(prev => ({ ...prev, [key]: !prev[key] }));
     };
 
     return (
@@ -146,6 +205,44 @@ export default function IndicatorsDashboard() {
                             </div>
                         )}
                     </div>
+                    {/* Right side of top bar */}
+                    {chartData && (
+                        <div className="ml-auto flex items-center gap-3 relative">
+                            <button 
+                                onClick={() => setShowHistoryDropdown(!showHistoryDropdown)}
+                                className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-sm text-gray-300 rounded border border-gray-700 transition-colors"
+                            >
+                                Geçmiş ▾
+                            </button>
+                            {showHistoryDropdown && (
+                                <div className="absolute top-10 right-32 w-64 bg-gray-800 border border-gray-700 rounded shadow-xl z-50">
+                                    <div className="p-2 text-xs text-gray-400 border-b border-gray-700 font-bold uppercase tracking-wider">Son Analizler</div>
+                                    <div className="max-h-60 overflow-y-auto">
+                                        {aiHistory.length === 0 ? (
+                                            <div className="p-3 text-sm text-gray-500 italic">Kayıt yok</div>
+                                        ) : (
+                                            aiHistory.map((entry, idx) => (
+                                                <div key={idx} onClick={() => { setAiResult(entry); setShowResultModal(true); setShowHistoryDropdown(false); }} className="p-3 border-b border-gray-700 hover:bg-gray-700 cursor-pointer">
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <span className="font-bold text-white">{entry.ticker}</span>
+                                                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${entry.decision.includes('BUY') ? 'bg-emerald-900 text-emerald-400' : entry.decision.includes('SELL') ? 'bg-rose-900 text-rose-400' : 'bg-gray-700 text-gray-300'}`}>{entry.decision}</span>
+                                                    </div>
+                                                    <div className="text-[10px] text-gray-400">{entry.date}</div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                            
+                            <button 
+                                onClick={() => setShowPreModal(true)}
+                                className="px-4 py-1.5 bg-gradient-to-r from-purple-800 to-indigo-800 hover:from-purple-700 hover:to-indigo-700 text-white font-bold rounded shadow-lg text-sm transition-all border border-purple-600 flex items-center gap-2"
+                            >
+                                <span>🤖</span> Yapay Zeka
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 {/* Chart Area */}
@@ -161,11 +258,67 @@ export default function IndicatorsDashboard() {
                                 Grafikler Yükleniyor...
                             </div>
                         ) : chartData ? (
-                            <LayeredChart data={chartData} />
+                            <LayeredChart data={chartData} activeLayers={activeLayers} onToggleLayer={handleToggleLayer} />
                         ) : null}
                     </div>
                 </div>
             </div>
+
+
+            {/* Pre-Analysis Modal */}
+            {showPreModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                    <div className="bg-[#1e2329] border border-gray-700 rounded-xl shadow-2xl p-6 w-[450px] flex flex-col gap-4">
+                        <h3 className="text-lg font-bold text-yellow-500 flex items-center gap-2">🤖 Yapay Zeka Analizi Başlatılıyor</h3>
+                        <p className="text-sm text-gray-300 leading-relaxed">
+                            Analiz, şu an grafikte aktif olan aşağıdaki indikatörlerin matematiksel kesişimleri kullanılarak yapılacaktır:
+                        </p>
+                        <div className="bg-gray-800 p-3 rounded text-sm text-blue-300 font-mono">
+                            {Object.entries(activeLayers).filter(([k,v]) => v).length > 0 
+                                ? Object.entries(activeLayers).filter(([k,v]) => v).map(([k]) => k).join(", ") 
+                                : "Sadece fiyat ve hacim (İndikatör seçilmedi)"}
+                        </div>
+                        <p className="text-xs text-gray-500 italic">
+                            İsterseniz iptal edip grafikteki indikatör sayısını azaltabilir veya arttırabilirsiniz. Bu işlem kotanızı etkiler.
+                        </p>
+                        
+                        <div className="flex gap-3 justify-end mt-2">
+                            <button onClick={() => setShowPreModal(false)} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm font-semibold transition-colors">İptal</button>
+                            <button onClick={handleAIAnalysis} disabled={aiLoading} className="px-4 py-2 bg-purple-700 hover:bg-purple-600 text-white rounded text-sm font-semibold transition-colors flex items-center gap-2">
+                                {aiLoading ? <span className="animate-spin">⏳</span> : "✨"} Analizi Başlat
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Result Modal */}
+            {showResultModal && aiResult && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                    <div className="bg-[#1e2329] border border-gray-700 rounded-xl shadow-2xl p-6 w-[550px] flex flex-col gap-4">
+                        <div className="flex justify-between items-center border-b border-gray-800 pb-3">
+                            <h3 className="text-sm font-bold text-yellow-500 uppercase tracking-wider flex items-center gap-2">
+                                🤖 Kantitatif Karar Matrisi (0-15 Gün)
+                            </h3>
+                            <span className={`px-3 py-1 rounded text-xs font-black tracking-widest ${
+                                aiResult.decision.includes('BUY') ? 'bg-emerald-950 text-emerald-400 border border-emerald-500' :
+                                aiResult.decision.includes('SELL') ? 'bg-rose-950 text-rose-400 border border-rose-500' : 'bg-gray-800 text-gray-300 border border-gray-600'
+                            }`}>
+                                {aiResult.decision}
+                            </span>
+                        </div>
+                        
+                        <p className="text-sm text-gray-300 leading-relaxed italic">
+                            "{aiResult.summary}"
+                        </p>
+
+                        <div className="flex gap-3 justify-end mt-4 border-t border-gray-800 pt-4">
+                            <button onClick={() => setShowResultModal(false)} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm font-semibold transition-colors">Kapat</button>
+                            <button onClick={handleSaveAnalysis} className="px-4 py-2 bg-blue-700 hover:bg-blue-600 text-white rounded text-sm font-semibold transition-colors">💾 Sonucu Kaydet</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -184,3 +184,76 @@ def analyze_stock(request: Request, req: AIAnalysisRequest, current_user: str = 
         "analysis": result_text,
         "remaining_quota": new_quota
     }
+
+from api.analysis_routes import get_layered_data
+import json
+
+class AIAnalysisRequestLayered(BaseModel):
+    ticker: str
+    active_indicators: list[str] = []
+
+@router.post("/analyze-indicators")
+def analyze_indicators_endpoint(request: AIAnalysisRequestLayered):
+    try:
+        raw_data = get_layered_data(request.ticker)
+        
+        candles = raw_data["candles"]
+        layers = raw_data["layers"]
+        latest_candle = candles[-1] if candles else {}
+        
+        indicator_texts = []
+        if "supertrend" in request.active_indicators:
+            latest_supertrend = layers["supertrend"][-1] if layers.get("supertrend") else {"color": "unknown"}
+            indicator_texts.append(f"- SuperTrend Durumu: Line color is {latest_supertrend.get('color')} (yeşil ise boğa, kırmızı ise ayı)")
+            
+        if "squeeze" in request.active_indicators:
+            latest_squeeze = layers["squeeze"][-1] if layers.get("squeeze") else {"value": 0, "dot_color": "unknown"}
+            indicator_texts.append(f"- Squeeze Momentum: Value={latest_squeeze.get('value')}, Dot status={latest_squeeze.get('dot_color')} (red/orange ise sıkışma var, green ise patlama başladı)")
+            
+        if "wavetrend" in request.active_indicators:
+            latest_wavetrend = layers["wavetrend"][-1] if layers.get("wavetrend") else {"wt1": 0, "wt2": 0}
+            indicator_texts.append(f"- WaveTrend Osilatörü: WT1={latest_wavetrend.get('wt1')}, WT2={latest_wavetrend.get('wt2')} (-60 altı dip, +60 üstü tepe kesişimidir)")
+            
+        if "adxDmi" in request.active_indicators:
+            latest_adx = layers["adx_dmi"][-1] if layers.get("adx_dmi") else {"adx": 20, "plus_di": 20, "minus_di": 20}
+            indicator_texts.append(f"- ADX & DMI Trend Gücü: ADX={latest_adx.get('adx')}, +DI={latest_adx.get('+di')}, -DI={latest_adx.get('-di')} (ADX > 25 ise trend güçlüdür)")
+            
+        if "stochRSI" in request.active_indicators:
+            latest_stoch = layers["stoch_rsi"][-1] if layers.get("stoch_rsi") else {"k": 50, "d": 50}
+            indicator_texts.append(f"- Stochastic RSI Hızı: K={latest_stoch.get('k')}, D={latest_stoch.get('d')} (20 altı aşırı satım dip dönüşü, 80 üstü aşırı alım zirvesidir)")
+            
+        if "cmf" in request.active_indicators:
+            latest_cmf = layers["cmf"][-1] if layers.get("cmf") else {"value": 0}
+            indicator_texts.append(f"- Chaikin Para Girişi (CMF): Value={latest_cmf.get('value')} (0'ın üzeri kurumsal para girişini, altı para çıkışını belgeler)")
+            
+        if "volProfilePoc" in request.active_indicators:
+            indicator_texts.append(f"- Vol. Profile POC (Yoğun Hacim Seviyesi): {raw_data.get('poc_price')} TL")
+
+        indicators_joined = "\n        ".join(indicator_texts) if indicator_texts else "- Yalnızca fiyat analizi istenmiştir (İndikatör seçilmemiş)."
+
+        ai_prompt = f"""
+        Sen AlfaBIST Terminali'nin kıdemli kantitatif finans ve algoritmik trade uzmanı yapay zeka modülüsün.
+        Aşağıda, {request.ticker} hissesinin 1 saatlik grafiğindeki en son muma ait kullanıcının seçtiği teknik indikatörlerin matematiksel ham değerleri yer almaktadır:
+        
+        - Son Kapanış Fiyatı: {latest_candle.get('close')} TL
+        {indicators_joined}
+        
+        GÖREV: Bu verileri 0-15 günlük kısa vadeli 'Swing Trading / Momentum' stratejisi doğrultusunda analiz et. Sadece sağlanan indikatörlere göre bir karara var.
+        
+        ZORUNLU FORMAT: Yanıtını kesinlikle başka hiçbir açıklama metni eklemeden, doğrudan aşağıdaki JSON formatında döndür:
+        {{
+          "decision": "STRONG_BUY" veya "BUY" veya "HOLD" veya "SELL" veya "STRONG_SELL",
+          "summary": "Maksimum 3-4 cümleden oluşan, sağlanan indikatör verilerini yorumlayan, hedef ve stop mantığını özetleyen net, Türkçe analist yorumu."
+        }}
+        """
+
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        response = model.generate_content(
+            ai_prompt,
+            generation_config={"response_mime_type": "application/json"}
+        )
+        
+        return json.loads(response.text)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

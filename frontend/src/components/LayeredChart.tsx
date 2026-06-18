@@ -1,31 +1,30 @@
 "use client";
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { createChart, IChartApi, ISeriesApi, CandlestickSeries, LineSeries, HistogramSeries, createSeriesMarkers } from 'lightweight-charts';
 
-interface LayeredChartProps {
+export type LayerKeys = 'autoTrend' | 'supertrend' | 'alphaSignal' | 'smcFvg' | 'squeeze' | 'wavetrend' | 'divergence' | 'anchoredVwap' | 'volProfilePoc' | 'chandelier' | 'adxDmi' | 'stochRSI' | 'cmf' | 'donchian' | 'ichimoku' | 'bollinger';
+
+export interface LayeredChartProps {
   data: {
-    candles: any[]; poc_price: number;
+    ticker: string;
+    poc_price: number;
+    candles: any[];
     layers: {
       auto_trend: any[]; supertrend: any[]; alpha_signal: any[]; smc_fvg: any[]; squeeze: any[]; wavetrend: any[];
       divergence: any[]; anchored_vwap: any[]; chandelier: any[]; adx_dmi: any[]; stoch_rsi: any[]; cmf: any[];
       donchian: any[]; ichimoku: any[]; bollinger: any[];
     };
   };
+  activeLayers: Record<LayerKeys, boolean>;
+  onToggleLayer: (key: LayerKeys) => void;
 }
 
-type LayerKeys = 'autoTrend' | 'supertrend' | 'alphaSignal' | 'smcFvg' | 'squeeze' | 'wavetrend' | 'divergence' | 'anchoredVwap' | 'volProfilePoc' | 'chandelier' | 'adxDmi' | 'stochRSI' | 'cmf' | 'donchian' | 'ichimoku' | 'bollinger';
-
-export default function LayeredChart({ data }: LayeredChartProps) {
+export default function LayeredChart({ data, activeLayers, onToggleLayer }: LayeredChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const markersApiRef = useRef<any>(null);
   
-  const [activeLayers, setActiveLayers] = useState<Record<LayerKeys, boolean>>({
-    autoTrend: false, supertrend: false, alphaSignal: false, smcFvg: false, squeeze: false, wavetrend: false,
-    divergence: false, anchoredVwap: false, volProfilePoc: false, chandelier: false, adxDmi: false, stochRSI: false, cmf: false, donchian: false, ichimoku: false, bollinger: false
-  });
-
   const activeSeriesRef = useRef<Record<string, ISeriesApi<any>>>({});
   const pocLineRef = useRef<any>(null);
 
@@ -76,10 +75,6 @@ export default function LayeredChart({ data }: LayeredChartProps) {
     chart.timeScale().fitContent();
 
     // Clean structural reset
-    setActiveLayers({
-      autoTrend: false, supertrend: false, alphaSignal: false, smcFvg: false, squeeze: false, wavetrend: false,
-      divergence: false, anchoredVwap: false, volProfilePoc: false, chandelier: false, adxDmi: false, stochRSI: false, cmf: false, donchian: false, ichimoku: false, bollinger: false
-    });
     activeSeriesRef.current = {};
     pocLineRef.current = null;
 
@@ -116,7 +111,7 @@ export default function LayeredChart({ data }: LayeredChartProps) {
     if (!chart) return;
     const nextState = !activeLayers[key];
     const newMatrix = { ...activeLayers, [key]: nextState };
-    setActiveLayers(newMatrix);
+    onToggleLayer(key);
 
     if (key === 'alphaSignal' || key === 'smcFvg' || key === 'divergence') { updateMarkersOnChart(newMatrix); return; }
 
