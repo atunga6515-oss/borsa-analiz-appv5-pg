@@ -194,6 +194,11 @@ export default function IndicatorsDashboard() {
             <div className="flex-1 flex flex-col relative">
                 {/* Top Controls */}
                 <div className="h-16 border-b border-gray-800 flex items-center px-6 gap-6 bg-gray-900/80 backdrop-blur-sm z-10 shrink-0">
+                    <div className="flex items-center gap-4 border-r border-gray-700 pr-6 mr-2">
+                        <span className="text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500 tracking-tight">
+                            PRO TERMINAL
+                        </span>
+                    </div>
                     <div className="text-2xl font-bold text-white flex items-center gap-4">
                         <span>{selectedTicker ? selectedTicker.replace('.IS', '') : "Seçim Yok"}</span>
                         {chartData && chartData.quote && (

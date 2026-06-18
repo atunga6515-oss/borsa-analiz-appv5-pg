@@ -26,7 +26,7 @@ const NAV_GROUPS = [
         title: "Derin Analiz & Test",
         links: [
             { href: "/analysis", label: "Analiz", icon: "🔬", tooltip: "Bir hissenin 100 günlük teknik ve temel detaylarını derinlemesine inceleyin." },
-            { href: "/indicators", label: "Göstergeler", icon: "📈", tooltip: "Seçtiğiniz hisseleri İzleme Listenizde toplayın ve indikatörleriyle birlikte grafik üzerinde inceleyin." },
+            { href: "/indicators", label: "Pro Terminal", icon: "📈", tooltip: "Seçtiğiniz hisseleri İzleme Listenizde toplayın ve gelişmiş teknik indikatörlerle grafik üzerinde inceleyin." },
             { href: "/backtest", label: "Backtest", icon: "⚙️", tooltip: "Geçmiş verilere dayanarak indikatörlerin al-sat stratejilerini test edin." },
             { href: "/strategy-compare", label: "Kıyasla", icon: "🧪", tooltip: "Farklı al-sat stratejilerinin geçmiş getiri performanslarını birbiriyle kıyaslayın." },
             { href: "/robot", label: "Robot", icon: "🤖", tooltip: "Otonom Al-Sat Robotu (Paper Trading) ile stratejinizi test edin." },
