@@ -52,8 +52,13 @@ if DATABASE_URL.startswith("postgresql"):
         pool_pre_ping=True,
         pool_recycle=1800  # 30 dakikada bir bağlantıyı yenile (uzun idle bağlantı hatası önleme)
     )
+elif DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False}
+    )
 else:
-    raise ValueError("Lütfen geçerli bir PostgreSQL bağlantı dizesi kullanın.")
+    raise ValueError(f"Lütfen geçerli bir PostgreSQL veya SQLite bağlantı dizesi kullanın. Verilen: {DATABASE_URL}")
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -221,9 +226,9 @@ def init_db():
         ]:
             col_name, col_type = col_def
             try:
-                conn.execute(text(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col_name} {col_type}"))
+                conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}"))
             except Exception:
-                pass  # Sütun zaten varsa atla (SQLite IF NOT EXISTS desteklemez)
+                pass  # Sütun zaten varsa atla
 
         # scan_history tablosuna smc_bos ve intermediate_target alanlarını ekle (migration)
         for col_def in [
@@ -232,7 +237,7 @@ def init_db():
         ]:
             col_name, col_type = col_def
             try:
-                conn.execute(text(f"ALTER TABLE scan_history ADD COLUMN IF NOT EXISTS {col_name} {col_type}"))
+                conn.execute(text(f"ALTER TABLE scan_history ADD COLUMN {col_name} {col_type}"))
             except Exception:
                 pass
 

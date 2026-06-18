@@ -40,7 +40,8 @@ def init_auth_db():
                 is_active BOOLEAN DEFAULT TRUE,
                 last_active TIMESTAMP,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                subscription_expires_at TIMESTAMP
+                subscription_expires_at TIMESTAMP,
+                ai_quota INT DEFAULT 0
             )
         """))
 
@@ -70,9 +71,26 @@ def init_auth_db():
             conn.execute(text("ALTER TABLE users ADD COLUMN subscription_expires_at TIMESTAMP"))
         except Exception:
             pass
+            
+        try:
+            conn.execute(text("ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT TRUE"))
+        except Exception:
+            pass
+            
+        try:
+            conn.execute(text("ALTER TABLE users ADD COLUMN last_active TIMESTAMP"))
+        except Exception:
+            pass
 
+        try:
+            conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT 'user'"))
+        except Exception:
+            pass
 
-        # Varsayılan admin kullanıcıları üretimi üretim ortamında kapatıldı
+        try:
+            conn.execute(text("ALTER TABLE users ADD COLUMN ai_quota INT DEFAULT 0"))
+        except Exception:
+            pass        # Varsayılan admin kullanıcıları üretimi üretim ortamında kapatıldı
         # İlk admin kullanıcısının doğrudan veritabanı komutu veya güvenli bir CLI scripti ile oluşturulması önerilir.
 
 

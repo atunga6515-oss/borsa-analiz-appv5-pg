@@ -4,6 +4,7 @@ import api from "@/lib/api";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import AIAnalyzeModal from "../components/AIAnalyzeModal";
 import toast from 'react-hot-toast';
+import { addTickerToWatchlist } from "@/lib/watchlist";
 
 export default function TopPicks15DPage() {
     const { requireAuth, AuthModal } = useRequireAuth();
@@ -408,6 +409,12 @@ export default function TopPicks15DPage() {
                                                 className="text-xs bg-[#1e2329] text-blue-400 hover:bg-blue-500 hover:text-white border border-blue-500 px-3 py-1 rounded transition-colors"
                                             >
                                                 AlphaRank
+                                            </button>
+                                            <button 
+                                                onClick={() => addTickerToWatchlist(tckr)}
+                                                className="text-xs bg-[#1e2329] text-orange-400 hover:bg-orange-500 hover:text-white border border-orange-500 px-3 py-1 rounded transition-colors"
+                                            >
+                                                Göstergelere Ekle
                                             </button>
                                         </td>
                                     </tr>

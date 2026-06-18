@@ -1,7 +1,14 @@
 import axios from 'axios';
 
+const getBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    return '/api'; // Tarayıcıda her zaman relative path kullan ki origin %100 eşleşsin
+  }
+  return (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000') + '/api';
+};
+
 const api = axios.create({
-  baseURL: (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000') + '/api',
+  baseURL: getBaseUrl(),
   withCredentials: true,
 });
 

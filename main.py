@@ -84,3 +84,7 @@ app.include_router(robot_router)
 @app.get("/")
 def root():
     return {"status": "ok", "message": "AlfaBIST API is running on FastAPI"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
