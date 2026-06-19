@@ -180,7 +180,58 @@ def deep_analyze_stock(sym: str, market_regime: dict = None) -> dict:
     elif sent_100 < 30:
         news_bonus = -15 if is_bear else -10
 
-    # 10. Dipten Dönüş Bonusu
+    # 10. Kesişim (Confluence) Bonusları - Swing Trade Özel
+    macd_bonus = 0
+    bb_bonus = 0
+    stoch_bonus = 0
+    rsi_div_bonus = 0
+    
+    if len(df) >= 15:
+        # a) MACD Golden Cross
+        if 'MACDh' in df.columns:
+            macdh_today = df['MACDh'].iloc[-1]
+            macdh_yest = df['MACDh'].iloc[-2]
+            if pd.notna(macdh_today) and pd.notna(macdh_yest):
+                if macdh_yest <= 0 and macdh_today > 0:
+                    macd_bonus = 10
+                    
+        # b) Bollinger Squeeze & Temas
+        if all(c in df.columns for c in ['BBL_20_2.0', 'BBU_20_2.0', 'BBM_20_2.0']):
+            bbl = df['BBL_20_2.0'].iloc[-1]
+            bbu = df['BBU_20_2.0'].iloc[-1]
+            bbm = df['BBM_20_2.0'].iloc[-1]
+            low_price = df['Low'].iloc[-1]
+            if pd.notna(bbl) and pd.notna(bbm) and bbm > 0:
+                bandwidth = (bbu - bbl) / bbm
+                if bandwidth < 0.10: # Squeeze
+                    bb_bonus += 5
+                if low_price <= bbl * 1.01: # Alt banda temas
+                    bb_bonus += 5
+                    
+        # c) Stochastic Aşırı Satım Dönüşü
+        if 'STOCHk_14_3_3' in df.columns and 'STOCHd_14_3_3' in df.columns:
+            k_today = df['STOCHk_14_3_3'].iloc[-1]
+            d_today = df['STOCHd_14_3_3'].iloc[-1]
+            k_yest = df['STOCHk_14_3_3'].iloc[-2]
+            d_yest = df['STOCHd_14_3_3'].iloc[-2]
+            if pd.notna(k_today) and pd.notna(d_today) and k_yest < 20:
+                if k_yest < d_yest and k_today > d_today:
+                    stoch_bonus = 15
+                    
+        # d) RSI Pozitif Uyumsuzluk (14 Günlük Periyot)
+        if 'RSI_14' in df.columns:
+            w1 = df.iloc[-14:-7]
+            w2 = df.iloc[-7:]
+            if not w1.empty and not w2.empty:
+                min_c1 = w1['Close'].min()
+                min_c2 = w2['Close'].min()
+                min_r1 = w1['RSI_14'].min()
+                min_r2 = w2['RSI_14'].min()
+                # Fiyatın yeni dibi eskisinden daha düşükse ama RSI'ın yeni dibi DAHA YÜKSEKSE
+                if min_c2 < min_c1 and min_r2 > min_r1 and min_r2 < 45:
+                    rsi_div_bonus = 15
+
+    # 11. Dipten Dönüş Bonusu (RSI 35 altı)
     reversal_bonus = 0
     reversal_text = "-"
     if 'RSI_14' in df.columns and len(df) >= 3:
@@ -191,7 +242,7 @@ def deep_analyze_stock(sym: str, market_regime: dict = None) -> dict:
                 reversal_bonus = 15
                 reversal_text = "🔥 Dipten Dönüş"
 
-    # 11. Yabancı Takas Bonusu (YENİ)
+    # 12. Yabancı Takas Bonusu
     takas_bonus = 0
     takas = get_takas_data(sym)
     fr_ratio = takas.get('foreign_ratio', 0)
@@ -203,6 +254,8 @@ def deep_analyze_stock(sym: str, market_regime: dict = None) -> dict:
     if fr_change > 0.5: takas_bonus += 15
     elif fr_change > 0.1: takas_bonus += 5
     elif fr_change < -0.5: takas_bonus -= 15
+
+    confluence_total = macd_bonus + bb_bonus + stoch_bonus + rsi_div_bonus
 
     # ============================================================
     # KOMPOZİT SKOR HESAPLAMA (Stratejik Seçki 15 GÜN / KISA VADE)
@@ -228,6 +281,16 @@ def deep_analyze_stock(sym: str, market_regime: dict = None) -> dict:
             (50 + support_bonus) * 0.05 +
             sent_100 * 0.05
         )
+    
+    # Yeni eklenen Confluence bonuslarını ana skora ekle
+    composite += confluence_total
+    
+    # Kesişim Özeti Mesajları
+    if macd_bonus > 0: result["summary"] += "\n🎯 MACD: Altın Kesişim (Golden Cross)"
+    if bb_bonus > 0: result["summary"] += "\n💥 Bollinger: Daralma (Squeeze) / Alt Bant Tepkisi"
+    if stoch_bonus > 0: result["summary"] += "\n⚡ Stochastic: Aşırı Satımdan Kesişim Dönüşü"
+    if rsi_div_bonus > 0: result["summary"] += "\n💎 RSI: Pozitif Uyumsuzluk Tespiti"
+    if pattern_bonus > 0: result["summary"] += f"\n🕯️ Mum Formasyonu: {pattern_text}"
 
     # 11. Göreceli Güç (Alpha)
     alpha_bonus = 0
@@ -364,7 +427,7 @@ def deep_analyze_stock(sym: str, market_regime: dict = None) -> dict:
         "takas_bonus": takas_bonus,
         "short_term_score": short_term_score,
         "risk_details": sig.get('risk', {}),
-        "summary": sig.get('summary', '')
+        "summary": result.get("summary", "") + "\n" + sig.get('summary', '')
     })
     return result
 
