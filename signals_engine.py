@@ -462,9 +462,9 @@ def get_core_signal(df: pd.DataFrame) -> dict:
             nums = [int(x) for x in re.findall(r'\d+', name)]
             period = max(nums) if nums else 20
             
-        if period <= 15:
+        if period <= 34:
             horizon = "short"
-        elif period >= 75:
+        elif period >= 90:
             horizon = "long"
         else:
             horizon = "medium"
