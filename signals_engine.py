@@ -27,7 +27,7 @@ def calculate_100_indicators(df: pd.DataFrame) -> pd.DataFrame:
 
 
     # 1. SMA Varyasyonları (12 adet)
-    for w in [5, 10, 15, 20, 25, 30, 40, 50, 52, 75, 100, 150, 200]:
+    for w in [5, 9, 10, 15, 20, 21, 25, 30, 40, 50, 52, 75, 100, 150, 200]:
         col = f'SMA_{w}'
         if col not in df.columns:
             try:
@@ -36,7 +36,7 @@ def calculate_100_indicators(df: pd.DataFrame) -> pd.DataFrame:
                 df[col] = np.nan
 
     # 2. EMA Varyasyonları (12 adet)
-    for w in [5, 10, 15, 20, 25, 30, 40, 50, 52, 75, 100, 150, 200]:
+    for w in [5, 9, 10, 15, 20, 21, 25, 30, 40, 50, 52, 75, 100, 150, 200]:
         col = f'EMA_{w}'
         if col not in df.columns:
             try:

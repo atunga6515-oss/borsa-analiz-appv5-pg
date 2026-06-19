@@ -137,9 +137,9 @@ def deep_analyze_stock(sym: str, market_regime: dict = None) -> dict:
     if not df_1h.empty and len(df_1h) >= 20:
         df_1h = calculate_indicators(df_1h)
         sig_1h = generate_signals_and_score(df_1h)
-        if sig['decision'] in ["Al", "Güçlü Al"] and sig_1h['decision'] in ["Al", "Güçlü Al"]:
+        if "AL" in sig['decision'] and "AL" in sig_1h['decision']:
             tf_bonus = 15
-        elif sig['decision'] in ["Al", "Güçlü Al"] or sig_1h['decision'] in ["Al", "Güçlü Al"]:
+        elif "AL" in sig['decision'] or "AL" in sig_1h['decision']:
             tf_bonus = 5
 
     # 7. Formasyon Bonusu
@@ -206,10 +206,8 @@ def deep_analyze_stock(sym: str, market_regime: dict = None) -> dict:
 
     # ============================================================
     # KOMPOZİT SKOR HESAPLAMA (Stratejik Seçki 15 GÜN / KISA VADE)
-    # 15 Günlük patlama arayan motor. Uzun vadeyi tamamen pas geçer.
     # ============================================================
     if is_bear:
-        # Ayı Piyasası: Temel veriler, Destekten dönüş ve Haberler ön planda
         composite = (
             short_term_score * 0.55 +
             (50 + momentum_bonus) * 0.10 +
@@ -221,7 +219,6 @@ def deep_analyze_stock(sym: str, market_regime: dict = None) -> dict:
             (50 + reversal_bonus) * 0.10
         )
     else:
-        # Boğa Piyasası: Momentum, Hacim ve Kısa Trend ön planda
         composite = (
             short_term_score * 0.60 +
             (50 + momentum_bonus) * 0.10 +
@@ -243,7 +240,11 @@ def deep_analyze_stock(sym: str, market_regime: dict = None) -> dict:
         if xu100_5d_chg < -1.0 and sym_5d > -0.5:
             alpha_bonus = 20
             result["summary"] += f"\n💪 Endeksten Güçlü Ayrışma (Alpha: {alpha_text})"
+    
     composite += alpha_bonus
+    
+    # Kural ihlallerini anlamlı kılmak için pozitif bonuslar eklendikten sonra TAVAN yapıyoruz.
+    composite = min(100.0, composite)
 
     # 12. Risk/Getiri (R/R) Seçkisi (+ Ceza)
     rr_ratio = 0.0
@@ -296,7 +297,7 @@ def deep_analyze_stock(sym: str, market_regime: dict = None) -> dict:
     if is_bear and price_below_sma50:
         composite *= 0.85 
 
-    composite = min(100, max(0, round(composite, 1)))
+    composite = max(0, round(composite, 1))
     
     # Karar Mekanizması RSI Doygunluk Güncellemesi
     karar = core_decision

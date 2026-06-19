@@ -53,10 +53,11 @@ def get_fundamental_data(ticker_symbol: str) -> dict:
         eps = float(eps) if eps is not None else 0.0
         bv = float(bv) if bv is not None else 0.0
         
-        # Dividend Yield Ölçekleme (0.05 -> %5, ama 0.82 zaten %0.82 ise dokunma)
+        # Dividend Yield Ölçekleme
+        # yfinance dividend yield her zaman decimal gelir (0.20 = %20).
         if div_yield is not None:
             div_yield = float(div_yield)
-            if div_yield < 0.15: # Sadece %15 altındaki 'decimal' formatları çarp (0.05 gibi)
+            if div_yield < 5.0: # %500 altındaki tüm ondalıkları 100 ile çarp (BIST'te %25 vb. olabilir)
                 div_yield = div_yield * 100
         else:
             div_yield = 0.0

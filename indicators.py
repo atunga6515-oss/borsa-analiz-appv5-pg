@@ -45,10 +45,29 @@ def calculate_indicators(df: pd.DataFrame, ticker: str = None) -> pd.DataFrame:
         
         # Trend (SSOT mimarisi gereği calculate_100_indicators'a devredildi)
 
-        # SuperTrend mantığı (basitleştirilmiş)
-        atr_st = ta.volatility.average_true_range(df['High'], df['Low'], df['Close'], window=10)
+        # SuperTrend mantığı (Gerçek Hesaplama)
+        atr_st = ta.volatility.average_true_range(df['High'], df['Low'], df['Close'], window=10).fillna(0)
         hl2 = (df['High'] + df['Low']) / 2
-        df['SUPERTd_10_3.0'] = np.where(df['Close'] > hl2, 1, -1)
+        basic_ub = hl2 + (3.0 * atr_st)
+        basic_lb = hl2 - (3.0 * atr_st)
+        
+        final_ub = np.zeros(len(df))
+        final_lb = np.zeros(len(df))
+        st_dir = np.ones(len(df))
+        close_arr = df['Close'].values
+        
+        for i in range(1, len(df)):
+            final_ub[i] = basic_ub.iloc[i] if basic_ub.iloc[i] < final_ub[i-1] or close_arr[i-1] > final_ub[i-1] else final_ub[i-1]
+            final_lb[i] = basic_lb.iloc[i] if basic_lb.iloc[i] > final_lb[i-1] or close_arr[i-1] < final_lb[i-1] else final_lb[i-1]
+            
+            if st_dir[i-1] == 1 and close_arr[i] < final_lb[i]:
+                st_dir[i] = -1
+            elif st_dir[i-1] == -1 and close_arr[i] > final_ub[i]:
+                st_dir[i] = 1
+            else:
+                st_dir[i] = st_dir[i-1]
+                
+        df['SUPERTd_10_3.0'] = st_dir
 
         # Hacim
         df['OBV'] = ta.volume.on_balance_volume(df['Close'], df['Volume'])
@@ -59,7 +78,7 @@ def calculate_indicators(df: pd.DataFrame, ticker: str = None) -> pd.DataFrame:
         df['BBL_20_2.0'] = bb.bollinger_lband()
         df['BBU_20_2.0'] = bb.bollinger_hband()
         df['BBM_20_2.0'] = bb.bollinger_mavg()
-        df['ATRr_14'] = ta.volatility.average_true_range(high=df['High'], low=df['Low'], close=df['Close'], window=14)
+        df['ATR_14'] = ta.volatility.average_true_range(high=df['High'], low=df['Low'], close=df['Close'], window=14)
 
         # Ichimoku Cloud (Modern)
         ichimoku = ta.trend.IchimokuIndicator(high=df['High'], low=df['Low'], window1=9, window2=26, window3=52)
