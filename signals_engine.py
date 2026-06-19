@@ -287,7 +287,8 @@ def get_all_indicator_rules(df: pd.DataFrame) -> tuple:
     rsi_windows = [5, 7, 9, 11, 14, 21, 28]
     for w in rsi_windows:
         col = f'RSI_{w}'
-        rules[f"RSI {w} Sinyali"] = lambda df, c=col: np.where(df[c].isna(), 0, np.where(df[c] < 30, 1, np.where(df[c] > 70, -1, 0)))
+        # Momentum Breakout: RSI > 55 means bullish momentum, RSI < 45 means bearish momentum.
+        rules[f"RSI {w} Sinyali"] = lambda df, c=col: np.where(df[c].isna(), 0, np.where(df[c] > 55, 1, np.where(df[c] < 45, -1, 0)))
 
     # 6. Stochastic Crossover Rules (5 adet)
     stoch_windows = [5, 9, 14, 21, 28]
@@ -307,7 +308,8 @@ def get_all_indicator_rules(df: pd.DataFrame) -> tuple:
     cci_windows = [10, 14, 20, 30]
     for w in cci_windows:
         col = f'CCI_{w}'
-        rules[f"CCI {w} Kanalı"] = lambda df, c=col: np.where(df[c].isna(), 0, np.where(df[c] < -100, 1, np.where(df[c] > 100, -1, 0)))
+        # Momentum Breakout: CCI > 100 means strong bullish momentum
+        rules[f"CCI {w} Kanalı"] = lambda df, c=col: np.where(df[c].isna(), 0, np.where(df[c] > 100, 1, np.where(df[c] < -100, -1, 0)))
 
     # 9. ROC Momentum Rules (5 adet)
     roc_windows = [5, 10, 15, 20, 25]
@@ -319,7 +321,8 @@ def get_all_indicator_rules(df: pd.DataFrame) -> tuple:
     wr_windows = [10, 14, 20, 25]
     for w in wr_windows:
         col = f'Williams_{w}'
-        rules[f"Williams %R {w}"] = lambda df, c=col: np.where(df[c].isna(), 0, np.where(df[c] < -80, 1, np.where(df[c] > -20, -1, 0)))
+        # Momentum Breakout: > -20 is extremely bullish territory
+        rules[f"Williams %R {w}"] = lambda df, c=col: np.where(df[c].isna(), 0, np.where(df[c] > -20, 1, np.where(df[c] < -80, -1, 0)))
 
     # 11. Awesome Oscillator (1 adet)
     rules["Awesome Oscillator AO"] = lambda df: np.where(df['Awesome_Oscillator'].isna(), 0, np.where(df['Awesome_Oscillator'] > 0, 1, -1))
@@ -329,14 +332,16 @@ def get_all_indicator_rules(df: pd.DataFrame) -> tuple:
     for dev in bb_devs:
         col_l = f'BBL_20_{dev}'
         col_u = f'BBU_20_{dev}'
-        rules[f"Bollinger {dev}SD Sınırı"] = lambda df, cl=col_l, cu=col_u: np.where(df[cl].isna() | df[cu].isna(), 0, np.where(df['Close'] < df[cl], 1, np.where(df['Close'] > df[cu], -1, 0)))
+        # Breakout: Close > Upper Band is a bullish breakout
+        rules[f"Bollinger {dev}SD Sınırı"] = lambda df, cl=col_l, cu=col_u: np.where(df[cl].isna() | df[cu].isna(), 0, np.where(df['Close'] > df[cu], 1, np.where(df['Close'] < df[cl], -1, 0)))
 
     # 13. Keltner Channels Rules (4 adet)
     kc_devs = [1.0, 1.5, 2.0, 2.5]
     for dev in kc_devs:
         col_l = f'KCL_20_{dev}'
         col_u = f'KCU_20_{dev}'
-        rules[f"Keltner {dev} Sınırı"] = lambda df, cl=col_l, cu=col_u: np.where(df[cl].isna() | df[cu].isna(), 0, np.where(df['Close'] < df[cl], 1, np.where(df['Close'] > df[cu], -1, 0)))
+        # Breakout: Close > Upper Channel is a bullish breakout
+        rules[f"Keltner {dev} Sınırı"] = lambda df, cl=col_l, cu=col_u: np.where(df[cl].isna() | df[cu].isna(), 0, np.where(df['Close'] > df[cu], 1, np.where(df['Close'] < df[cl], -1, 0)))
 
     # 14. Donchian Channels Rules (4 adet)
     dc_windows = [10, 20, 30, 50]
@@ -408,7 +413,8 @@ def get_all_indicator_rules(df: pd.DataFrame) -> tuple:
     mfi_windows = [9, 14, 21, 28]
     for w in mfi_windows:
         col = f'MFI_{w}'
-        rules[f"MFI {w} Para Akışı"] = lambda df, c=col: np.where(df[c].isna(), 0, np.where(df[c] < 20, 1, np.where(df[c] > 80, -1, 0)))
+        # Momentum: MFI > 55 indicates strong money flow IN
+        rules[f"MFI {w} Para Akışı"] = lambda df, c=col: np.where(df[c].isna(), 0, np.where(df[c] > 55, 1, np.where(df[c] < 45, -1, 0)))
 
     # 21. Chaikin Money Flow Rules (3 adet)
     cmf_windows = [10, 20, 30]
