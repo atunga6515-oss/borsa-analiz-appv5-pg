@@ -20,48 +20,21 @@ from patterns import detect_candlestick_patterns
 from support_resistance import calculate_best_zones
 from screener import get_sector, BIST30_SYMBOLS, BIST100_SYMBOLS, BIST_ALL_SYMBOLS
 from takas_engine import get_takas_data
+from top_picks_common import save_picks_history, get_history_dates, get_picks_by_date
+
+_HISTORY_TABLE = "top_picks_history"
 
 def save_top_picks_history(username: str, results: list):
     """Top 5 sonuçlarını veritabanına JSON olarak kaydeder."""
-    if not results:
-        return
-    now_str = datetime.now(TR_TZ).strftime("%Y-%m-%d %H:%M:%S")
-    with engine.begin() as conn:
-        conn.execute(
-            text("INSERT INTO top_picks_history (username, run_date, results_json) VALUES (:u, :d, :r)"),
-            {"u": username, "d": now_str, "r": json.dumps(results)}
-        )
-        # Sadece son 30 kalsın
-        conn.execute(text("""
-            DELETE FROM top_picks_history 
-            WHERE username = :u AND id NOT IN (
-                SELECT id FROM top_picks_history 
-                WHERE username = :u 
-                ORDER BY id DESC LIMIT 30
-            )
-        """), {"u": username})
+    save_picks_history(_HISTORY_TABLE, username, results)
 
 def get_top_picks_history_dates(username: str) -> list:
     """Kaydedilmiş analiz tarihlerini id ve run_date olarak döndürür."""
-    with engine.connect() as conn:
-        cursor = conn.execute(
-            text("SELECT id, run_date FROM top_picks_history WHERE username=:u ORDER BY id DESC"),
-            {"u": username}
-        )
-        dates = [{"id": row[0], "run_date": row[1]} for row in cursor.fetchall()]
-    return dates
+    return get_history_dates(_HISTORY_TABLE, username)
 
 def get_top_picks_by_date(username: str, history_id: int) -> list:
     """Belirli bir ID'deki analiz sonuçlarını döndürür."""
-    with engine.connect() as conn:
-        cursor = conn.execute(
-            text("SELECT results_json FROM top_picks_history WHERE username=:u AND id=:id"),
-            {"u": username, "id": history_id}
-        )
-        row = cursor.fetchone()
-    if row:
-        return json.loads(row[0])
-    return []
+    return get_picks_by_date(_HISTORY_TABLE, username, history_id)
 
 
 # Eski kelime bazlı sentiment fonksiyonu kaldırıldı (kap_news modülüne taşındı)
