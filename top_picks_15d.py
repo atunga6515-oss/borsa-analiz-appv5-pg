@@ -16,7 +16,7 @@ from indicators import (calculate_indicators, generate_signals_and_score,
                         calculate_volume_confirmation, check_bottom_reversal, get_market_regime)
 from kap_news import get_sentiment_summary
 from fundamental_analyzer import get_fundamental_data
-from patterns import detect_candlestick_patterns
+from patterns import detect_candlestick_patterns, detect_bull_flag
 from support_resistance import calculate_best_zones
 from screener import get_sector, BIST30_SYMBOLS, BIST100_SYMBOLS, BIST_ALL_SYMBOLS
 from takas_engine import get_takas_data
@@ -77,6 +77,8 @@ def deep_analyze_stock(sym: str, market_regime: dict = None) -> dict:
     bb_bonus = 0
     stoch_bonus = 0
     rsi_div_bonus = 0
+    flag_bonus = 0
+    flag_summary = ""
 
     if len(df) >= 15:
         # a) MACD Golden Cross
@@ -123,9 +125,15 @@ def deep_analyze_stock(sym: str, market_regime: dict = None) -> dict:
                 if min_c2 < min_c1 and min_r2 > min_r1 and min_r2 < 45:
                     rsi_div_bonus = 15
 
+        # e) Boğa Flaması (Bull Flag) — kısa vadeli devam formasyonu
+        _bf = detect_bull_flag(df)
+        if _bf.get("detected"):
+            flag_bonus = _bf["score"]
+            flag_summary = _bf["summary"]
+
     # (Dipten Dönüş ve Yabancı Takas bonusları compute_base içinde hesaplanır.)
 
-    confluence_total = macd_bonus + bb_bonus + stoch_bonus + rsi_div_bonus
+    confluence_total = macd_bonus + bb_bonus + stoch_bonus + rsi_div_bonus + flag_bonus
 
     # ============================================================
     # KOMPOZİT SKOR HESAPLAMA (Stratejik Seçki 15 GÜN / KISA VADE)
@@ -160,6 +168,7 @@ def deep_analyze_stock(sym: str, market_regime: dict = None) -> dict:
     if bb_bonus > 0: result["summary"] += "\n💥 Bollinger: Daralma (Squeeze) / Alt Bant Tepkisi"
     if stoch_bonus > 0: result["summary"] += "\n⚡ Stochastic: Aşırı Satımdan Kesişim Dönüşü"
     if rsi_div_bonus > 0: result["summary"] += "\n💎 RSI: Pozitif Uyumsuzluk Tespiti"
+    if flag_bonus > 0: result["summary"] += f"\n{flag_summary}"
     if pattern_bonus > 0: result["summary"] += f"\n🕯️ Mum Formasyonu: {pattern_text}"
 
     # Alpha + tüm veto/filtreler + nihai karar (ortak & denklik-testli finalize_composite)

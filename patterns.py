@@ -71,5 +71,76 @@ def detect_candlestick_patterns(df: pd.DataFrame) -> dict:
         result['summary'] = "\n".join(patterns_detected)
     else:
         result['summary'] = "Son günlerde belirgin bir mum formasyonu tespit edilmedi."
-        
+
     return result
+
+
+def detect_bull_flag(df: pd.DataFrame, lookback: int = 20) -> dict:
+    """
+    Boğa Flaması (Bull Flag) tespiti — kısa vadeli devam formasyonu.
+
+    Döküman kuralları:
+      • Sert bir yükseliş "direği" (flagpole): kısa sürede güçlü yükseliş.
+      • Ardından hafif aşağı eğimli/yatay daralan konsolidasyon ("bayrak").
+      • Geri çekilme derinliği direğin %50'sini aşmamalı (ideal: ≤ %38.2).
+    """
+    out = {"detected": False, "score": 0, "summary": ""}
+    if df is None or df.empty or len(df) < lookback + 2:
+        return out
+
+    sub = df.tail(lookback)
+    high = sub['High'].values
+    low = sub['Low'].values
+    close = sub['Close'].values
+    n = len(sub)
+
+    # 1) Direğin tepesi: bayrak için son 2 barı ayırarak penceredeki en yüksek nokta
+    peak_i = int(np.argmax(high[: n - 2]))
+    pole_top = float(high[peak_i])
+    flag_len = (n - 1) - peak_i
+    # Bayrak (konsolidasyon) süresi makul olmalı
+    if flag_len < 2 or flag_len > 12:
+        return out
+
+    # 2) Direğin tabanı: tepeden en fazla 8 bar geriye bakarak en düşük dip
+    #    (Böylece "direk" en fazla 8 barlık SERT bir yükseliş olur.)
+    pole_window_lo = low[max(0, peak_i - 8): peak_i + 1]
+    pole_start = float(pole_window_lo.min())
+    if pole_start <= 0:
+        return out
+
+    pole_gain = (pole_top - pole_start) / pole_start
+    # Sert ve hızlı direk şartı
+    if pole_gain < 0.15:
+        return out
+
+    # 3) Geri çekilme derinliği (bayraktaki en düşük dip, direğe göre)
+    flag_low = float(low[peak_i:].min())
+    pole_range = pole_top - pole_start
+    if pole_range <= 0:
+        return out
+    retrace = (pole_top - flag_low) / pole_range
+    if retrace > 0.5:             # çok derin -> momentum kaybı, bayrak değil
+        return out
+
+    # Fiyat hâlâ direğin tepesine yakın/üstünde mi (yapı bozulmamış)
+    last = float(close[-1])
+    if last < pole_start:         # tüm kazanç geri verilmiş
+        return out
+
+    if retrace <= 0.382:
+        score = 18
+        summary = f"🚩 Boğa Flaması (Bull Flag) — ideal sığ geri çekilme (%{retrace*100:.0f} ≤ %38.2), güçlü devam beklentisi"
+    else:
+        score = 12
+        summary = f"🚩 Boğa Flaması (Bull Flag) — sağlıklı konsolidasyon (geri çekilme %{retrace*100:.0f})"
+
+    out.update({
+        "detected": True,
+        "score": score,
+        "pole_gain_pct": round(pole_gain * 100, 1),
+        "retrace_pct": round(retrace * 100, 1),
+        "flag_bars": flag_len,
+        "summary": summary,
+    })
+    return out
