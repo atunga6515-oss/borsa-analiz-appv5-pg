@@ -20,6 +20,7 @@ from api.market_routes import router as market_router
 from api.alpharank_routes import router as alpharank_router
 from api.risk_routes import router as risk_router
 from api.robot_routes import router as robot_router
+from api.scorecard_routes import router as scorecard_router
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -80,6 +81,7 @@ app.include_router(market_router)
 app.include_router(alpharank_router, prefix="/api/alpharank", tags=["AlphaRank"])
 app.include_router(risk_router)
 app.include_router(robot_router)
+app.include_router(scorecard_router)
 
 @app.get("/")
 def root():

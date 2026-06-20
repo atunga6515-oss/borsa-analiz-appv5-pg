@@ -93,6 +93,27 @@ def start_scheduler():
         id="robot_macro_cycle",
         replace_existing=True
     )
-    
+
+    # --- SİNYAL KARNESİ (Model Scorecard) ---
+    from scorecard import run_daily_snapshot, score_matured_signals
+    # Günlük snapshot: hafta içi, piyasa kapanışından sonra (18:30 TR)
+    scheduler.add_job(
+        run_daily_snapshot,
+        CronTrigger(day_of_week="mon-fri", hour=18, minute=30, timezone="Europe/Istanbul"),
+        id="scorecard_daily_snapshot",
+        replace_existing=True,
+        max_instances=1,
+        misfire_grace_time=3600,
+    )
+    # Vadesi dolan sinyalleri puanla: her gün 19:30 TR
+    scheduler.add_job(
+        score_matured_signals,
+        CronTrigger(hour=19, minute=30, timezone="Europe/Istanbul"),
+        id="scorecard_daily_scoring",
+        replace_existing=True,
+        max_instances=1,
+        misfire_grace_time=3600,
+    )
+
     scheduler.start()
     logger.info("Background scheduler başlatıldı.")

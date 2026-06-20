@@ -350,6 +350,33 @@ def init_db():
             )
         """))
 
+        # --- SİNYAL KARNESİ (Model Scorecard) ---
+        # Üretilen seçki sinyallerinin vade sonu gerçek getirisini ölçer (global, model-düzeyi).
+        conn.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS signal_scorecard (
+                id {serial_type} PRIMARY KEY,
+                ticker VARCHAR(20) NOT NULL,
+                strategy VARCHAR(20) NOT NULL,
+                signal_date VARCHAR(20) NOT NULL,
+                score FLOAT,
+                decision VARCHAR(100),
+                entry_price FLOAT,
+                horizon_days INTEGER DEFAULT 15,
+                has_bull_flag BOOLEAN DEFAULT FALSE,
+                status VARCHAR(20) DEFAULT 'pending',
+                eval_date VARCHAR(20),
+                exit_price FLOAT,
+                return_pct FLOAT,
+                win BOOLEAN,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE (ticker, signal_date, strategy)
+            )
+        """))
+        conn.execute(text("""
+            CREATE INDEX IF NOT EXISTS idx_scorecard_status
+            ON signal_scorecard (status, signal_date)
+        """))
+
         # ai_analyses_history UNIQUE constraint (sadece PostgreSQL için)
         if engine.name == "postgresql":
             conn.execute(text("""
