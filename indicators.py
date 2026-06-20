@@ -13,6 +13,29 @@ def calculate_vwap(df: pd.DataFrame, window: int = 5) -> pd.Series:
     vwap = (typical_price * df['Volume']).rolling(window=window).sum() / df['Volume'].rolling(window=window).sum()
     return vwap
 
+def calculate_supertrend(df: pd.DataFrame, length: int = 10, multiplier: float = 3.0) -> pd.DataFrame:
+    """pandas_ta ile SuperTrend hesaplar; kolon adını dinamik bulur.
+    Dönüş: df'e eklenmiş 'ST_LINE' (trend çizgisi) ve 'ST_DIR' (+1/-1 yön)."""
+    import pandas_ta as pta
+    
+    sti = pta.supertrend(df['High'], df['Low'], df['Close'], length=length, multiplier=multiplier)
+    if sti is None or sti.empty:
+        df['ST_LINE'] = np.nan
+        df['ST_DIR'] = np.nan
+        return df
+        
+    line_col = next((c for c in sti.columns if c.startswith('SUPERT_') and 'd_' not in c), None)
+    dir_col  = next((c for c in sti.columns if c.startswith('SUPERTd_')), None)
+    
+    if line_col and dir_col:
+        df['ST_LINE'] = sti[line_col].values
+        df['ST_DIR']  = sti[dir_col].values
+    else:
+        df['ST_LINE'] = np.nan
+        df['ST_DIR'] = np.nan
+        
+    return df
+
 def calculate_indicators(df: pd.DataFrame, ticker: str = None) -> pd.DataFrame:
     """
     'ta' kütüphanesini kullanarak 20+ teknik indikatörü veri setine ekler.
@@ -45,29 +68,9 @@ def calculate_indicators(df: pd.DataFrame, ticker: str = None) -> pd.DataFrame:
         
         # Trend (SSOT mimarisi gereği calculate_100_indicators'a devredildi)
 
-        # SuperTrend mantığı (Gerçek Hesaplama)
-        atr_st = ta.volatility.average_true_range(df['High'], df['Low'], df['Close'], window=10).fillna(0)
-        hl2 = (df['High'] + df['Low']) / 2
-        basic_ub = hl2 + (3.0 * atr_st)
-        basic_lb = hl2 - (3.0 * atr_st)
-        
-        final_ub = np.zeros(len(df))
-        final_lb = np.zeros(len(df))
-        st_dir = np.ones(len(df))
-        close_arr = df['Close'].values
-        
-        for i in range(1, len(df)):
-            final_ub[i] = basic_ub.iloc[i] if basic_ub.iloc[i] < final_ub[i-1] or close_arr[i-1] > final_ub[i-1] else final_ub[i-1]
-            final_lb[i] = basic_lb.iloc[i] if basic_lb.iloc[i] > final_lb[i-1] or close_arr[i-1] < final_lb[i-1] else final_lb[i-1]
-            
-            if st_dir[i-1] == 1 and close_arr[i] < final_lb[i]:
-                st_dir[i] = -1
-            elif st_dir[i-1] == -1 and close_arr[i] > final_ub[i]:
-                st_dir[i] = 1
-            else:
-                st_dir[i] = st_dir[i-1]
-                
-        df['SUPERTd_10_3.0'] = st_dir
+        # SuperTrend mantığı (Tek Kaynak / SSOT)
+        df = calculate_supertrend(df, length=10, multiplier=3)
+        df['SUPERTd_10_3.0'] = df['ST_DIR']  # Geriye dönük uyumluluk (Legacy Consumer'lar için)
 
         # Hacim
         df['OBV'] = ta.volume.on_balance_volume(df['Close'], df['Volume'])

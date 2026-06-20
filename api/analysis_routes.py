@@ -69,13 +69,16 @@ def get_layered_data(ticker: str, current_user: str = Depends(get_current_user))
                         break
 
 
-        # SuperTrend
+        # SuperTrend (SSOT)
         supertrend_line = []
-        sti = ta.supertrend(df['High'], df['Low'], df['Close'], length=10, multiplier=3)
-        if sti is not None:
-            for i in range(len(df)):
-                if not pd.isna(sti['SUPERT_10_3'].iloc[i]):
-                    supertrend_line.append({"time": int(timestamps[i]), "value": float(sti['SUPERT_10_3'].iloc[i]), "color": "#26a69a" if sti['SUPERTd_10_3'].iloc[i] == 1 else "#ef5350"})
+        from indicators import calculate_supertrend
+        df = calculate_supertrend(df, length=10, multiplier=3.0)
+        
+        for i in range(len(df)):
+            val = float(df['ST_LINE'].iloc[i]) if not pd.isna(df['ST_LINE'].iloc[i]) else None
+            st_dir = df['ST_DIR'].iloc[i]
+            if val is not None:
+                supertrend_line.append({"time": int(timestamps[i]), "value": val, "color": "#26a69a" if st_dir == 1 else "#ef5350"})
 
         # Alpha Signal Engine
         alpha_markers = []
