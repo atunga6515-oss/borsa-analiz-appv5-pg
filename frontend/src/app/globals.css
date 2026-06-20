@@ -72,3 +72,34 @@ body {
   from { background-position: 200% 0; }
   to { background-position: -200% 0; }
 }
+
+/* Anında açılan tooltip (native 'title' gecikmesini önler) */
+.tip { position: relative; }
+.tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 6px;
+  white-space: pre-line;
+  width: max-content;
+  max-width: 280px;
+  background: #1e2329;
+  color: #fff;
+  border: 1px solid var(--color-b-border);
+  padding: 6px 9px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.45;
+  text-align: left;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 200;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+.tip:hover::after { opacity: 1; visibility: visible; }   /* gecikmesiz */
+/* data-tip boşsa balon gösterme */
+.tip[data-tip=""]::after, .tip:not([data-tip])::after { display: none; }
