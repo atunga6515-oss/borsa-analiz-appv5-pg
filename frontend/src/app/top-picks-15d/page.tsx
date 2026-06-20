@@ -27,6 +27,10 @@ export default function TopPicks15DPage() {
     const [aiModalOpen, setAiModalOpen] = useState(false);
     const [aiProps, setAiProps] = useState<any>({ ticker: "", price: 0 });
     
+    // Chart Modal State
+    const [chartModalOpen, setChartModalOpen] = useState(false);
+    const [chartTicker, setChartTicker] = useState("");
+    
     // Progress Tracking
     const [scanProgress, setScanProgress] = useState<number>(0);
     const [scanText, setScanText] = useState<string>("");
@@ -146,6 +150,11 @@ export default function TopPicks15DPage() {
         setModalPrice(price ? parseFloat(price.toString()).toFixed(2) : "");
         setModalQty("100");
         setModalOpen(true);
+    };
+
+    const openChartModal = (ticker: string) => {
+        setChartTicker(ticker);
+        setChartModalOpen(true);
     };
 
     const handleAddToAlphaRank = async (ticker: string) => {
@@ -416,6 +425,12 @@ export default function TopPicks15DPage() {
                                             >
                                                 Göstergelere Ekle
                                             </button>
+                                            <button 
+                                                onClick={() => openChartModal(tckr)}
+                                                className="text-xs bg-[#1e2329] text-yellow-400 hover:bg-yellow-500 hover:text-black border border-yellow-500 px-3 py-1 rounded transition-colors flex items-center gap-1"
+                                            >
+                                                <span>📈</span> Patlama Grafiği
+                                            </button>
                                         </td>
                                     </tr>
                                 )})}
@@ -503,6 +518,39 @@ export default function TopPicks15DPage() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Chart Modal */}
+            {chartModalOpen && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setChartModalOpen(false)}>
+                    <div className="bg-[#181a20] border border-[var(--color-b-border)] rounded-lg shadow-xl w-[90vw] max-w-5xl flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="bg-[#1e2329] p-4 flex justify-between items-center border-b border-[var(--color-b-border)]">
+                            <h3 className="font-bold text-lg text-white">📈 {chartTicker} - Patlama Potansiyeli (MACD & Bollinger)</h3>
+                            <button onClick={() => setChartModalOpen(false)} className="text-[var(--color-b-muted)] hover:text-white text-xl">✕</button>
+                        </div>
+                        <div className="p-4 flex flex-col items-center justify-center min-h-[400px] bg-[#131722] relative">
+                            {/* Yükleniyor spinner'ı arka planda gösterilir, resim gelince üstüne biner */}
+                            <div className="absolute inset-0 flex items-center justify-center z-0">
+                                <div className="flex flex-col items-center text-[var(--color-b-muted)]">
+                                    <div className="animate-spin text-4xl mb-3">⏳</div>
+                                    <p>Yapay zeka grafiği oluşturuyor...</p>
+                                </div>
+                            </div>
+                            <img 
+                                src={`/api/top-picks-15d/chart/${chartTicker}`} 
+                                alt={`${chartTicker} chart`}
+                                className="max-w-full h-auto rounded relative z-10"
+                                onError={(e) => {
+                                    (e.target as HTMLImageElement).src = ""; 
+                                    (e.target as HTMLImageElement).alt = "Grafik yüklenirken hata oluştu veya hisse verisi bulunamadı.";
+                                }}
+                            />
+                        </div>
+                        <div className="p-4 bg-[#1e2329] border-t border-[var(--color-b-border)] text-sm text-[var(--color-b-muted)]">
+                            * Bu grafik anlık olarak yfinance üzerinden çekilen geçmiş 6 aylık veriler baz alınarak çizilmektedir. Turuncu çizgi: 20G Hareketli Ortalama. Kesik çizgiler: Bollinger Bantları.
+                        </div>
                     </div>
                 </div>
             )}
