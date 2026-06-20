@@ -73,7 +73,7 @@ body {
   to { background-position: -200% 0; }
 }
 
-/* Anında açılan tooltip (native 'title' gecikmesini önler) */
+/* Anında açılan tooltip — Pro Terminal balon stili (native 'title' gecikmesini önler) */
 .tip { position: relative; }
 .tip::after {
   content: attr(data-tip);
@@ -81,25 +81,42 @@ body {
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  margin-top: 6px;
+  margin-top: 8px;
   white-space: pre-line;
   width: max-content;
+  min-width: 200px;
   max-width: 280px;
-  background: #1e2329;
-  color: #fff;
-  border: 1px solid var(--color-b-border);
-  padding: 6px 9px;
+  background: #1c2030;
+  color: #e5e7eb;
+  border: 1px solid #374151;
+  padding: 8px 10px;
   border-radius: 6px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 400;
-  line-height: 1.45;
+  line-height: 1.5;
   text-align: left;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
   z-index: 200;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
 }
-.tip:hover::after { opacity: 1; visibility: visible; }   /* gecikmesiz */
+/* Yukarı bakan küçük ok (Pro Terminal tarzı) */
+.tip::before {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 3px;
+  border: 5px solid transparent;
+  border-bottom-color: #1c2030;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 201;
+}
+.tip:hover::after, .tip:hover::before { opacity: 1; visibility: visible; }  /* gecikmesiz */
 /* data-tip boşsa balon gösterme */
-.tip[data-tip=""]::after, .tip:not([data-tip])::after { display: none; }
+.tip[data-tip=""]::after, .tip[data-tip=""]::before,
+.tip:not([data-tip])::after, .tip:not([data-tip])::before { display: none; }
