@@ -433,6 +433,23 @@ def get_all_indicator_rules(df: pd.DataFrame) -> tuple:
 
     return df, rules
 
+def _short_term_weight(name: str) -> float:
+    """
+    Kısa vade (15G) skorunda indikatör sınıfına göre oy ağırlığı.
+    Döküman bulgusu: kısa vadede RSI/Bollinger/Williams osilatörleri, MACD/MA gibi
+    trend takipçilerine kıyasla belirgin şekilde daha güvenilirdir.
+    Bu ağırlık SADECE 'short' havuzunda kullanılır; orta/uzun vade skorları etkilenmez.
+    """
+    n = name
+    if n.startswith("RSI ") or "Bollinger" in n or "Williams" in n:
+        return 2.0  # En güvenilir kısa vade osilatörleri
+    if (n.startswith("SMA ") or n.startswith("EMA ") or n.startswith("WMA ")
+            or n.startswith("KAMA ") or "MACD" in n or n.startswith("ADX ")
+            or "Donchian" in n or "Vortex" in n or "Aroon" in n or "VWAP" in n):
+        return 0.5  # Trend/gecikmeli göstergeler (kısa vadede zayıf)
+    return 1.0  # Diğer momentum/hacim osilatörleri (Stoch, CCI, MFI, CMF, ROC, ...)
+
+
 def get_core_signal(df: pd.DataFrame) -> dict:
     """
     100-İndikatörlü (Core Technical Score) vektörel hızlı hesaplayıcı.
@@ -444,9 +461,9 @@ def get_core_signal(df: pd.DataFrame) -> dict:
     is_ipo = data_length < 200
 
     pools = {
-        "short": {"buy": 0, "sell": 0, "total": 0, "list": []},
-        "medium": {"buy": 0, "sell": 0, "total": 0, "list": []},
-        "long": {"buy": 0, "sell": 0, "total": 0, "list": []}
+        "short": {"buy": 0, "sell": 0, "total": 0, "wbuy": 0.0, "wsell": 0.0, "wtotal": 0.0, "list": []},
+        "medium": {"buy": 0, "sell": 0, "total": 0, "wbuy": 0.0, "wsell": 0.0, "wtotal": 0.0, "list": []},
+        "long": {"buy": 0, "sell": 0, "total": 0, "wbuy": 0.0, "wsell": 0.0, "wtotal": 0.0, "list": []}
     }
     
     import re
@@ -478,19 +495,24 @@ def get_core_signal(df: pd.DataFrame) -> dict:
             
             if pd.notna(last_sig):
                 dec_str = "NÖTR ⚖️"
+                # Kısa vadede sınıf bazlı ağırlık; orta/uzun vadede ağırlık = 1.0 (değişmez)
+                w = _short_term_weight(name) if horizon == "short" else 1.0
                 pools[horizon]["total"] += 1
-                
+                pools[horizon]["wtotal"] += w
+
                 if last_sig == 1:
                     pools[horizon]["buy"] += 1
+                    pools[horizon]["wbuy"] += w
                     dec_str = "AL 🟢"
                 elif last_sig == -1:
                     pools[horizon]["sell"] += 1
+                    pools[horizon]["wsell"] += w
                     dec_str = "SAT 🔴"
-                    
+
                 pools[horizon]["list"].append({
-                    "İndikatör/Kural": name, 
-                    "Durum": dec_str, 
-                    "Ağırlık Puanı": 1 # Yüzdelik sistemde her biri eşit oy (1) ağırlığına sahip
+                    "İndikatör/Kural": name,
+                    "Durum": dec_str,
+                    "Ağırlık Puanı": w
                 })
         except Exception:
             pass
@@ -505,10 +527,15 @@ def get_core_signal(df: pd.DataFrame) -> dict:
         decision = "NÖTR ⚖️"
         
         if data["total"] > 0:
-            buy_pct = (data["buy"] / data["total"]) * 100
-            sell_pct = (data["sell"] / data["total"]) * 100
+            # Kısa vade: sınıf-ağırlıklı yüzde; orta/uzun: eşit oy (geriye dönük aynı)
+            if horizon == "short" and data["wtotal"] > 0:
+                buy_pct = (data["wbuy"] / data["wtotal"]) * 100
+                sell_pct = (data["wsell"] / data["wtotal"]) * 100
+            else:
+                buy_pct = (data["buy"] / data["total"]) * 100
+                sell_pct = (data["sell"] / data["total"]) * 100
             score = round(buy_pct, 1)
-            
+
             if buy_pct >= 60:
                 decision = "GÜÇLÜ AL 🟢"
             elif buy_pct > 50:
