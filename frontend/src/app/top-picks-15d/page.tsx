@@ -355,6 +355,7 @@ export default function TopPicks15DPage() {
                                     <th className="p-4 border-b border-[var(--color-b-border)] font-semibold cursor-pointer hover:text-white" onClick={() => requestSort('fiyat')}>Fiyat (₺){renderSortArrow('fiyat')}</th>
                                     <th className="p-4 border-b border-[var(--color-b-border)] font-semibold text-center cursor-pointer hover:text-white" onClick={() => requestSort('kompozit_skor')}>🏆 V6 Hibrit Skor{renderSortArrow('kompozit_skor')}</th>
                                     <th className="p-4 border-b border-[var(--color-b-border)] font-semibold cursor-pointer hover:text-white" onClick={() => requestSort('pgs')}>Güven Skoru{renderSortArrow('pgs')}</th>
+                                    <th className="p-4 border-b border-[var(--color-b-border)] font-semibold text-center" title="Risk bazlı önerilen portföy ağırlığı (%2 risk bütçesi / stop mesafesi, maks %25)">🛡️ Önerilen Ağırlık</th>
                                     <th className="p-4 border-b border-[var(--color-b-border)] font-semibold cursor-pointer hover:text-white" onClick={() => requestSort('temel_durum')}>Temel Durum{renderSortArrow('temel_durum')}</th>
                                     <th className="p-4 border-b border-[var(--color-b-border)] font-semibold cursor-pointer hover:text-white" onClick={() => requestSort('karar')}>Karar Sinyali{renderSortArrow('karar')}</th>
                                     <th className="p-4 border-b border-[var(--color-b-border)] font-semibold cursor-pointer hover:text-white" onClick={() => requestSort('graham_value')}>Graham Değeri{renderSortArrow('graham_value')}</th>
@@ -385,6 +386,14 @@ export default function TopPicks15DPage() {
                                         </td>
                                         <td className={`p-4 font-bold ${row.pgs >= 60 ? 'text-green-400' : 'text-red-400'}`}>
                                             {row.pgs || "-"}
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            {row.risk_position && row.risk_position.suggested_weight_pct > 0 ? (
+                                                <div>
+                                                    <span className="font-bold text-cyan-400">%{row.risk_position.suggested_weight_pct.toFixed(1)}</span>
+                                                    <div className="text-[10px] text-[var(--color-b-muted)]">SL: {Number(row.risk_position.stop_loss).toFixed(2)}₺</div>
+                                                </div>
+                                            ) : <span className="text-[var(--color-b-muted)]">-</span>}
                                         </td>
                                         <td className="p-4">
                                             <span className="px-2 py-1 text-xs rounded bg-[#181a20] border border-[var(--color-b-border)]">
