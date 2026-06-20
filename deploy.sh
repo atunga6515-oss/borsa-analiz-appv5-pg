@@ -19,9 +19,10 @@ echo ""
 # 1. Uygulama dizinine geç
 cd "$APP_DIR"
 
-# 2. Yerel değişiklikleri temizle (package-lock.json çakışmasını önler)
+# 2. Yerel değişiklikleri temizle (npm install kaynaklı package.json / lock çakışmasını önler)
 echo "📦 Yerel değişiklikler sıfırlanıyor..."
 git restore "$FRONTEND_DIR/package-lock.json" 2>/dev/null || true
+git restore "$FRONTEND_DIR/package.json" 2>/dev/null || true
 
 # 3. GitHub'dan güncel kodu çek
 echo "⬇️  GitHub'dan güncellemeler çekiliyor..."
