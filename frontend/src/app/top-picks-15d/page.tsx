@@ -369,7 +369,14 @@ export default function TopPicks15DPage() {
                                     const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i+1}.`;
                                     const tckr = row.ticker || row.Hisse;
                                     const prc = row.fiyat || row.Fiyat || 0;
-                                    
+
+                                    // Sinyaller: summary'deki her emoji ile başlayan satır = 1 rozet + 1 açıklama (birebir)
+                                    const _emojiRe = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]/u;
+                                    const _sigLines = String(row.summary || "")
+                                        .split("\n").map((l: string) => l.trim())
+                                        .filter((l: string) => l && _emojiRe.test(l.split(" ")[0]));
+                                    const _sigBadges = _sigLines.map((l: string) => l.split(" ")[0]);
+
                                     return (
                                     <tr key={i} className="hover:bg-[#1e2329] transition-colors border-b border-[var(--color-b-border)]">
                                         <td className="p-4 font-bold text-xl">{medal}</td>
@@ -404,20 +411,10 @@ export default function TopPicks15DPage() {
                                         <td className={`p-4 font-bold ${String(row.karar).includes("AL") || String(row.karar).includes("Lider") ? 'text-green-500' : 'text-yellow-500'}`}>
                                             {row.karar || "-"}
                                         </td>
-                                        <td className="p-4 text-center tip" data-tip={row.summary || ""}>
-                                            {(() => {
-                                                const s = String(row.summary || "");
-                                                const badges: string[] = [];
-                                                if (s.includes("Boğa Flaması")) badges.push("🚩");
-                                                if (s.includes("Altın Kesişim")) badges.push("🎯");
-                                                if (s.includes("Bollinger")) badges.push("💥");
-                                                if (s.includes("Stochastic")) badges.push("⚡");
-                                                if (s.includes("Pozitif Uyumsuzluk")) badges.push("💎");
-                                                if (s.includes("Dipten Dönüş")) badges.push("🔥");
-                                                return badges.length
-                                                    ? <span className="text-lg tracking-wide cursor-help">{badges.join(" ")}</span>
-                                                    : <span className="text-[var(--color-b-muted)]">-</span>;
-                                            })()}
+                                        <td className="p-4 text-center tip" data-tip={_sigLines.join("\n")}>
+                                            {_sigBadges.length
+                                                ? <span className="text-lg tracking-wide cursor-help">{_sigBadges.join(" ")}</span>
+                                                : <span className="text-[var(--color-b-muted)]">-</span>}
                                         </td>
                                         <td className="p-4 text-white font-medium">
                                             {typeof row.graham_value === 'number' ? `${row.graham_value.toFixed(2)} ₺` : row.graham_value || "-"}
