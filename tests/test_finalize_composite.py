@@ -63,7 +63,7 @@ def ref_pipeline(composite, inp, sent_100, is_bear, pbs, core_decision, summary,
 
     if inp["rsi_1w"] is not None and inp["rsi_1w"] > 80:
         composite -= 30
-        summary.append(f"\n⛔ MTF VETO: Haftalık RSI ({inp['rsi_1w']:.1f}) Çok Şişkin. Düzeltme Riski!")
+        summary.append(f"\n🚫 MTF VETO: Haftalık RSI ({inp['rsi_1w']:.1f}) Çok Şişkin. Düzeltme Riski!")
 
     if sent_100 < 20:
         composite -= 50
@@ -71,7 +71,7 @@ def ref_pipeline(composite, inp, sent_100, is_bear, pbs, core_decision, summary,
 
     if inp["upper_shadow"] is not None and inp["upper_shadow"] > 0.5:
         composite *= 0.85
-        summary.append("\n⚠️ Üst fitil baskısı (Zirve Reddi) tespit edildi.")
+        summary.append("\n🔺 Üst fitil baskısı (Zirve Reddi) tespit edildi.")
 
     if inp["dist_ema20"] is not None and inp["dist_ema20"] > 0.12:
         composite *= 0.9

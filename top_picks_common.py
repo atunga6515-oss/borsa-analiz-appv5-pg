@@ -310,7 +310,7 @@ def finalize_composite(composite, inp, *, sent_100, is_bear, price_below_sma50,
     # MTF VETO (Haftalık Şişme)
     if inp["rsi_1w"] is not None and inp["rsi_1w"] > 80:
         composite -= 30
-        summary.append(f"\n⛔ MTF VETO: Haftalık RSI ({inp['rsi_1w']:.1f}) Çok Şişkin. Düzeltme Riski!")
+        summary.append(f"\n🚫 MTF VETO: Haftalık RSI ({inp['rsi_1w']:.1f}) Çok Şişkin. Düzeltme Riski!")
 
     # AI VETO
     if sent_100 < 20:
@@ -320,7 +320,7 @@ def finalize_composite(composite, inp, *, sent_100, is_bear, price_below_sma50,
     # Gölge Analizi (Zirve Reddi)
     if inp["upper_shadow"] is not None and inp["upper_shadow"] > 0.5:
         composite *= 0.85
-        summary.append("\n⚠️ Üst fitil baskısı (Zirve Reddi) tespit edildi.")
+        summary.append("\n🔺 Üst fitil baskısı (Zirve Reddi) tespit edildi.")
 
     # Overextension (EMA20'den uzaklık)
     if inp["dist_ema20"] is not None and inp["dist_ema20"] > 0.12:

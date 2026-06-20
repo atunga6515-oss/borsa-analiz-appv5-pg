@@ -130,14 +130,14 @@ def detect_rsi_divergence(df: pd.DataFrame, window: int = 30) -> dict:
     if len(p_peaks) >= 2:
         i1, i2 = p_peaks[-2], p_peaks[-1]
         if prices_h[i2] > prices_h[i1] and rsis[i2] < rsis[i1]:
-            return {"type": "Negatif", "bonus": -20, "summary": "⚠️ Negatif Uyumsuzluk (Zirve Yorulması)"}
+            return {"type": "Negatif", "bonus": -20, "summary": "🔻 Negatif Uyumsuzluk (Zirve Yorulması)"}
 
     # 2. Pozitif Uyumsuzluk (Bullish)
     p_troughs = find_troughs(prices_l)
     if len(p_troughs) >= 2:
         i1, i2 = p_troughs[-2], p_troughs[-1]
         if prices_l[i2] < prices_l[i1] and rsis[i2] > rsis[i1]:
-            return {"type": "Pozitif", "bonus": 20, "summary": "🔥 Pozitif Uyumsuzluk (Dipte Alım Gücü)"}
+            return {"type": "Pozitif", "bonus": 20, "summary": "💠 Pozitif Uyumsuzluk (Dipte Alım Gücü)"}
                 
     return {"type": "Normal", "bonus": 0, "summary": ""}
 
@@ -180,7 +180,7 @@ def check_volatility_squeeze(df: pd.DataFrame) -> dict:
     if is_firing:
         status_text = "🚀 Ateşlendi / Patlama Başladı!"
     elif is_squeezing:
-        status_text = "⚡ Sıkışma Var (Patlama Bekleniyor)"
+        status_text = "🧨 Sıkışma Var (Patlama Bekleniyor)"
         if rsi_val > 55: status_text += " + RSI Pozitif"
         
     return {
@@ -351,7 +351,7 @@ def generate_signals_and_score(df: pd.DataFrame, ticker: str = "", market_regime
             # Ichimoku Kesişimi = Tetikleyici (Trigger)
             if ich_conv > ich_base: 
                 signals['Trend']['Ichimoku_Cross'] = 0.5
-                summary.append("⚡ Ichimoku: Tenkan-sen/Kijun-sen kesişimi **Alış Tetiklendi**.")
+                summary.append("🔀 Ichimoku: Tenkan-sen/Kijun-sen kesişimi **Alış Tetiklendi**.")
             elif ich_conv < ich_base: 
                 signals['Trend']['Ichimoku_Cross'] = -0.5
             
@@ -442,7 +442,7 @@ def generate_signals_and_score(df: pd.DataFrame, ticker: str = "", market_regime
         # Eğer teknik AL diyorsa ve haber duygusu ÇOK POZİTİF (+0.6 üstü) ise
         if decision in ["Al", "Güçlü Al"] and sentiment_score > 0.6:
             conviction_level = "GÜÇLÜ ONAY 💎"
-            summary.append("💎 Hibrit Teyit: Teknik sinyal ve haber akışı tam uyumlu (Güçlü Onay).")
+            summary.append("🤝 Hibrit Teyit: Teknik sinyal ve haber akışı tam uyumlu (Güçlü Onay).")
         else:
             # Standart PGS tabanlı güven seviyesi
             # PGS hesaplama
@@ -473,13 +473,13 @@ def generate_signals_and_score(df: pd.DataFrame, ticker: str = "", market_regime
                 # Değişim Bazlı Bonuslar (Yabancı Girişi)
                 if fr_change > 0.5:
                     pgs_score += 15
-                    summary.append(f"🔥 Yabancı Alımı: Çok Güçlü Giriş (+%{fr_change:.2f})")
+                    summary.append(f"🟢 Yabancı Alımı: Çok Güçlü Giriş (+%{fr_change:.2f})")
                 elif fr_change > 0.1:
                     pgs_score += 7
                     summary.append(f"✅ Yabancı Alımı: Pozitif Trend (+%{fr_change:.2f})")
                 elif fr_change < -0.5:
                     pgs_score -= 10
-                    summary.append(f"⚠️ Yabancı Satışı: Belirgin Çıkış (%{fr_change:.2f})")
+                    summary.append(f"🔴 Yabancı Satışı: Belirgin Çıkış (%{fr_change:.2f})")
             
             # PGS her zaman 0-100 arasında sınırlandır (bonus'lar öncesi kontrol)
             pgs_score = round(max(0, min(100, pgs_score)), 1)
