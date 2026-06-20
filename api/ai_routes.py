@@ -88,35 +88,45 @@ def analyze_stock(request: Request, req: AIAnalysisRequest, current_user: str = 
             # Ekstra zengin veriler:
             smc = d.get("market_structure", {})
             sr_data = d.get("support_resistance", {})
-            
+            takas_info = d.get("takas_info", {})
+
             bos_detected = smc.get("bos_detected", False)
             last_peak = smc.get("last_peak")
             last_trough = smc.get("last_trough")
-            
+
             bos_text = "Tespit Edildi (Kırılım Var)" if bos_detected else "Yok"
             peak_text = f"Tepe: {last_peak:.2f}" if last_peak else "Bilinmiyor"
             trough_text = f"Dip: {last_trough:.2f}" if last_trough else "Bilinmiyor"
-            
+
+            # Destek/Direnç: calculate_best_zones -> best_buy_zones / best_sell_zones = [(ad, fiyat), ...]
+            buy_zones = sr_data.get("best_buy_zones") or []
+            sell_zones = sr_data.get("best_sell_zones") or []
+            destek_text = f"{buy_zones[0][1]:.2f}" if buy_zones else "Bilinmiyor"
+            direnc_text = f"{sell_zones[0][1]:.2f}" if sell_zones else "Bilinmiyor"
+
+            fr_ratio = takas_info.get("foreign_ratio", "Bilinmiyor")
+            fr_change = takas_info.get("daily_change", "Bilinmiyor")
+
             user_prompt = f"""
             Hisse: {req.ticker}
             Mevcut Fiyat: {dynamic_price}
             RSI (14): {dynamic_rsi if dynamic_rsi is not None else 'Bilinmiyor'}
             MACD Sinyali: {dynamic_macd if dynamic_macd is not None else 'Bilinmiyor'}
             Trend Durumu ve Algoritma Kararı: {dynamic_trend if dynamic_trend else 'Bilinmiyor'}
-            
+
             Önemli Seviyeler:
-            - Destek: {sr_data.get("Destek_1", "Bilinmiyor")}
-            - Direnç: {sr_data.get("Direnc_1", "Bilinmiyor")}
-            
+            - Destek: {destek_text}
+            - Direnç: {direnc_text}
+
             SMC (Akıllı Para Konsepti):
             - Son Kırılım (BOS): {bos_text}
             - En Yakın Zirve (Likit): {peak_text}
             - En Yakın Dip (Likit): {trough_text}
-            
+
             Yabancı Oranı ve Değişim:
-            - Yabancı Oranı: %{analysis_data.get("takas_info", {}).get("foreign_ratio", "Bilinmiyor")}
-            - Son Değişim: %{analysis_data.get("takas_info", {}).get("daily_change", "Bilinmiyor")}
-            
+            - Yabancı Oranı: %{fr_ratio}
+            - Son Değişim: %{fr_change}
+
             Ek Notlar: {req.note}
             """
         else:
@@ -236,7 +246,7 @@ def analyze_indicators_endpoint(request: AIAnalysisRequestLayered, current_user:
             
         if "adxDmi" in request.active_indicators:
             latest_adx = layers["adx_dmi"][-1] if layers.get("adx_dmi") else {"adx": 20, "plus_di": 20, "minus_di": 20}
-            indicator_texts.append(f"- ADX & DMI Trend Gücü: ADX={latest_adx.get('adx')}, +DI={latest_adx.get('+di')}, -DI={latest_adx.get('-di')} (ADX > 25 ise trend güçlüdür)")
+            indicator_texts.append(f"- ADX & DMI Trend Gücü: ADX={latest_adx.get('adx')}, +DI={latest_adx.get('plus_di')}, -DI={latest_adx.get('minus_di')} (ADX > 25 ise trend güçlüdür)")
             
         if "stochRSI" in request.active_indicators:
             latest_stoch = layers["stoch_rsi"][-1] if layers.get("stoch_rsi") else {"k": 50, "d": 50}
@@ -267,18 +277,37 @@ def analyze_indicators_endpoint(request: AIAnalysisRequestLayered, current_user:
         }}
         """
 
-        model = genai.GenerativeModel('gemini-2.5-flash')
-        response = model.generate_content(
-            ai_prompt,
-            generation_config={"response_mime_type": "application/json"}
-        )
-        
-        # Log the action
-        log_action(current_user, "AI_ANALYSIS", f"Pro Terminal: {request.ticker} için AI analizi yapıldı. Kalan kota: {new_quota}")
+        # Model yedeği (analyze ile tutarlı): 2.5 -> 2.0 -> 1.5 flash
+        model_names = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
+        response = None
+        last_error = None
+        for m_name in model_names:
+            try:
+                model = genai.GenerativeModel(m_name)
+                response = model.generate_content(
+                    ai_prompt,
+                    generation_config={"response_mime_type": "application/json"}
+                )
+                break
+            except Exception as e:
+                last_error = e
+                continue
+        if response is None:
+            raise last_error or Exception("AI yanıtı alınamadı")
 
         res_data = json.loads(response.text)
+
+        log_action(current_user, "AI_ANALYSIS", f"Pro Terminal: {request.ticker} için AI analizi yapıldı. Kalan kota: {new_quota}")
+
         res_data["remaining_quota"] = new_quota
         return res_data
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # AI başarısız — kotayı geri ver (analyze ile tutarlı)
+        with engine.begin() as conn:
+            conn.execute(
+                text("UPDATE users SET ai_quota = ai_quota + 1 WHERE username=:u"),
+                {"u": current_user}
+            )
+        log_action(current_user, "AI_ERROR", f"Pro Terminal AI: {str(e)}", level="ERROR")
+        raise HTTPException(status_code=500, detail="Yapay Zeka sunucularına bağlanılamadı. Lütfen daha sonra tekrar deneyin.")
