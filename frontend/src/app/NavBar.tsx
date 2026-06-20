@@ -29,6 +29,7 @@ const NAV_GROUPS = [
             { href: "/indicators", label: "Pro Terminal", icon: "📈", tooltip: "Seçtiğiniz hisseleri İzleme Listenizde toplayın ve gelişmiş teknik indikatörlerle grafik üzerinde inceleyin." },
             { href: "/backtest", label: "Backtest", icon: "⚙️", tooltip: "Geçmiş verilere dayanarak indikatörlerin al-sat stratejilerini test edin." },
             { href: "/strategy-compare", label: "Kıyasla", icon: "🧪", tooltip: "Farklı al-sat stratejilerinin geçmiş getiri performanslarını birbiriyle kıyaslayın." },
+            { href: "/karne", label: "Sinyal Karnesi", icon: "🏅", tooltip: "Üretilen Seçki 15G sinyallerinin 15 işlem günü sonraki GERÇEK isabet oranını ve getirisini ölçen model karnesi." },
             { href: "/robot", label: "Robot", icon: "🤖", tooltip: "Otonom Al-Sat Robotu (Paper Trading) ile stratejinizi test edin." },
             { href: "/risk", label: "Risk", icon: "⚠️", tooltip: "Portföyünüzün ve piyasanın risk durumunu, volatilite oranlarını analiz edin." },
             { href: "/smc", label: "SMC", icon: "📐", tooltip: "Akıllı Para Konseptleri (Smart Money Concepts) ile market yapısı kırılımlarını (BOS) ve likidite seviyelerini inceleyin." },
