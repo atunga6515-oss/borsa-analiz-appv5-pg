@@ -20,7 +20,8 @@ from patterns import detect_candlestick_patterns
 from support_resistance import calculate_best_zones
 from screener import get_sector, BIST30_SYMBOLS, BIST100_SYMBOLS, BIST_ALL_SYMBOLS
 from takas_engine import get_takas_data
-from top_picks_common import save_picks_history, get_history_dates, get_picks_by_date
+from top_picks_common import (save_picks_history, get_history_dates, get_picks_by_date,
+                              compute_base, compute_finalize_inputs, finalize_composite)
 
 _HISTORY_TABLE = "top_picks_15d_history"
 
@@ -51,114 +52,31 @@ def deep_analyze_stock(sym: str, market_regime: dict = None) -> dict:
     """
     result = {"ticker": sym, "error": None, "summary": ""}
 
-    # 1. Veri Çek
-    df = fetch_data(sym, interval="1d", period="1y")
-    if df.empty or len(df) < 50:
-        result["error"] = "Yetersiz veri"
+    # --- ORTAK ÖN-HAZIRLIK (top_picks_common.compute_base) ---
+    ctx = compute_base(sym, market_regime, tf_substring_al=True)
+    if ctx.get("error"):
+        result["error"] = ctx["error"]
         return result
-        
-    df = df.copy()
 
-    # 1.1 Haber Duygusu Çek (Gemini AI)
-    sent_score, news_list = get_sentiment_summary(sym)
-    sent_100 = (sent_score + 1) * 50
-    
-    df = calculate_indicators(df, ticker=sym)
-    sig = generate_signals_and_score(df, ticker=sym, market_regime=market_regime, sentiment_score=sent_score)
-    
-    core_score = sig.get('core_score', 50)
-    core_decision = sig.get('core_decision', sig.get('decision', 'Nötr'))
-    
-    # Yeni vadelere göre skorlar
-    short_term_score = sig.get('short_term', {}).get('score', 50)
-    medium_term_score = sig.get('medium_term', {}).get('score', 50)
-    long_term_score = sig.get('long_term', {}).get('score', 50)
+    df = ctx["df"]; sig = ctx["sig"]; live_px = ctx["live_px"]
+    tech_score = ctx["tech_score"]; core_decision = ctx["core_decision"]
+    short_term_score = ctx["short_term_score"]
+    medium_term_score = ctx["medium_term_score"]; long_term_score = ctx["long_term_score"]
+    momentum_bonus = ctx["momentum_bonus"]; volume_bonus = ctx["volume_bonus"]; tf_bonus = ctx["tf_bonus"]
+    pattern_bonus = ctx["pattern_bonus"]; pattern_text = ctx["pattern_text"]
+    support_bonus = ctx["support_bonus"]; zones = ctx["zones"]
+    dist_sup_pct = ctx["dist_sup_pct"]; dist_res_pct = ctx["dist_res_pct"]
+    news_bonus = ctx["news_bonus"]; news_list = ctx["news_list"]; sent_100 = ctx["sent_100"]
+    is_bear = ctx["is_bear"]; price_below_sma50 = ctx["price_below_sma50"]
+    reversal_bonus = ctx["reversal_bonus"]; reversal_text = ctx["reversal_text"]
+    takas_bonus = ctx["takas_bonus"]; fr_ratio = ctx["fr_ratio"]; fr_change = ctx["fr_change"]
 
-    # 2. Canlı Fiyat
-    live_px = get_live_price(sym)
-    if live_px <= 0:
-        live_px = df['Close'].iloc[-1]
-
-    # 3. Teknik Skor (0-100)
-    tech_score = sig['score']
-
-    # 4. Momentum Trendi (Son 5 gün ortalama RSI eğimi)
-    momentum_bonus = 0
-    if 'RSI_14' in df.columns and len(df) >= 6:
-        rsi_last5 = df['RSI_14'].iloc[-5:].dropna()
-        if len(rsi_last5) >= 2:
-            rsi_slope = rsi_last5.iloc[-1] - rsi_last5.iloc[0]
-            if rsi_slope > 5:
-                momentum_bonus = 10
-            elif rsi_slope > 0:
-                momentum_bonus = 5
-
-    # 5. Hacim Patlaması Bonusu
-    volume_bonus = 0
-    if len(df) >= 11:
-        avg_vol = df['Volume'].iloc[-11:-1].mean()
-        today_vol = df['Volume'].iloc[-1]
-        if avg_vol > 0 and today_vol > avg_vol * 1.5:
-            if df['Close'].iloc[-1] > df['Open'].iloc[-1]:
-                volume_bonus = 15
-            else:
-                volume_bonus = 5
-
-    # 6. Çoklu Zaman Dilimi Bonusu
-    tf_bonus = 0
-    df_1h = fetch_data(sym, interval="1h", period="1mo")
-    if not df_1h.empty and len(df_1h) >= 20:
-        df_1h = calculate_indicators(df_1h)
-        sig_1h = generate_signals_and_score(df_1h)
-        if "AL" in sig['decision'] and "AL" in sig_1h['decision']:
-            tf_bonus = 15
-        elif "AL" in sig['decision'] or "AL" in sig_1h['decision']:
-            tf_bonus = 5
-
-    # 7. Formasyon Bonusu
-    pattern_bonus = 0
-    pattern_text = "-"
-    p_res = detect_candlestick_patterns(df)
-    if p_res and p_res.get('summary') and "tespit edilmedi" not in p_res.get('summary'):
-        pattern_text = p_res['summary'].splitlines()[0].replace('*', '').strip()
-        if any(w in pattern_text.lower() for w in ['boğa', 'çekiç', 'yutan', 'sabah']):
-            pattern_bonus = 10
-
-    # 8. Destek Yakınlık Bonusu (Desteğe yakınsa risk düşük)
-    support_bonus = 0
-    zones = calculate_best_zones(df)
-    dist_sup_pct = None
-    dist_res_pct = None
-    
-    if zones.get('best_buy_zones'):
-        # [(Name, Price), ...] formatında geliyor, ilk elemanın fiyatını (index 1) al
-        sup = zones['best_buy_zones'][0][1]
-        dist_sup_pct = ((live_px - sup) / live_px) * 100
-        if dist_sup_pct < 3:  # Desteğe %3'ten yakınsa
-            support_bonus = 10
-            
-    if zones.get('best_sell_zones'):
-        res_p = zones['best_sell_zones'][0][1]
-        dist_res_pct = ((res_p - live_px) / live_px) * 100
-
-    # 9. Haber Duygu Analizi (AI Sonuçlarını Kullan)
-    news_bonus = 0
-    is_bear = market_regime['is_bear'] if market_regime else False
-    price_below_sma50 = live_px < df['SMA_50'].iloc[-1] if 'SMA_50' in df.columns else False
-
-    if sent_100 > 70:
-        news_bonus = 5 if (is_bear and price_below_sma50) else 10
-    elif sent_100 > 55:
-        news_bonus = 2 if (is_bear and price_below_sma50) else 5
-    elif sent_100 < 30:
-        news_bonus = -15 if is_bear else -10
-
-    # 10. Kesişim (Confluence) Bonusları - Swing Trade Özel
+    # 10. Kesişim (Confluence) Bonusları - Swing Trade Özel (15 Gün motoruna özgü)
     macd_bonus = 0
     bb_bonus = 0
     stoch_bonus = 0
     rsi_div_bonus = 0
-    
+
     if len(df) >= 15:
         # a) MACD Golden Cross
         if 'MACDh' in df.columns:
@@ -204,29 +122,7 @@ def deep_analyze_stock(sym: str, market_regime: dict = None) -> dict:
                 if min_c2 < min_c1 and min_r2 > min_r1 and min_r2 < 45:
                     rsi_div_bonus = 15
 
-    # 11. Dipten Dönüş Bonusu (RSI 35 altı)
-    reversal_bonus = 0
-    reversal_text = "-"
-    if 'RSI_14' in df.columns and len(df) >= 3:
-        rsi_today = df['RSI_14'].iloc[-1]
-        rsi_yest = df['RSI_14'].iloc[-2]
-        if pd.notna(rsi_today) and pd.notna(rsi_yest):
-            if rsi_yest < 35 and rsi_today > rsi_yest:
-                reversal_bonus = 15
-                reversal_text = "🔥 Dipten Dönüş"
-
-    # 12. Yabancı Takas Bonusu
-    takas_bonus = 0
-    takas = get_takas_data(sym)
-    fr_ratio = takas.get('foreign_ratio', 0)
-    fr_change = takas.get('daily_change', 0)
-    
-    if fr_ratio > 40: takas_bonus += 15
-    elif fr_ratio > 20: takas_bonus += 7
-    
-    if fr_change > 0.5: takas_bonus += 15
-    elif fr_change > 0.1: takas_bonus += 5
-    elif fr_change < -0.5: takas_bonus -= 15
+    # (Dipten Dönüş ve Yabancı Takas bonusları compute_base içinde hesaplanır.)
 
     confluence_total = macd_bonus + bb_bonus + stoch_bonus + rsi_div_bonus
 
@@ -265,88 +161,18 @@ def deep_analyze_stock(sym: str, market_regime: dict = None) -> dict:
     if rsi_div_bonus > 0: result["summary"] += "\n💎 RSI: Pozitif Uyumsuzluk Tespiti"
     if pattern_bonus > 0: result["summary"] += f"\n🕯️ Mum Formasyonu: {pattern_text}"
 
-    # 11. Göreceli Güç (Alpha)
-    alpha_bonus = 0
-    alpha_text = "-"
-    if len(df) >= 5 and market_regime and 'xu100_5d_chg' in market_regime:
-        xu100_5d_chg = market_regime['xu100_5d_chg']
-        sym_5d = ((live_px - df['Close'].iloc[-5]) / df['Close'].iloc[-5]) * 100
-        alpha_val = sym_5d - xu100_5d_chg
-        alpha_text = f"{alpha_val:+.1f}%"  
-        if xu100_5d_chg < -1.0 and sym_5d > -0.5:
-            alpha_bonus = 20
-            result["summary"] += f"\n💪 Endeksten Güçlü Ayrışma (Alpha: {alpha_text})"
-    
-    composite += alpha_bonus
-    
-    # Kural ihlallerini anlamlı kılmak için pozitif bonuslar eklendikten sonra TAVAN yapıyoruz.
-    composite = min(100.0, composite)
+    # Alpha + tüm veto/filtreler + nihai karar (ortak & denklik-testli finalize_composite)
+    # 15 Gün motoru: alpha sonrası min(100) (clamp_100_after_alpha=True) ve mesajlar
+    # sonuç özetine eklenir.
+    _inp = compute_finalize_inputs(df, live_px, zones, market_regime)
+    _fin_msgs = []
+    composite, rr_ratio, alpha_text, karar = finalize_composite(
+        composite, _inp, sent_100=sent_100, is_bear=is_bear,
+        price_below_sma50=price_below_sma50, core_decision=core_decision,
+        clamp_100_after_alpha=True, summary=_fin_msgs,
+    )
+    result["summary"] += "".join(_fin_msgs)
 
-    # 12. Risk/Getiri (R/R) Seçkisi (+ Ceza)
-    rr_ratio = 0.0
-    if zones.get('best_buy_zones') and zones.get('best_sell_zones'):
-        sup = zones['best_buy_zones'][0][1]
-        res = zones['best_sell_zones'][0][1]
-        risk = live_px - sup
-        reward = res - live_px
-        if risk > 0:
-            rr_ratio = reward / risk
-            if rr_ratio < 2.0:
-                composite -= 30
-                result["summary"] += f"\n⛔ Risk/Getiri Çok Düşük (R/R: {rr_ratio:.2f}). -30 Ceza!"
-        elif risk <= 0:
-            rr_ratio = 5.0 # Çok iyi alım yeri
-            
-    # 13. MTF VETO (Haftalık Şişme)
-    try:
-        df_1w = df.resample('W').agg({'Open': 'first', 'High': 'max', 'Low': 'min', 'Close': 'last', 'Volume': 'sum'})
-        if len(df_1w) > 14:
-            df_1w = calculate_indicators(df_1w)
-            rsi_1w = df_1w['RSI_14'].iloc[-1] if 'RSI_14' in df_1w.columns else 50
-            if rsi_1w > 80:
-                composite -= 30
-                result["summary"] += f"\n⛔ MTF VETO: Haftalık RSI ({rsi_1w:.1f}) Çok Şişkin. Düzeltme Riski!"
-    except Exception:
-        pass
-        
-    # AI VETO
-    if sent_100 < 20: 
-        composite -= 50
-        result["summary"] += "\n🚨 AI VETO: Kara Bulut (Çok Negatif Haberler)"
-    
-    # 11. Yeni Filtreler (Gölge Analizi & Overextension)
-    range_px = (df['High'].iloc[-1] - df['Low'].iloc[-1])
-    if range_px > 0:
-        upper_shadow = (df['High'].iloc[-1] - df['Close'].iloc[-1]) / range_px
-        if upper_shadow > 0.5:
-            composite *= 0.85
-            result["summary"] += "\n⚠️ Üst fitil baskısı (Zirve Reddi) tespit edildi."
-
-    ema20 = df['EMA_20'].iloc[-1] if 'EMA_20' in df.columns else 0
-    if ema20 > 0:
-        dist_ema20 = (live_px - ema20) / ema20
-        if dist_ema20 > 0.12:
-            composite *= 0.9
-            result["summary"] += f"\n🧲 EMA 20'den çok uzak (%{dist_ema20*100:.1f}), düzeltme riski."
-
-    # Ayı Piyasası & SMA 50 Penaltısı (Tedarikçi Koruması)
-    if is_bear and price_below_sma50:
-        composite *= 0.85 
-
-    composite = max(0, round(composite, 1))
-    
-    # Karar Mekanizması RSI Doygunluk Güncellemesi
-    karar = core_decision
-
-    if composite >= 70 and 'RSI_14' in df.columns and df['RSI_14'].iloc[-1] > 65:
-        karar = "🧘 Doygunluk Bölgesi"
-        result["summary"] += "\n🧘 RSI Doygunluğu: Kar satışı gelebilir."
-    
-    # Endeks Acil Freni
-    if market_regime and market_regime.get('daily_chg', 0) < -2.0:
-        if any(w in karar for w in ["Trend", "Lideri", "Potansiyeli"]):
-            karar = "⚠️ Bekle (Endeks Freni)"
-        
     # V6 HİBRİT SKOR ENTEGRASYONU
     try:
         fund_data = get_fundamental_data(sym)
