@@ -86,13 +86,16 @@ from fastapi.responses import StreamingResponse
 import io
 import yfinance as yf
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')
 import mplfinance as mpf
 import ta
 
 @router.get("/chart/{ticker}")
 def get_patlama_chart(ticker: str, current_user: str = Depends(get_current_user)):
     try:
-        df = yf.download(ticker, period="6mo", interval="1d", progress=False)
+        download_ticker = ticker if ticker.endswith(".IS") else f"{ticker}.IS"
+        df = yf.download(download_ticker, period="6mo", interval="1d", progress=False)
         
         if df.empty:
             raise HTTPException(status_code=404, detail=f"No data found for {ticker}")
