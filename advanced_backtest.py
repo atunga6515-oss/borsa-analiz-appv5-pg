@@ -105,8 +105,9 @@ def run_advanced_backtest(
         # ALIM KARARI
         if score >= buy_threshold and position == 0:
             execution_price = current_price * (1 + (slippage_pct / 100.0))
-            qty = capital / execution_price
-            cost = capital * commission_rate
+            effective_price = execution_price * (1 + commission_rate)
+            qty = capital / effective_price
+            cost = qty * execution_price * commission_rate
             position = qty
             entry_price = execution_price
             capital = capital - (qty * execution_price) - cost
@@ -168,8 +169,9 @@ def run_advanced_backtest(
     # Sortino Ratio (Sadece negatif getirilerin standart sapması)
     negative_returns = excess_returns[excess_returns < 0]
     sortino_ratio = 0.0
-    if negative_returns.std() > 0:
-        sortino_ratio = (excess_returns.mean() / negative_returns.std()) * np.sqrt(252)
+    downside_std = np.sqrt(np.mean(negative_returns**2))
+    if downside_std > 0:
+        sortino_ratio = (excess_returns.mean() / downside_std) * np.sqrt(252)
 
     return {
         "final_equity": final_equity,

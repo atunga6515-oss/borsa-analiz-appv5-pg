@@ -376,7 +376,7 @@ def generate_signals_and_score(df: pd.DataFrame, ticker: str = "", market_regime
 
         def calc_cat_score(cat_dict):
             if not cat_dict: return 50
-            vals = list(cat_dict.values())
+            vals = [max(-1, min(1, v)) for v in cat_dict.values()]
             return (sum(vals) / len(vals) + 1) * 50
 
         t_score = calc_cat_score(signals['Trend'])

@@ -597,18 +597,23 @@ def generate_historical_signals(df: pd.DataFrame, sensitivity: str = "Dengeli") 
     # 1. 100+ indikatör hesapla ve kuralları al
     df, rules = get_all_indicator_rules(df)
     
-    # 2. Her indikatörün Win Rate oranını hesapla
+    # Train-Test Ayrımı (Look-Ahead Bias'ı önlemek için)
+    # Win-rate hesaplaması sadece ilk %70'lik veri (Train) üzerinde yapılır.
+    split_idx = int(len(df) * 0.7)
+    train_df = df.iloc[:split_idx]
+    
+    # 2. Her indikatörün Win Rate oranını hesapla (SADECE TRAIN VERİSİNDE)
     indicator_win_rates = {}
     for name, rule_func in rules.items():
         try:
-            signals = rule_func(df)
+            signals = rule_func(train_df)
             trades = []
             active_trade = None
             
-            for t in range(1, len(df)):
+            for t in range(1, len(train_df)):
                 sig = signals[t]
                 prev_sig = signals[t-1]
-                close_px = float(df['Close'].iloc[t])
+                close_px = float(train_df['Close'].iloc[t])
                 
                 if sig == 1 and prev_sig != 1 and active_trade is None:
                     active_trade = close_px
@@ -723,8 +728,9 @@ def generate_historical_signals(df: pd.DataFrame, sensitivity: str = "Dengeli") 
             "Oylama Ağırlığı (%)": round(weight_pct, 1)
         })
 
-    # 7. Backtest Performansını Hesapla
-    stats = backtest_signals(df)
+    # 7. Backtest Performansını Hesapla (SADECE TEST/OOS VERİSİNDE)
+    test_df = df.iloc[split_idx:]
+    stats = backtest_signals(test_df)
     
     return df, top_indicators, stats
 
@@ -805,7 +811,12 @@ def backtest_signals(df: pd.DataFrame) -> dict:
     win_trades = sum(1 for t in trades if t['win'])
     loss_trades = total_trades - win_trades
     win_rate = (win_trades / total_trades * 100) if total_trades > 0 else 0.0
-    total_return = sum(t['return_pct'] for t in trades)
+    
+    # Kümülatif (Bileşik) Getiri Hesaplama
+    compound_return = 1.0
+    for t in trades:
+        compound_return *= (1 + (t['return_pct'] / 100.0))
+    total_return = (compound_return - 1) * 100.0
     
     best_trade = max(trades, key=lambda x: x['return_pct'])['return_pct'] if total_trades > 0 else 0.0
     worst_trade = min(trades, key=lambda x: x['return_pct'])['return_pct'] if total_trades > 0 else 0.0

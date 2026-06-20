@@ -42,14 +42,15 @@ def _calculate_metrics(trades: list, equity_curve: pd.Series, initial_capital: f
     returns = equity_curve.pct_change().dropna()
     total_return = ((equity_curve.iloc[-1] - initial_capital) / initial_capital) * 100
     
-    # Sharpe Ratio (Risk-free rate ≈ %15 TL — Türkiye faiz oranı, günlüğe çevir)
-    risk_free_daily = (1.15 ** (1/252)) - 1
+    # Sharpe Ratio (Risk-free rate: Yıllık %40 sabiti üzerinden)
+    risk_free_annual = 0.40
+    risk_free_daily = risk_free_annual / 252
     excess_returns = returns - risk_free_daily
     sharpe = (excess_returns.mean() / excess_returns.std() * np.sqrt(252)) if excess_returns.std() > 0 else 0
     
     # Sortino Ratio (Sadece negatif volatiliteyi hesaplar)
-    downside_returns = returns[returns < 0]
-    downside_std = downside_returns.std() if len(downside_returns) > 0 else 0
+    downside_returns = excess_returns[excess_returns < 0]
+    downside_std = np.sqrt(np.mean(downside_returns**2)) if len(downside_returns) > 0 else 0
     sortino = (excess_returns.mean() / downside_std * np.sqrt(252)) if downside_std > 0 else 0
     
     # Max Drawdown

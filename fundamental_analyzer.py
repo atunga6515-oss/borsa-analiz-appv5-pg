@@ -57,8 +57,8 @@ def get_fundamental_data(ticker_symbol: str) -> dict:
         # yfinance dividend yield her zaman decimal gelir (0.20 = %20).
         if div_yield is not None:
             div_yield = float(div_yield)
-            if div_yield < 5.0: # %500 altındaki tüm ondalıkları 100 ile çarp (BIST'te %25 vb. olabilir)
-                div_yield = div_yield * 100
+            # Yfinance güncel sürümlerde veriyi doğrudan yüzde formatında (örn: 2.6) dönmektedir.
+            # Bu yüzden 100 ile çarpma (ölçekleme) işlemi kaldırıldı.
         else:
             div_yield = 0.0
         

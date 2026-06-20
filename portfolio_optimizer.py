@@ -32,8 +32,8 @@ def optimize_portfolio(tickers, risk_profile='Medium', lookback_days=365):
     cov_matrix = returns.cov()
     num_assets = len(price_df.columns)
 
-    # Risksiz getiri (yaklaşık günlük TR faizi)
-    risk_free_rate = 0.001  
+    # Risksiz getiri (Yıllık bazda sabit - Örn: %40)
+    risk_free_rate_annual = 0.40  
 
     def portfolio_annualised_performance(weights, mean_returns, cov_matrix):
         returns_p = np.sum(mean_returns * weights) * 252
@@ -41,9 +41,9 @@ def optimize_portfolio(tickers, risk_profile='Medium', lookback_days=365):
         return std_p, returns_p
 
     # Optimizasyon hedefleri
-    def neg_sharpe_ratio(weights, mean_returns, cov_matrix, risk_free_rate):
+    def neg_sharpe_ratio(weights, mean_returns, cov_matrix, rf_annual):
         p_var, p_ret = portfolio_annualised_performance(weights, mean_returns, cov_matrix)
-        return -(p_ret - risk_free_rate) / p_var
+        return -(p_ret - rf_annual) / p_var
 
     def portfolio_variance(weights, mean_returns, cov_matrix):
         return portfolio_annualised_performance(weights, mean_returns, cov_matrix)[0]
@@ -67,8 +67,8 @@ def optimize_portfolio(tickers, risk_profile='Medium', lookback_days=365):
         # Minimum Varyans (Sadece Riski minimize et)
         opt_result = minimize(portfolio_variance, init_guess, args=(mean_returns, cov_matrix), method='SLSQP', bounds=bounds, constraints=constraints)
     else:
-        # Maksimum Sharpe (Risk/Getiri oranı dengesi - Medium)
-        opt_result = minimize(neg_sharpe_ratio, init_guess, args=(mean_returns, cov_matrix, risk_free_rate), method='SLSQP', bounds=bounds, constraints=constraints)
+        # Maksimum Sharpe Optimizasyonu
+        opt_result = minimize(neg_sharpe_ratio, init_guess, args=(mean_returns, cov_matrix, risk_free_rate_annual), method='SLSQP', bounds=bounds, constraints=constraints)
 
     if not opt_result.success:
         return {"error": "Optimizasyon algoritması yakınsayamadı."}
@@ -98,6 +98,6 @@ def optimize_portfolio(tickers, risk_profile='Medium', lookback_days=365):
         "metrics": {
             "expected_annual_return_pct": round(expected_ret * 100, 2),
             "expected_annual_volatility_pct": round(expected_vol * 100, 2),
-            "sharpe_ratio": round((expected_ret - risk_free_rate*252) / expected_vol, 2) if expected_vol > 0 else 0
+            "sharpe_ratio": round((expected_ret - risk_free_rate_annual) / expected_vol, 2) if expected_vol > 0 else 0
         }
     }
