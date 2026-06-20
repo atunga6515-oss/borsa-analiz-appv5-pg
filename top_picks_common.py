@@ -343,3 +343,36 @@ def finalize_composite(composite, inp, *, sent_100, is_bear, price_below_sma50,
             karar = "⚠️ Bekle (Endeks Freni)"
 
     return composite, rr_ratio, alpha_text, karar
+
+
+def compute_risk_position(live_px, sl_level, v6_score,
+                          risk_budget_pct: float = 1.0, max_weight_pct: float = 25.0):
+    """
+    Konviksiyon (V6 skoru) ağırlıklı önerilen pozisyon büyüklüğü.
+
+        Önerilen Ağırlık = (Risk Bütçesi% / Stop Mesafesi%) × (V6 Skoru / 100)
+
+    Yani "güven (V6) arttıkça önerilen yatırım yüzdesi de artar". Taban risk
+    boyutlandırması risk_manager.calculate_position_size (SSOT) ile yapılır,
+    sonra V6 ile ölçeklenir ve max_weight_pct ile sınırlanır.
+    """
+    from risk_manager import calculate_position_size
+
+    sl_level = sl_level or 0
+    pos = calculate_position_size(
+        capital=100000.0, risk_pct=risk_budget_pct, entry_price=live_px, stop_loss=sl_level
+    )
+    base_weight = pos["portfolio_allocation_pct"]          # = risk_budget% / stop_mesafesi%
+    conviction = max(0.0, float(v6_score)) / 100.0         # 0..1 (V6 güven endeksi)
+    weight = min(max_weight_pct, base_weight * conviction)
+
+    # 100.000₺ sermaye için öneri ağırlığına denk gelen lot
+    invest = (weight / 100.0) * 100000.0
+    lots = int(invest / live_px) if (live_px and live_px > 0) else 0
+
+    return {
+        "stop_loss": sl_level,
+        "risk_per_share": pos["risk_per_share"],
+        "suggested_weight_pct": round(weight, 1),
+        "lots_per_100k": lots,
+    }

@@ -21,7 +21,8 @@ from support_resistance import calculate_best_zones
 from screener import get_sector, BIST30_SYMBOLS, BIST100_SYMBOLS, BIST_ALL_SYMBOLS
 from takas_engine import get_takas_data
 from top_picks_common import (save_picks_history, get_history_dates, get_picks_by_date,
-                              compute_base, compute_finalize_inputs, finalize_composite)
+                              compute_base, compute_finalize_inputs, finalize_composite,
+                              compute_risk_position)
 
 _HISTORY_TABLE = "top_picks_history"
 
@@ -128,17 +129,10 @@ def deep_analyze_stock(sym: str, market_regime: dict = None) -> dict:
     # ORTA UZUN VADE: %50 Teknik Trend Kompozit + %50 Temel Not
     v6_score = round((composite * 0.50) + (tem_skor * 0.50), 1)
 
-    # Risk Yönetimi: Önerilen pozisyon boyutu (risk_manager SSOT)
-    # Sermayeden bağımsız ağırlık = %2 risk bütçesi / stop mesafesi (maks. %25 ile sınırlı)
-    from risk_manager import calculate_position_size
+    # Risk Yönetimi: Konviksiyon (V6) ağırlıklı önerilen pozisyon büyüklüğü
+    # Ağırlık = (%1 risk bütçesi / stop mesafesi) × (V6 / 100), maks %25
     sl_level = sig.get('risk', {}).get('SL', 0) or 0
-    pos_info = calculate_position_size(capital=100000.0, risk_pct=2.0, entry_price=live_px, stop_loss=sl_level)
-    risk_position = {
-        "stop_loss": sl_level,
-        "risk_per_share": pos_info["risk_per_share"],
-        "suggested_weight_pct": min(25.0, pos_info["portfolio_allocation_pct"]),
-        "lots_per_100k": pos_info["position_size"],
-    }
+    risk_position = compute_risk_position(live_px, sl_level, v6_score)
 
     # Detay sözlüğü
     rsi_val = df['RSI_14'].iloc[-1] if 'RSI_14' in df.columns and pd.notna(df['RSI_14'].iloc[-1]) else None
