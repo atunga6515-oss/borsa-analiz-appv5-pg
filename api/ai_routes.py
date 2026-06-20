@@ -82,9 +82,22 @@ def analyze_stock(request: Request, req: AIAnalysisRequest, current_user: str = 
             # Use dynamic live data
             dynamic_price = d.get("current_price", req.price)
             dynamic_rsi = indicators.get("RSI", req.rsi)
-            dynamic_macd = indicators.get("MACD_Signal", req.macd_signal)
             dynamic_trend = ssot.get("decision", req.trend)
-            
+
+            # MACD'yi ham değer yerine YÖN olarak ver (sinyal çizgisine göre boğa/ayı kesişimi)
+            macd_line = indicators.get("MACD")
+            macd_sig = indicators.get("MACD_Signal")
+            if macd_line is not None and macd_sig is not None:
+                hist = macd_line - macd_sig
+                if macd_line > macd_sig:
+                    macd_text = (f"Pozitif/Boğa — MACD ({macd_line:.3f}) sinyal çizgisinin ({macd_sig:.3f}) "
+                                 f"ÜSTÜNDE (histogram +{hist:.3f}, al yönlü kesişim)")
+                else:
+                    macd_text = (f"Negatif/Ayı — MACD ({macd_line:.3f}) sinyal çizgisinin ({macd_sig:.3f}) "
+                                 f"ALTINDA (histogram {hist:.3f}, sat yönlü kesişim)")
+            else:
+                macd_text = (req.macd_signal or "Bilinmiyor")
+
             # Ekstra zengin veriler:
             smc = d.get("market_structure", {})
             sr_data = d.get("support_resistance", {})
@@ -111,7 +124,7 @@ def analyze_stock(request: Request, req: AIAnalysisRequest, current_user: str = 
             Hisse: {req.ticker}
             Mevcut Fiyat: {dynamic_price}
             RSI (14): {dynamic_rsi if dynamic_rsi is not None else 'Bilinmiyor'}
-            MACD Sinyali: {dynamic_macd if dynamic_macd is not None else 'Bilinmiyor'}
+            MACD Durumu: {macd_text}
             Trend Durumu ve Algoritma Kararı: {dynamic_trend if dynamic_trend else 'Bilinmiyor'}
 
             Önemli Seviyeler:
