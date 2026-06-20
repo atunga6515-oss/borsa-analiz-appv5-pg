@@ -382,7 +382,7 @@ export default function TopPicksPage() {
                                             {row.risk_position && row.risk_position.suggested_weight_pct > 0 ? (
                                                 <div>
                                                     <span className="font-bold text-cyan-400">%{row.risk_position.suggested_weight_pct.toFixed(1)}</span>
-                                                    <div className="text-[10px] text-[var(--color-b-muted)]">SL: {Number(row.risk_position.stop_loss).toFixed(2)}₺</div>
+                                                    <div className="text-[10px] text-[var(--color-b-muted)]" title="Stop-Loss: zarar-kes seviyesi (fiyat buraya düşerse pozisyondan çıkılması önerilir).">SL: {Number(row.risk_position.stop_loss).toFixed(2)}₺</div>
                                                 </div>
                                             ) : <span className="text-[var(--color-b-muted)]">-</span>}
                                         </td>
