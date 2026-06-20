@@ -358,6 +358,7 @@ export default function TopPicks15DPage() {
                                     <th className="p-4 border-b border-[var(--color-b-border)] font-semibold text-center" title="Risk + güven (V6) bazlı önerilen portföy ağırlığı: (%1 risk bütçesi ÷ stop mesafesi) × (V6 skoru/100), maks %25. Güven arttıkça önerilen ağırlık artar.">🛡️ Önerilen Ağırlık</th>
                                     <th className="p-4 border-b border-[var(--color-b-border)] font-semibold cursor-pointer hover:text-white" title="Şirketin değerleme görünümü (F/K, PD/DD, temettüye göre): Kelepir, Normal, Riskli gibi etiketler." onClick={() => requestSort('temel_durum')}>Temel Durum{renderSortArrow('temel_durum')}</th>
                                     <th className="p-4 border-b border-[var(--color-b-border)] font-semibold cursor-pointer hover:text-white" title="Modelin nihai teknik kararı: Güçlü Al / Al / Nötr / Sat ve tepki/bekle gibi durumlar." onClick={() => requestSort('karar')}>Karar Sinyali{renderSortArrow('karar')}</th>
+                                    <th className="p-4 border-b border-[var(--color-b-border)] font-semibold text-center" title="Oluşan kesişim/formasyon sinyalleri: 🚩 Boğa Flaması, 🎯 MACD Altın Kesişim, 💥 Bollinger, ⚡ Stochastic dönüş, 💎 RSI Pozitif Uyumsuzluk, 🔥 Dipten Dönüş. Üzerine gelince detay.">🚩 Sinyaller</th>
                                     <th className="p-4 border-b border-[var(--color-b-border)] font-semibold cursor-pointer hover:text-white" title="Graham formülüyle hesaplanan içsel (adil) değer tahmini; fiyat bunun altındaysa ucuz, üstündeyse pahalı sayılır." onClick={() => requestSort('graham_value')}>Graham Değeri{renderSortArrow('graham_value')}</th>
                                     <th className="p-4 border-b border-[var(--color-b-border)] font-semibold text-center">İşlem</th>
                                 </tr>
@@ -402,6 +403,21 @@ export default function TopPicks15DPage() {
                                         </td>
                                         <td className={`p-4 font-bold ${String(row.karar).includes("AL") || String(row.karar).includes("Lider") ? 'text-green-500' : 'text-yellow-500'}`}>
                                             {row.karar || "-"}
+                                        </td>
+                                        <td className="p-4 text-center" title={row.summary || ""}>
+                                            {(() => {
+                                                const s = String(row.summary || "");
+                                                const badges: string[] = [];
+                                                if (s.includes("Boğa Flaması")) badges.push("🚩");
+                                                if (s.includes("Altın Kesişim")) badges.push("🎯");
+                                                if (s.includes("Bollinger")) badges.push("💥");
+                                                if (s.includes("Stochastic")) badges.push("⚡");
+                                                if (s.includes("Pozitif Uyumsuzluk")) badges.push("💎");
+                                                if (s.includes("Dipten Dönüş")) badges.push("🔥");
+                                                return badges.length
+                                                    ? <span className="text-lg tracking-wide cursor-help">{badges.join(" ")}</span>
+                                                    : <span className="text-[var(--color-b-muted)]">-</span>;
+                                            })()}
                                         </td>
                                         <td className="p-4 text-white font-medium">
                                             {typeof row.graham_value === 'number' ? `${row.graham_value.toFixed(2)} ₺` : row.graham_value || "-"}
