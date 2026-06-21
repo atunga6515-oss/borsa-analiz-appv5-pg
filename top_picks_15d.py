@@ -140,24 +140,26 @@ def deep_analyze_stock(sym: str, market_regime: dict = None) -> dict:
     # ============================================================
     if is_bear:
         composite = (
-            short_term_score * 0.55 +
+            short_term_score * 0.50 +
             (50 + momentum_bonus) * 0.10 +
             (50 + volume_bonus) * 0.05 +
             (50 + tf_bonus) * 0.05 +
             (50 + pattern_bonus) * 0.05 +
             (50 + support_bonus) * 0.05 +
             sent_100 * 0.05 +
-            (50 + reversal_bonus) * 0.10
+            (50 + reversal_bonus) * 0.10 +
+            (50 + takas_bonus) * 0.05   # Kısa vade akış: yabancı/takas (fundamental yerine)
         )
     else:
         composite = (
-            short_term_score * 0.60 +
+            short_term_score * 0.55 +
             (50 + momentum_bonus) * 0.10 +
             (50 + volume_bonus) * 0.10 +
             (50 + tf_bonus) * 0.05 +
             (50 + pattern_bonus) * 0.05 +
             (50 + support_bonus) * 0.05 +
-            sent_100 * 0.05
+            sent_100 * 0.05 +
+            (50 + takas_bonus) * 0.05   # Kısa vade akış: yabancı/takas (fundamental yerine)
         )
     
     # Yeni eklenen Confluence bonuslarını ana skora ekle
@@ -191,8 +193,10 @@ def deep_analyze_stock(sym: str, market_regime: dict = None) -> dict:
         fund_data = {"pe": 0, "pb": 0, "div_yield": 0, "fundamental_score": 50, "status": "Veri Yok"}
         tem_skor = 50
     
-    # KISA VADE (15D): %85 Teknik/Momentum Kompozit + Sadece %15 Temel Not
-    v6_score = round((composite * 0.85) + (tem_skor * 0.15), 1)
+    # KISA VADE (15D): %95 Teknik/Momentum Kompozit + Sadece %5 Temel Not (çöp-hisse filtresi)
+    # Kısa vadede fundamental fiyatı sürüklemez; ağırlık akış/momentuma verildi, temel
+    # yalnızca aşırı pahalı/zayıf hisseyi hafifçe cezalandıran bir filtre olarak tutuldu.
+    v6_score = round((composite * 0.95) + (tem_skor * 0.05), 1)
 
     # Risk Yönetimi: Konviksiyon (V6) ağırlıklı önerilen pozisyon büyüklüğü
     # Ağırlık = (%1 risk bütçesi / stop mesafesi) × (V6 / 100), maks %25
