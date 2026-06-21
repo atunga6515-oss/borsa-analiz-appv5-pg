@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from api.auth_routes import get_current_user
-from scorecard import get_scorecard_summary, run_daily_snapshot, score_matured_signals
+from scorecard import get_scorecard_summary, get_live_progress, run_daily_snapshot, score_matured_signals
 
 router = APIRouter(prefix="/api/scorecard", tags=["scorecard"])
 
@@ -9,6 +9,12 @@ router = APIRouter(prefix="/api/scorecard", tags=["scorecard"])
 def scorecard_summary(current_user: str = Depends(get_current_user)):
     """Sinyal Karnesi özeti: skor bandı + Boğa Flaması bazında isabet/getiri."""
     return get_scorecard_summary()
+
+
+@router.get("/live")
+def scorecard_live(current_user: str = Depends(get_current_user)):
+    """Devam eden (vadesi dolmamış) sinyallerin anlık/gerçekleşmemiş getirisi (haftalara göre)."""
+    return get_live_progress()
 
 
 @router.post("/run-snapshot")

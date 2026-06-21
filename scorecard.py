@@ -163,6 +163,74 @@ def summarize_rows(scored, pending_count: int = 0) -> dict:
     }
 
 
+def summarize_live(items) -> dict:
+    """items: [(cur_return_pct, days_elapsed), ...] — saf hesaplama (test edilebilir)."""
+    def bucket(rows):
+        n = len(rows)
+        if n == 0:
+            return {"count": 0, "avg_return": 0.0, "in_profit_pct": 0.0}
+        avg = sum(r[0] for r in rows) / n
+        prof = sum(1 for r in rows if r[0] > 0)
+        return {"count": n, "avg_return": round(avg, 2), "in_profit_pct": round(prof / n * 100, 1)}
+
+    wk1 = [r for r in items if r[1] < 5]            # 1. hafta (0-5 işlem günü)
+    wk2 = [r for r in items if 5 <= r[1] < 10]      # 2. hafta (5-10)
+    wk3 = [r for r in items if r[1] >= 10]          # 3. hafta (10+, vadeye yakın)
+    return {
+        "overall": bucket(items),
+        "week1": bucket(wk1),
+        "week2": bucket(wk2),
+        "week3": bucket(wk3),
+        "tracked": len(items),
+    }
+
+
+def get_live_progress() -> dict:
+    """
+    Vadesi DOLMAMIŞ (pending) sinyallerin ŞU ANA KADARKİ (gerçekleşmemiş) getirisini
+    canlı fiyatla hesaplar — kullanıcı 15 işlem günü beklemeden 'nasıl gidiyor' görsün diye.
+    Haftalara (geçen iş-günü) göre gruplar.
+    """
+    from data_loader import get_batch_live_prices
+
+    today = datetime.now(TR_TZ).date()
+    try:
+        with engine.connect() as conn:
+            pend = conn.execute(text(
+                "SELECT ticker, signal_date, entry_price FROM signal_scorecard WHERE status='pending'"
+            )).fetchall()
+        if not pend:
+            return summarize_live([])
+
+        tickers = list({r[0] for r in pend})
+        try:
+            prices = get_batch_live_prices(tickers) or {}
+        except Exception:
+            prices = {}
+
+        items = []
+        for tkr, sdate, entry in pend:
+            entry = float(entry or 0)
+            if entry <= 0:
+                continue
+            p = prices.get(tkr) or {}
+            px = float(p.get("price") or 0)
+            if px <= 0:
+                continue
+            try:
+                d0 = datetime.strptime(str(sdate)[:10], "%Y-%m-%d").date()
+            except Exception:
+                continue
+            days = int(np.busday_count(d0, today))
+            ret = (px - entry) / entry * 100.0
+            items.append((ret, days))
+
+        return summarize_live(items)
+    except Exception as e:
+        print(f"[KARNE] Anlık durum hatası: {e}")
+        return summarize_live([])
+
+
 def get_scorecard_summary() -> dict:
     """DB'den puanlanmış sinyalleri çekip özet döndürür."""
     try:
