@@ -361,11 +361,14 @@ def init_db():
                 score FLOAT,
                 decision VARCHAR(100),
                 entry_price FLOAT,
+                take_profit FLOAT,
+                stop_loss FLOAT,
                 horizon_days INTEGER DEFAULT 15,
                 has_bull_flag BOOLEAN DEFAULT FALSE,
                 status VARCHAR(20) DEFAULT 'pending',
                 eval_date VARCHAR(20),
                 exit_price FLOAT,
+                exit_reason VARCHAR(20),
                 return_pct FLOAT,
                 win BOOLEAN,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -376,6 +379,19 @@ def init_db():
             CREATE INDEX IF NOT EXISTS idx_scorecard_status
             ON signal_scorecard (status, signal_date)
         """))
+
+        # signal_scorecard için take_profit, stop_loss, exit_reason ekle (migration)
+        for col_def in [
+            ("take_profit", "FLOAT"),
+            ("stop_loss", "FLOAT"),
+            ("exit_reason", "VARCHAR(20)"),
+        ]:
+            col_name, col_type = col_def
+            try:
+                with conn.begin_nested():
+                    conn.execute(text(f"ALTER TABLE signal_scorecard ADD COLUMN {col_name} {col_type}"))
+            except Exception:
+                pass
 
         # ai_analyses_history UNIQUE constraint (sadece PostgreSQL için)
         if engine.name == "postgresql":

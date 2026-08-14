@@ -65,6 +65,12 @@ def ref_pipeline(composite, inp, sent_100, is_bear, pbs, core_decision, summary,
         composite -= 30
         summary.append(f"\n🚫 MTF VETO: Haftalık RSI ({inp['rsi_1w']:.1f}) Çok Şişkin. Düzeltme Riski!")
 
+    if (inp.get("rsi_last") is not None and inp["rsi_last"] >= 70) or (inp.get("dist_res_pct") is not None and inp["dist_res_pct"] <= 2.0):
+        composite -= 25
+        rsi_str = f"{inp['rsi_last']:.1f}" if inp.get('rsi_last') is not None else "-"
+        summary.append(f"\n⚠️ Aşırı Alım & Direnç Tepesi Koruması (RSI: {rsi_str}): Kar satışı riski. -25 Ceza!")
+        composite = min(69.9, composite)
+
     if sent_100 < 20:
         composite -= 50
         summary.append("\n🚨 AI VETO: Kara Bulut (Çok Negatif Haberler)")

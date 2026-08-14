@@ -270,8 +270,8 @@ def find_top_picks(symbol_list: list = None, top_n: int = 5, progress_bar=None) 
     all_results = []
     total = len(symbol_list)
 
-    # ThreadPoolExecutor ile paralel asenkron tarama
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+    # ThreadPoolExecutor ile paralel asenkron tarama (25 worker ile yüksek performans)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=25) as executor:
         # Gelecekteki taskları başlat
         future_to_sym = {executor.submit(deep_analyze_stock, sym, market_regime): sym for sym in symbol_list}
         
@@ -311,6 +311,6 @@ def find_top_picks(symbol_list: list = None, top_n: int = 5, progress_bar=None) 
     else:
         pool = filtered
         
-    # Kompozit skor ve Piyasa Gücü Skoruna (pgs) göre sırala
-    pool.sort(key=lambda x: (x.get("kompozit_skor", 0), x.get("pgs", 0)), reverse=True)
+    # Kompozit skor, Piyasa Gücü Skoru (pgs) ve hisse koduna (ticker) göre kararlı sırala
+    pool.sort(key=lambda x: (x.get("kompozit_skor", 0), x.get("pgs", 0), x.get("ticker", "")), reverse=True)
     return pool[:top_n]

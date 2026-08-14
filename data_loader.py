@@ -185,7 +185,7 @@ def _clean_yf_data(data: pd.DataFrame, ticker: str) -> pd.DataFrame:
 # ANA FONKSİYONLAR (Dışarıya açık API)
 # ============================================================
 
-@ttl_cache(ttl_seconds=300)
+@ttl_cache(ttl_seconds=1800)
 def fetch_data(symbol: str, interval: str = "1d", period: str = "1y") -> pd.DataFrame:
     """
     Akıllı veri çekme fonksiyonu:

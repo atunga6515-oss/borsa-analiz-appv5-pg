@@ -124,6 +124,7 @@ def fetch_kap_news(ticker):
     except:
         return []
 
+@ttl_cache(ttl_seconds=3600)
 def get_sentiment_summary(ticker):
     """
     Hibrit sistem için hem AI hem de fallback duygu skorunu hesaplar.

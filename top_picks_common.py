@@ -265,6 +265,7 @@ def compute_finalize_inputs(df, live_px, zones, market_regime):
         "upper_shadow": upper_shadow,
         "dist_ema20": dist_ema20,
         "rsi_last": rsi_last,
+        "dist_res_pct": (((zones['best_sell_zones'][0][1] - live_px) / live_px) * 100) if (rr_has and live_px > 0) else None,
         "daily_chg": (market_regime.get('daily_chg', 0) if market_regime else None),
     }
 
@@ -311,6 +312,13 @@ def finalize_composite(composite, inp, *, sent_100, is_bear, price_below_sma50,
     if inp["rsi_1w"] is not None and inp["rsi_1w"] > 80:
         composite -= 30
         summary.append(f"\n🚫 MTF VETO: Haftalık RSI ({inp['rsi_1w']:.1f}) Çok Şişkin. Düzeltme Riski!")
+
+    # Aşırı Alım (Overbought) & Direnç Tepesi Koruması (RSI >= 70 veya Direnç Tepesine Yakınlık <= %2)
+    if (inp.get("rsi_last") is not None and inp["rsi_last"] >= 70) or (inp.get("dist_res_pct") is not None and inp["dist_res_pct"] <= 2.0):
+        composite -= 25
+        rsi_str = f"{inp['rsi_last']:.1f}" if inp.get('rsi_last') is not None else "-"
+        summary.append(f"\n⚠️ Aşırı Alım & Direnç Tepesi Koruması (RSI: {rsi_str}): Kar satışı riski. -25 Ceza!")
+        composite = min(69.9, composite)  # Tepe fiyatta Güçlü Al/Al sinyali engellenir
 
     # AI VETO
     if sent_100 < 20:

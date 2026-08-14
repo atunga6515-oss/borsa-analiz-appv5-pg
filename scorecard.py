@@ -51,6 +51,27 @@ def run_daily_snapshot() -> int:
                 if not tkr or price <= 0:
                     continue
 
+                # Katı filtre: Sadece AL yönelimli, skor >= 55 ve PGS >= 40 olan geçerli sinyalleri kaydet
+                score = float(r.get("kompozit_skor", 0) or 0)
+                karar = str(r.get("karar", "")).lower()
+                pgs = float(r.get("pgs", r.get("Güven Skoru (PGS)", 50)) or 50)
+
+                if score < 55 or pgs < 40:
+                    continue
+                if any(x in karar for x in ("sat", "veto", "bekle", "doygun")):
+                    continue
+                if not any(x in karar for x in ("al", "güçlü", "guclu", "lider", "potansiyel", "trend", "momentum", "pozitif")):
+                    continue
+
+                # TP / SL Seviyeleri (ATR veya varsayılan %10 TP / %5 SL)
+                rd = r.get("risk_details", {}) or {}
+                sl_val = float(rd.get("SL", 0) or 0)
+                tp_val = float(rd.get("TP", 0) or 0)
+                if sl_val <= 0 or sl_val >= price:
+                    sl_val = round(price * 0.95, 2)
+                if tp_val <= 0 or tp_val <= price:
+                    tp_val = round(price * 1.10, 2)
+
                 exists = conn.execute(
                     text("SELECT 1 FROM signal_scorecard WHERE ticker=:t AND signal_date=:d AND strategy=:s"),
                     {"t": tkr, "d": today, "s": STRATEGY},
@@ -64,13 +85,14 @@ def run_daily_snapshot() -> int:
                 conn.execute(text("""
                     INSERT INTO signal_scorecard
                       (ticker, strategy, signal_date, score, decision, entry_price,
-                       horizon_days, has_bull_flag, status)
-                    VALUES (:t, :s, :d, :sc, :dec, :ep, :h, :bf, 'pending')
+                       take_profit, stop_loss, horizon_days, has_bull_flag, status)
+                    VALUES (:t, :s, :d, :sc, :dec, :ep, :tp, :sl, :h, :bf, 'pending')
                 """), {
                     "t": tkr, "s": STRATEGY, "d": today,
                     "sc": float(r.get("kompozit_skor", 0) or 0),
                     "dec": str(r.get("karar", ""))[:100],
-                    "ep": price, "h": HORIZON_BDAYS, "bf": bool(has_flag),
+                    "ep": price, "tp": tp_val, "sl": sl_val,
+                    "h": HORIZON_BDAYS, "bf": bool(has_flag),
                 })
                 inserted += 1
     except Exception as e:
@@ -82,21 +104,76 @@ def run_daily_snapshot() -> int:
 
 
 # ============================================================
-# 2) PUANLAMA — vadesi dolanları değerlendir
+# 2) PUANLAMA — TP/SL Simülasyonu ile Değerlendirme
 # ============================================================
+def evaluate_signal_tpsl(df, signal_date_str: str, entry_price: float,
+                        take_profit: float = None, stop_loss: float = None) -> dict:
+    """
+    Sinyal tarihinden itibaren 15 işlem gününün OHLCV verisini tarar.
+    Gün gün High >= TP mi, Low <= SL mi kontrol eder.
+    """
+    if df is None or df.empty or entry_price <= 0:
+        return None
+
+    if not take_profit or take_profit <= entry_price:
+        take_profit = round(entry_price * 1.10, 2)
+    if not stop_loss or stop_loss >= entry_price:
+        stop_loss = round(entry_price * 0.95, 2)
+
+    # Sinyal tarihinden sonraki mumları filtrele
+    df_after = df.copy()
+    if hasattr(df_after.index, 'strftime'):
+        df_after = df_after[df_after.index.strftime('%Y-%m-%d') > str(signal_date_str)[:10]]
+
+    if df_after.empty:
+        return None
+
+    sub_df = df_after.head(HORIZON_BDAYS)
+    for idx, row in sub_df.iterrows():
+        high_px = float(row.get('High', row.get('Close', entry_price)))
+        low_px = float(row.get('Low', row.get('Close', entry_price)))
+
+        if high_px >= take_profit:
+            ret = (take_profit - entry_price) / entry_price * 100.0
+            return {
+                'exit_price': round(take_profit, 2),
+                'return_pct': round(ret, 2),
+                'win': True,
+                'exit_reason': 'TP'
+            }
+        if low_px <= stop_loss:
+            ret = (stop_loss - entry_price) / entry_price * 100.0
+            return {
+                'exit_price': round(stop_loss, 2),
+                'return_pct': round(ret, 2),
+                'win': False,
+                'exit_reason': 'SL'
+            }
+
+    # 15 gün doldu, TP/SL tetiklenmediysa son gün kapanışından çıkış yap
+    final_close = float(sub_df['Close'].iloc[-1])
+    ret = (final_close - entry_price) / entry_price * 100.0
+    return {
+        'exit_price': round(final_close, 2),
+        'return_pct': round(ret, 2),
+        'win': bool(ret > 0),
+        'exit_reason': 'TIME'
+    }
+
+
 def score_matured_signals() -> int:
-    """Vadesi (15 işlem günü) dolmuş bekleyen sinyalleri güncel fiyatla puanlar."""
-    from data_loader import get_live_price
+    """Vadesi (15 işlem günü) dolmuş bekleyen sinyalleri TP/SL simülasyonu ile puanlar."""
+    from data_loader import fetch_data, get_live_price
 
     today = datetime.now(TR_TZ).date()
     scored = 0
     try:
         with engine.begin() as conn:
             pend = conn.execute(text(
-                "SELECT id, ticker, signal_date, entry_price FROM signal_scorecard WHERE status='pending'"
+                "SELECT id, ticker, signal_date, entry_price, take_profit, stop_loss FROM signal_scorecard WHERE status='pending'"
             )).fetchall()
 
-            for rid, tkr, sdate, entry in pend:
+            for rid, tkr, sdate, entry, tp, sl in pend:
                 try:
                     d0 = datetime.strptime(str(sdate)[:10], "%Y-%m-%d").date()
                 except Exception:
@@ -108,25 +185,38 @@ def score_matured_signals() -> int:
                 entry = float(entry or 0)
                 if entry <= 0:
                     continue
-                px = get_live_price(tkr)
-                if not px or px <= 0:
-                    continue
 
-                ret = (px - entry) / entry * 100.0
+                df = fetch_data(tkr, interval="1d", period="1y")
+                eval_res = evaluate_signal_tpsl(df, str(sdate)[:10], entry, tp, sl)
+
+                if eval_res:
+                    xp = eval_res['exit_price']
+                    ret = eval_res['return_pct']
+                    win = eval_res['win']
+                    reason = eval_res['exit_reason']
+                else:
+                    px = get_live_price(tkr)
+                    if not px or px <= 0:
+                        continue
+                    ret = round((px - entry) / entry * 100.0, 2)
+                    xp = float(px)
+                    win = bool(ret > 0)
+                    reason = 'TIME'
+
                 conn.execute(text("""
                     UPDATE signal_scorecard
-                    SET status='scored', eval_date=:ed, exit_price=:xp, return_pct=:r, win=:w
+                    SET status='scored', eval_date=:ed, exit_price=:xp, exit_reason=:er, return_pct=:r, win=:w
                     WHERE id=:id
                 """), {
-                    "ed": today.strftime("%Y-%m-%d"), "xp": float(px),
-                    "r": round(ret, 2), "w": bool(ret > 0), "id": rid,
+                    "ed": today.strftime("%Y-%m-%d"), "xp": xp, "er": reason,
+                    "r": ret, "w": win, "id": rid,
                 })
                 scored += 1
     except Exception as e:
         print(f"[KARNE] Puanlama hatası: {e}")
         return scored
 
-    print(f"[KARNE] {scored} sinyal puanlandı.")
+    print(f"[KARNE] {scored} sinyal TP/SL simülasyonu ile puanlandı.")
     return scored
 
 
