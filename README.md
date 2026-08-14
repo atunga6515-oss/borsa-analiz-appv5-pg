@@ -14,7 +14,8 @@ Eski Streamlit (V4) yapısı terkedilmiş olup, sistem **FastAPI (Backend)** ve 
 - **Seçki 15G (Kısa Vade):** BIST Tüm hisseleri üzerinden 15 günlük patlama potansiyeli arayan kısa vade motoru. Kısa vadede daha güvenilir osilatörlere (RSI/Bollinger/Williams ×2) ağırlık veren skorlama, MACD altın kesişimi, Bollinger sıkışması, RSI uyumsuzluğu ve **Boğa Flaması (Bull Flag)** formasyonu gibi kesişim (confluence) bonusları içerir. Her hissenin oluşan sinyalleri tabloda emoji rozetleriyle (her sinyal = 1 rozet + 1 açıklama) gösterilir.
 - **Seçki O-U Vade (Orta-Uzun):** Güvenilir orta ve uzun vadeli indikatörlerden yola çıkarak hisseleri analiz eden ana tarama modülü.
 - **AlphaRank 15D:** Takip listenizdeki hisseleri Gelişmiş AI modeli ve Kısa Vadeli Motor bonus puanıyla sıralayan sıralama sistemi.
-- **Sinyal Karnesi (Model Scorecard):** Seçki 15G sinyalleri her gün otomatik kaydedilir ve 15 işlem günü sonra gerçek getirisiyle puanlanır. Skor bandına (Güçlü Al / Al / ...) ve Boğa Flaması durumuna göre **gerçek isabet oranı ve ortalama getiri** raporlanır — yani tahmin değil, ölçüm.
+- **Sinyal Karnesi (Model Scorecard):** Seçki 15G sinyalleri her gün otomatik kaydedilir. 15 işlem günü boyunca OHLCV mum verileri üzerinde **ATR bazlı TP/SL (Kar Al / Zarar Kes)** seviyeleri gün gün simüle edilerek puanlanır. Skor bandına (Güçlü Al / Al / ...) ve Boğa Flaması durumuna göre **gerçek isabet oranı ve ortalama getiri** raporlanır — yani tahmin değil, gerçekçi ölçüm.
+- **Aşırı Alım (Overbought) & Direnç Tepesi Koruması:** RSI $\ge 70$ veya ana dirence $\le \%2.0$ yakın tepe fiyatlardaki hisselere -25 puan ceza uygulanarak skor 69.9 ile sınırlandırılır. Tepeden "Güçlü Al" sinyali üretilmesi engellenir.
 - **Risk Yönetimi ve Graham Değeri:** Graham içsel değeri, ATR bazlı dinamik Kar Al/Zarar Kes seviyeleri ve **konviksiyon (V6 skoru) ağırlıklı önerilen pozisyon büyüklüğü** — `(%1 risk bütçesi ÷ stop mesafesi) × (V6/100)`, maks %25.
 - **Telegram Entegrasyonu:** Bulduğunuz fırsatları veya kendi seçtiğiniz hisseleri tek tıkla (`📤 Telegram'a Gönder`) kişisel botunuza iletme imkanı.
 - **Canlı Yama Teknolojisi:** Yfinance gecikmelerine karşı, piyasa saatleri içinde anlık hisse fiyatlarını (live quote) ve günlük değişim yüzdelerini doğrudan arayüze/grafiğe yamalayan yenilikçi sistem.
@@ -23,7 +24,11 @@ Eski Streamlit (V4) yapısı terkedilmiş olup, sistem **FastAPI (Backend)** ve 
 
 ---
 
-## 🆕 Son İyileştirmeler (Kalite & Doğruluk)
+## 🆕 Son İyileştirmeler (Kalite, Doğruluk & Hız)
+- **Sinyal Karnesi TP/SL Simülasyonu:** Sinyal vadesi süresince OHLCV mumlarında Kar Al (TP) ve Zarar Kes (SL) seviyelerinin gün gün simülasyonu (`exit_reason`: TP / SL / TIME).
+- **Aşırı Alım & Direnç Koruması:** Tepe fiyatlardaki hisseler için -25 ceza ve skor üst sınırı (69.9) ile yanlış Güçlü Al sinyalleri engellendi.
+- **25-Worker BISTFULL Hız Optimizasyonu:** BISTFULL (~500 hisse) tarama süresi 5 dakika 50 saniyeden **~30-40 saniyeye** indirildi.
+- **Kararlı (Deterministic) Önbellek:** 30 dakikalık TTL Cache (`data_loader.py`), Gemini AI haber önbelleği (`kap_news.py`) ve ikincil alfabetik `ticker` sıralama anahtarı eklendi.
 - **Matematiksel doğruluk:** Backtest getirisi artık bileşik (compounding) hesaplanıyor; sinyal seçiminde out-of-sample (train/test) ayrımı; Sharpe/Sortino birim tutarlılığı düzeltildi.
 - **SuperTrend SSOT:** Tek kaynak fonksiyon + sürümden bağımsız dinamik kolon adı.
 - **Risk modülü entegrasyonu:** Önerilen pozisyon büyüklüğü seçkilere bağlandı (konviksiyon ağırlıklı).
@@ -31,7 +36,7 @@ Eski Streamlit (V4) yapısı terkedilmiş olup, sistem **FastAPI (Backend)** ve 
 - **Pro Terminal:** Doğru zaman dilimi (günlük), pivot-tabanlı divergence, anlamlı Anchored VWAP, NaN'ler grafikten gizlendi, doğru +DI/−DI.
 - **Yapay Zeka:** Zengin veriyle besleme, yön bilgili MACD, hata anında kota iadesi, model yedeği ve rate-limit.
 - **UI:** Açıklama balonları anında açılan (gecikmesiz) Pro Terminal stiline geçti; sinyal rozetleri birebir tutarlı.
-- **Otomatik test:** İndikatör/skor/risk/formasyon mantığı için birim ve denklik testleri eklendi.
+- **Otomatik test:** İndikatör/skor/risk/formasyon ve TP/SL simülasyon mantığı için birim ve denklik testleri eklendi (`test_scorecard_tpsl.py`).
 
 ---
 
