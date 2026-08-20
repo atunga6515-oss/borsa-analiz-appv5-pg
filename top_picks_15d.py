@@ -263,7 +263,13 @@ def find_top_picks(symbol_list: list = None, top_n: int = 5, progress_bar=None) 
     if symbol_list is None:
         symbol_list = BIST30_SYMBOLS
 
-    # Market Rejimi Hesapla (Bir kere)
+    # Market Rejimi & Toplu Veri Ön Yükleme (Batch Download)
+    from data_loader import fetch_batch_data
+    try:
+        fetch_batch_data(symbol_list, interval="1d", period="1y")
+    except Exception:
+        pass
+
     xu100_df = fetch_data("XU100", interval="1d", period="1y")
     market_regime = get_market_regime(xu100_df)
 

@@ -108,8 +108,8 @@ def fetch_kap_news(ticker):
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
         
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        resp = urllib.request.urlopen(req, timeout=10, context=ctx)
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
+        resp = urllib.request.urlopen(req, timeout=3, context=ctx)
         xml_data = resp.read()
         root = ET.fromstring(xml_data)
         

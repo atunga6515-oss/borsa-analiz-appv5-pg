@@ -4,7 +4,7 @@ from cache_utils import ttl_cache
 import yfinance as yf
 import time
 import math
-@ttl_cache(ttl_seconds=3600*12)
+@ttl_cache(ttl_seconds=86400)
 def get_fundamental_data(ticker_symbol: str) -> dict:
     """Verilen hissenin temel analiz rasyolarını getirir. (Geliştirilmiş Robust Versiyon)"""
     try:
@@ -14,9 +14,12 @@ def get_fundamental_data(ticker_symbol: str) -> dict:
         # 1. RETRY LOGIC (Yfinance bazen boş dönebilir)
         info = {}
         for _ in range(2):
-            info = ticker.info
-            if info and len(info) > 10: break
-            time.sleep(0.5)
+            try:
+                info = ticker.info
+                if info and len(info) > 10: break
+            except Exception:
+                pass
+            time.sleep(0.1)
         
         if not info: info = {}
 

@@ -518,7 +518,13 @@ def run_screener(symbol_list: list, username: str, progress_bar=None, max_worker
     total = len(symbol_list)
     completed = 0
 
-    # 1. Piyasa Rejimi Onayı (BIST 100 Analizi)
+    # Toplu Veri Ön Yükleme (Batch Download)
+    from data_loader import fetch_batch_data
+    try:
+        fetch_batch_data(symbol_list, interval="1d", period="1y")
+    except Exception:
+        pass
+
     xu100_df = fetch_data("XU100", interval="1d", period="1y")
     market_regime = get_market_regime(xu100_df)
     

@@ -247,9 +247,39 @@ def fetch_data(symbol: str, interval: str = "1d", period: str = "1y") -> pd.Data
                     # Yeni bir gün mumu ise dataframe'in sonuna ekle
                     final_df = pd.concat([final_df, live_df])
         except Exception as e:
-            pass
-            
     return final_df
+
+
+@ttl_cache(ttl_seconds=1800)
+def fetch_batch_data(symbols: list, interval: str = "1d", period: str = "1y"):
+    """
+    Verilen tüm hisseler için yfinance üzerinden TEK BİR PAKET (batch download) halinde
+    veriyi çeker ve veritabanına kaydeder.
+    """
+    if not symbols:
+        return
+    yf_tickers = [_make_ticker(s) for s in symbols]
+    try:
+        session = _get_yf_session()
+        data = yf.download(yf_tickers, period=period, interval=interval,
+                           group_by="ticker", progress=False,
+                           auto_adjust=False, repair=True,
+                           session=session, threads=True)
+        if data.empty:
+            return
+
+        for sym in symbols:
+            tkr = _make_ticker(sym)
+            try:
+                if isinstance(data.columns, pd.MultiIndex):
+                    if tkr in data.columns.get_level_values(0):
+                        sub_df = data.xs(tkr, axis=1, level=0).dropna(how='all')
+                        if not sub_df.empty:
+                            _save_to_db(sub_df, tkr, interval)
+            except Exception:
+                pass
+    except Exception as e:
+        pass
 
 
 @ttl_cache(ttl_seconds=300)
