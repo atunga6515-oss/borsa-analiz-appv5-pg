@@ -38,7 +38,7 @@ def bg_run_screener(task_id: str, symbols: list, username: str):
         scan_tasks[task_id]["text"] = "Tarama başlatılıyor..."
         
         pb = APIProgressBar(task_id)
-        df = run_screener(symbols, username, progress_bar=pb)
+        df = run_screener(symbols, username, progress_bar=pb, max_workers=25)
         
         if isinstance(df, pd.DataFrame):
             df = df.replace([np.inf, -np.inf], np.nan)

@@ -509,10 +509,10 @@ def _analyze_single_stock(sym: str, market_regime: dict = None) -> dict:
 # ANA TARAYICI FONKSİYONU (Paralel + Sektör + Geçmiş Kayıt)
 # ============================================================
 
-def run_screener(symbol_list: list, username: str, progress_bar=None, max_workers: int = 5) -> pd.DataFrame:
+def run_screener(symbol_list: list, username: str, progress_bar=None, max_workers: int = 25) -> pd.DataFrame:
     """
-    Paralel çoklu iş parçacığı ile hisseleri tarar.
-    Sonuçları otomatik olarak SQLite'a kaydeder.
+    Paralel çoklu iş parçacığı ile hisseleri tarar (25 worker ile yüksek performans).
+    Sonuçları otomatik olarak veritabanına kaydeder.
     """
     results = []
     total = len(symbol_list)
@@ -542,7 +542,7 @@ def run_screener(symbol_list: list, username: str, progress_bar=None, max_worker
         return pd.DataFrame()
         
     res_df = pd.DataFrame(results)
-    res_df = res_df.sort_values(by="Ensemble Güven Skoru", ascending=False).reset_index(drop=True)
+    res_df = res_df.sort_values(by=["Ensemble Güven Skoru", "Hisse"], ascending=[False, True]).reset_index(drop=True)
     
     # Tarama sonuçlarını SQLite'a kaydet (Özellik 2)
     save_scan_results(res_df, username)
