@@ -247,6 +247,8 @@ def fetch_data(symbol: str, interval: str = "1d", period: str = "1y") -> pd.Data
                     # Yeni bir gün mumu ise dataframe'in sonuna ekle
                     final_df = pd.concat([final_df, live_df])
         except Exception as e:
+            pass
+            
     return final_df
 
 
