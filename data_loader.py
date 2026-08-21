@@ -253,35 +253,48 @@ def fetch_data(symbol: str, interval: str = "1d", period: str = "1y") -> pd.Data
 
 
 @ttl_cache(ttl_seconds=1800)
-def fetch_batch_data(symbols: list, interval: str = "1d", period: str = "1y"):
+def fetch_batch_data(symbols: list, interval: str = "1d", period: str = "1y", progress_bar=None):
     """
-    Verilen tüm hisseler için yfinance üzerinden TEK BİR PAKET (batch download) halinde
-    veriyi çeker ve veritabanına kaydeder.
+    Verilen tüm hisseler için yfinance üzerinden parçalı paketler (100'erli gruplar) halinde
+    veriyi çeker, ilerleme çubuğunu günceller ve veritabanına kaydeder.
     """
     if not symbols:
         return
-    yf_tickers = [_make_ticker(s) for s in symbols]
-    try:
-        session = _get_yf_session()
-        data = yf.download(yf_tickers, period=period, interval=interval,
-                           group_by="ticker", progress=False,
-                           auto_adjust=False, repair=True,
-                           session=session, threads=True)
-        if data.empty:
-            return
-
-        for sym in symbols:
-            tkr = _make_ticker(sym)
+        
+    chunk_size = 100
+    total_symbols = len(symbols)
+    
+    for i in range(0, total_symbols, chunk_size):
+        chunk_syms = symbols[i:i + chunk_size]
+        yf_tickers = [_make_ticker(s) for s in chunk_syms]
+        
+        if progress_bar:
+            pct = min(0.15, 0.15 * (i / max(1, total_symbols)))
             try:
-                if isinstance(data.columns, pd.MultiIndex):
-                    if tkr in data.columns.get_level_values(0):
-                        sub_df = data.xs(tkr, axis=1, level=0).dropna(how='all')
-                        if not sub_df.empty:
-                            _save_to_db(sub_df, tkr, interval)
+                progress_bar.progress(pct, text=f"📊 Toplu piyasa verileri yükleniyor ({i}/{total_symbols})...")
             except Exception:
                 pass
-    except Exception as e:
-        pass
+            
+        try:
+            data = yf.download(yf_tickers, period=period, interval=interval,
+                               group_by="ticker", progress=False,
+                               auto_adjust=False, repair=True,
+                               threads=True)
+            if data is not None and not data.empty:
+                for sym in chunk_syms:
+                    tkr = _make_ticker(sym)
+                    try:
+                        if isinstance(data.columns, pd.MultiIndex):
+                            if tkr in data.columns.get_level_values(0):
+                                sub_df = data.xs(tkr, axis=1, level=0).dropna(how='all')
+                                if not sub_df.empty:
+                                    _save_to_db(sub_df, tkr, interval)
+                        elif not data.empty:
+                            _save_to_db(data, tkr, interval)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
 
 
 @ttl_cache(ttl_seconds=300)

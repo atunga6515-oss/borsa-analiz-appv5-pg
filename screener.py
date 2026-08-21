@@ -521,7 +521,7 @@ def run_screener(symbol_list: list, username: str, progress_bar=None, max_worker
     # Toplu Veri Ön Yükleme (Batch Download)
     from data_loader import fetch_batch_data
     try:
-        fetch_batch_data(symbol_list, interval="1d", period="1y")
+        fetch_batch_data(symbol_list, interval="1d", period="1y", progress_bar=progress_bar)
     except Exception:
         pass
 
@@ -540,7 +540,8 @@ def run_screener(symbol_list: list, username: str, progress_bar=None, max_worker
                     results.append(result)
                 
                 if progress_bar:
-                    progress_bar.progress(completed / total, text=f"{sym} tarandı ({completed}/{total})")
+                    pct = 0.15 + (completed / max(1, total)) * 0.85
+                    progress_bar.progress(pct, text=f"{sym} tarandı ({completed}/{total})")
             except Exception:
                 pass
             

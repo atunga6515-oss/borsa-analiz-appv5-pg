@@ -266,7 +266,7 @@ def find_top_picks(symbol_list: list = None, top_n: int = 5, progress_bar=None) 
     # Market Rejimi & Toplu Veri Ön Yükleme (Batch Download)
     from data_loader import fetch_batch_data
     try:
-        fetch_batch_data(symbol_list, interval="1d", period="1y")
+        fetch_batch_data(symbol_list, interval="1d", period="1y", progress_bar=progress_bar)
     except Exception:
         pass
 
@@ -293,7 +293,8 @@ def find_top_picks(symbol_list: list = None, top_n: int = 5, progress_bar=None) 
             
             completed += 1
             if progress_bar:
-                progress_bar.progress(completed / total, text=f"🔬 Asenkron Tarama: {sym} incelendi... ({completed}/{total})")
+                pct = 0.15 + (completed / max(1, total)) * 0.85
+                progress_bar.progress(pct, text=f"🔬 Asenkron Tarama: {sym} incelendi... ({completed}/{total})")
 
     # V5 güncelleme: Sadece alım yönelimli adayları sırala (doğruluk odaklı filtre)
     def _eligible(row: dict) -> bool:
